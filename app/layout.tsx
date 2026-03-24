@@ -1,7 +1,10 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Geist } from "next/font/google"
 import "./globals.css"
 import { WorkspaceSidebar } from "@/components/workspace-sidebar"
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
         <WorkspaceSidebar />
         <main className="ml-16 min-h-screen flex flex-col">
