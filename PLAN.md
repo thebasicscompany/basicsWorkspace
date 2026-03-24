@@ -530,9 +530,9 @@ All existing tables port directly:
 
 ---
 
-### Phase 0 + Phase 1: Shell & Foundation
+### Phase 0 + Phase 1: Shell, Foundation & Auth
 
-> **STATUS: ✅ COMPLETE** — see Phase 0 checklist above for full detail.
+> **STATUS: ✅ COMPLETE**
 
 #### What was built
 
@@ -541,71 +541,99 @@ All existing tables port directly:
 **Deps installed:**
 - `framer-motion` — page transitions, tile animations
 - `@phosphor-icons/react` — all icons
-- `@radix-ui/react-tooltip` — sidebar tooltips
-- `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-avatar`
+- `@radix-ui/react-tooltip`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-dialog`, `@radix-ui/react-avatar`, `@radix-ui/react-slot`
 - `class-variance-authority`, `clsx`, `tailwind-merge`
 - `sonner`
+- `better-auth` — session-based auth (email/password)
+- `drizzle-orm`, `drizzle-kit`, `postgres` — ORM + migrations
+- `tsx` — for running seed/migration scripts
 
 **File structure delivered:**
 
 ```
 app/
-├── globals.css             ← all design tokens (colors, radius, shadows, squircle shadows)
-├── layout.tsx              ← Inter font, sidebar + ml-16 main
-├── page.tsx                ← Launchpad (data-driven from apps/_registry)
-├── crm/page.tsx            ← CRM group view (Contacts, Companies, Deals)
-├── automations/page.tsx    ← stub
-├── tasks/page.tsx          ← stub
-├── notes/page.tsx          ← stub
-├── meetings/page.tsx       ← stub
-├── shop/page.tsx           ← stub
-├── agent/page.tsx          ← stub
-└── context/page.tsx        ← stub
+├── globals.css                     ← all design tokens (colors, radius, shadows, squircle shadows)
+├── layout.tsx                      ← Inter font only, no sidebar (route groups handle that)
+├── (auth)/
+│   ├── layout.tsx                  ← bare layout, no sidebar
+│   └── login/page.tsx              ← centered login, Basics logo, brand green button
+├── (workspace)/
+│   ├── layout.tsx                  ← WorkspaceSidebar + ml-16 main
+│   ├── page.tsx                    ← Launchpad (data-driven from apps/_registry)
+│   ├── crm/page.tsx                ← CRM group view (Contacts, Companies, Deals)
+│   ├── automations/page.tsx        ← stub
+│   ├── tasks/page.tsx              ← stub
+│   ├── notes/page.tsx              ← stub
+│   ├── meetings/page.tsx           ← stub
+│   ├── shop/page.tsx               ← stub
+│   ├── agent/page.tsx              ← stub
+│   └── context/page.tsx            ← stub
+└── api/
+    └── auth/[...all]/route.ts      ← Better Auth handler (GET + POST)
 
-apps/                       ← App primitive layer (new — not in original plan)
-├── _types.ts               ← AppManifest + PhosphorIconComponent interfaces
-├── _registry.ts            ← INSTALLED_APPS = [...] — single source of truth
+apps/                               ← App primitive layer
+├── _types.ts                       ← AppManifest + PhosphorIconComponent interfaces
+├── _registry.ts                    ← INSTALLED_APPS = [...] — single source of truth
 ├── automations/manifest.ts
-├── crm/manifest.ts         ← includes subApps for group tile preview
+├── crm/manifest.ts                 ← includes subApps for group tile preview
 ├── tasks/manifest.ts
 ├── notes/manifest.ts
 ├── meetings/manifest.ts
 └── meeting-assistant/manifest.ts
 
 components/
-├── workspace-sidebar.tsx   ← 64px fixed, logo image, 4 nav icons, user avatar
-├── app-header.tsx          ← breadcrumb + right-side actions slot
-├── page-transition.tsx     ← Framer Motion fade+slide wrapper
-├── section-label.tsx       ← small-caps section divider
+├── workspace-sidebar.tsx           ← 64px fixed, logo, 4 nav icons, user avatar dropdown
+├── login-form.tsx                  ← email/password form wired to signIn.email()
+├── app-header.tsx                  ← breadcrumb + right-side actions slot
+├── page-transition.tsx             ← Framer Motion fade+slide wrapper
+├── section-label.tsx               ← small-caps section divider
 ├── launchpad/
-│   ├── app-tile.tsx        ← 80×80px squircle, iconBg, hover/press animations
-│   └── connection-tile.tsx ← same shape, connected dot, dashed variant
+│   ├── app-tile.tsx                ← 80×80px squircle, iconBg, hover/press animations
+│   └── connection-tile.tsx         ← same shape, connected dot, dashed variant
 └── ui/
     └── empty-state.tsx
 
 lib/
-└── utils.ts                ← cn()
+├── auth.ts                         ← betterAuth() server config with drizzle adapter
+├── auth-client.ts                  ← createAuthClient — exports signIn, signOut, useSession
+├── utils.ts                        ← cn()
+└── db/
+    ├── index.ts                    ← lazy postgres singleton (Drizzle)
+    └── schema/
+        ├── index.ts
+        └── auth.ts                 ← user, session, account, verification tables
+
+scripts/
+└── seed.ts                         ← creates admin@example.com / admin123
+
+proxy.ts                            ← route protection — redirects unauthenticated → /login
+drizzle.config.ts                   ← Drizzle Kit config (reads .env.local)
+docker-compose.yml                  ← postgres only (port 5435), named volume
+Dockerfile                          ← multi-stage production build (standalone)
+.env.local                          ← DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL
 
 public/
-└── logo.png                ← Basics brand logo (green rounded square + "1")
+└── logo.png                        ← Basics brand logo (green rounded square + "1")
 ```
 
-**Key design decisions made during build:**
+**Key design decisions:**
 
+- **Route groups** — `(auth)/` has no sidebar; `(workspace)/` has sidebar + ml-16 layout. Login page is full-screen with no chrome.
 - **App primitive pattern** — `apps/` directory holds typed manifests. Launchpad is data-driven. Adding a new app = create manifest → register → add route. TypeScript enforces the shape via `satisfies AppManifest`.
 - **`iconBg` on tiles** — each app tile has a colored squircle background (iOS-style). Icon is white on colored bg.
 - **Squircle shadow system** — `--shadow-squircle-color`, `--shadow-squircle-white`, `--shadow-squircle-green`, `--shadow-squircle-green-sm` defined in CSS vars.
-- **Brand green `#2D8653`** — replaces the original indigo accent throughout. Active sidebar items, CTAs, user avatar.
-- **Ambient mesh background** on launchpad — dot grid + soft radial color blobs (green, blue, amber).
-- **Sidebar: 64px wide**, logo at top, 4 nav icons vertically centered, user avatar at bottom.
-- **`vision.md`** written for LLM context.
+- **Brand green `#2D8653`** — replaces original indigo accent throughout. Active sidebar items, CTAs, user avatar.
+- **Ambient mesh background** on launchpad — dot grid + soft radial color blobs.
+- **Docker is DB-only** — `docker-compose.yml` runs only postgres. Next.js runs locally via `npm run dev`. No volume-mount complexity, instant hot reload.
+- **`proxy.ts`** (Next.js 16 convention, replaces `middleware.ts`) — checks for `better-auth.session_token` cookie, redirects unauthenticated requests to `/login`.
+- **User avatar dropdown** — Radix `DropdownMenu`, shows name + email from `useSession()`, Sign out button redirects to `/login`.
+- **`vision.md`** — LLM context document for the project.
 
-**Not yet done from original Phase 1 plan** (moved to Phase 2):
-- Auth (Better Auth) — not wired up
-- DB (Drizzle + PostgreSQL) — not connected
-- `workspace_apps` table — still hardcoded in registry
-- API routes — none yet
+**Not yet done** (Phase 2+):
+- `workspace_apps` table — launchpad still driven by static `apps/_registry.ts`
+- API routes for app data (CRM, Tasks, etc.)
 - Real data in any app
+- Organizations / multi-tenant
 
 ---
 

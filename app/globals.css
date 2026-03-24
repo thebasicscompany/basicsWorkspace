@@ -52,44 +52,32 @@
   --shadow-squircle-white: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02), inset 0 1px 1px rgba(255,255,255,1), inset 0 -1px 1px rgba(0,0,0,0.03);
   --shadow-squircle-green: 0 4px 12px rgba(45,134,83,0.3), inset 0 2px 2px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.15);
   --shadow-squircle-green-sm: 0 4px 10px rgba(45,134,83,0.15), inset 0 2px 2px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(45,134,83,0.1);
-  --background:        oklch(1 0 0);
-  --foreground:        oklch(0.145 0 0);
-  --card:        oklch(1 0 0);
-  --card-foreground:        oklch(0.145 0 0);
-  --popover:        oklch(1 0 0);
-  --popover-foreground:        oklch(0.145 0 0);
-  --primary:        oklch(0.205 0 0);
-  --primary-foreground:        oklch(0.985 0 0);
-  --secondary:        oklch(0.97 0 0);
-  --secondary-foreground:        oklch(0.205 0 0);
-  --muted:        oklch(0.97 0 0);
-  --muted-foreground:        oklch(0.556 0 0);
-  --accent:        oklch(0.97 0 0);
-  --accent-foreground:        oklch(0.205 0 0);
-  --destructive:        oklch(0.577 0.245 27.325);
-  --border:        oklch(0.922 0 0);
-  --input:        oklch(0.922 0 0);
-  --ring:        oklch(0.708 0 0);
-  --chart-1:        oklch(0.87 0 0);
-  --chart-2:        oklch(0.556 0 0);
-  --chart-3:        oklch(0.439 0 0);
-  --chart-4:        oklch(0.371 0 0);
-  --chart-5:        oklch(0.269 0 0);
-  --radius:        0.625rem;
-  --sidebar:        oklch(0.985 0 0);
-  --sidebar-foreground:        oklch(0.145 0 0);
-  --sidebar-primary:        oklch(0.205 0 0);
-  --sidebar-primary-foreground:        oklch(0.985 0 0);
-  --sidebar-accent:        oklch(0.97 0 0);
-  --sidebar-accent-foreground:        oklch(0.205 0 0);
-  --sidebar-border:        oklch(0.922 0 0);
-  --sidebar-ring:        oklch(0.708 0 0);
+  /* ── shadcn semantic vars — mapped to Basics brand ── */
+  --background:             #F9F7F4;
+  --foreground:             #18181B;
+  --card:                   #FFFFFF;
+  --card-foreground:        #18181B;
+  --popover:                #FFFFFF;
+  --popover-foreground:     #18181B;
+  --primary:                #2D8653;
+  --primary-foreground:     #FFFFFF;
+  --secondary:              #F4F2EF;
+  --secondary-foreground:   #18181B;
+  --muted:                  #F4F2EF;
+  --muted-foreground:       #71717A;
+  --accent:                 #E6F4ED;
+  --accent-foreground:      #2D8653;
+  --destructive:            #EF4444;
+  --border:                 #E4E2DE;
+  --input:                  #E4E2DE;
+  --ring:                   #2D8653;
+  --radius:                 0.625rem;
 }
 
 /* ─── Tailwind v4 Theme ──────────────────────────────────────── */
 
 @theme inline {
-  --font-sans:        var(--font-sans);
+  --font-sans:        var(--font-inter, 'Inter', sans-serif);
 
   /* Map CSS vars into Tailwind utilities */
   --color-bg-base:        var(--color-bg-base);
@@ -226,9 +214,9 @@ h1, h2, h3, h4, h5, h6 {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
+    background: var(--color-bg-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-inter, 'Inter', sans-serif);
+    line-height: 1.6;
   }
 }
