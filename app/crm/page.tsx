@@ -10,19 +10,22 @@ const CRM_APPS = [
   {
     name: "Contacts",
     href: "/crm/contacts",
-    icon: <Users size={32} weight="fill" className="text-emerald-500" />,
+    icon: <Users size={32} weight="fill" className="text-white" />,
+    iconBg: "bg-emerald-500",
     subtitle: "48 records",
   },
   {
     name: "Companies",
     href: "/crm/companies",
-    icon: <Buildings size={32} weight="fill" className="text-emerald-600" />,
+    icon: <Buildings size={32} weight="fill" className="text-white" />,
+    iconBg: "bg-emerald-600",
     subtitle: "12 records",
   },
   {
     name: "Deals",
     href: "/crm/deals",
-    icon: <CurrencyDollar size={32} weight="fill" className="text-emerald-400" />,
+    icon: <CurrencyDollar size={32} weight="fill" className="text-white" />,
+    iconBg: "bg-emerald-400",
     subtitle: "$240k pipeline",
   },
 ]
@@ -45,7 +48,7 @@ export default function CRMPage() {
             Your customer relationship data
           </p>
 
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="flex flex-wrap gap-x-8 gap-y-10 shrink-0 mt-8">
             {CRM_APPS.map((app) => (
               <AppTile
                 key={app.name}
@@ -53,6 +56,7 @@ export default function CRMPage() {
                 subtitle={app.subtitle}
                 href={app.href}
                 icon={app.icon}
+                iconBg={app.iconBg}
               />
             ))}
           </div>

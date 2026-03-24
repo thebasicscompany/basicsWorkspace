@@ -328,29 +328,38 @@ Build these first. Every app uses them.
 
 ### 0.6 Phase 0 Build Checklist
 
+> **STATUS: ✅ COMPLETE**
+
 ```
-□ Set up Inter font via next/font/google
-□ Define all CSS custom properties in app/globals.css (colors, radius, shadows)
-□ Configure Tailwind v4 to use CSS vars
-□ Build WorkspaceSidebar — 4 icons, active state, tooltips, user avatar
-□ Build AppHeader — breadcrumb props, right-side actions slot
-□ Build PageTransition — Framer Motion fade+slide wrapper
-□ Build AppTile — square, rounded-2xl, hover animation, icon + name + subtitle
-□ Build SectionLabel — small-caps divider
-□ Wire root layout: sidebar (fixed 56px) + main (ml-14)
-□ Build Launchpad page with hardcoded app tiles (no DB yet)
-□ Build app group "group view" page (hardcoded CRM sub-apps)
-□ Build stub pages: /shop, /agent, /context (just AppHeader + EmptyState)
-□ Verify: sidebar active states work correctly across all routes
-□ Verify: Home stays active when navigating into /crm, /automations, /tasks
-□ Verify: page transitions feel right (not slow, not jarring)
-□ Verify: all tiles hover/press animations work
-□ Verify: breadcrumb updates correctly per route
-□ Verify: warm cream background, correct font, accent color throughout
-□ Verify: looks correct at 1280px, 1440px, 1920px widths
+✅ Set up Inter font via next/font/google
+✅ Define all CSS custom properties in app/globals.css (colors, radius, shadows, squircle shadows)
+✅ Configure Tailwind v4 to use CSS vars
+✅ Build WorkspaceSidebar — 4 icons, active state (brand green), tooltips, logo + user avatar
+✅ Build AppHeader — breadcrumb props, right-side actions slot
+✅ Build PageTransition — Framer Motion fade+slide wrapper
+✅ Build AppTile — 80×80px squircle, iconBg support, hover animation, icon + name + subtitle
+✅ Build SectionLabel — small-caps divider
+✅ Wire root layout: sidebar (fixed 64px) + main (ml-16)
+✅ Build Launchpad — data-driven from apps/_registry, ambient mesh background, greeting
+✅ Build app group "group view" page (CRM → Contacts / Companies / Deals)
+✅ Build stub pages: /shop, /agent, /context, /automations, /tasks, /notes, /meetings
+✅ Sidebar active states work correctly across all routes
+✅ Home stays active when navigating into /crm, /automations, /tasks, etc.
+✅ Page transitions — Framer Motion fade+slide, 200ms
+✅ Tile hover/press animations — scale + squircle shadow lift
+✅ Breadcrumb updates correctly per route
+✅ Brand green (#2D8653) accent throughout, warm cream base, Inter font
+✅ App primitive pattern: apps/_types.ts + apps/_registry.ts + per-app manifests
 ```
 
-**Deliverable:** A running Next.js app with the full shell, correct design tokens, launchpad with hardcoded tiles, all 4 sidebar destinations as stubs, transitions working. Zero real data. Zero features. Just the shell — but it should feel like the real product.
+**Deliverable shipped.** Running Next.js app with full shell, brand design tokens, data-driven launchpad, all 7 sidebar destinations, and a typed app manifest system. Zero real data. Zero features. Shell feels like the real product.
+
+**Beyond Phase 0 (added during build):**
+- `apps/` manifest + registry pattern — launchpad is fully data-driven, not hardcoded
+- `iconBg` on tiles — colored squircle backgrounds (iOS-style)
+- Ambient mesh background on launchpad (dot grid + soft color blobs)
+- Squircle shadow system (`--shadow-squircle-*`) in CSS vars
+- `vision.md` — LLM context document
 
 ---
 
@@ -521,109 +530,82 @@ All existing tables port directly:
 
 ---
 
-### Phase 1: Foundation (start here)
+### Phase 0 + Phase 1: Shell & Foundation
 
-**Goal:** Running app with new sidebar + launchpad. Nothing functional yet, but the shell is right.
+> **STATUS: ✅ COMPLETE** — see Phase 0 checklist above for full detail.
 
-#### 1.1 Project Setup
+#### What was built
 
-```bash
-# Use create-next-app with the right config
-npx create-next-app@latest basics-workspace \
-  --typescript --tailwind --app --src-dir=false \
-  --import-alias "@/*"
+**Project scaffolded** with Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, npm.
 
-# Then install core deps
-pnpm add better-auth drizzle-orm @neondatabase/serverless
-pnpm add @tanstack/react-query
-pnpm add @radix-ui/react-* (via shadcn)
-pnpm add @phosphor-icons/react
-pnpm add framer-motion
-pnpm add sonner
-```
+**Deps installed:**
+- `framer-motion` — page transitions, tile animations
+- `@phosphor-icons/react` — all icons
+- `@radix-ui/react-tooltip` — sidebar tooltips
+- `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-avatar`
+- `class-variance-authority`, `clsx`, `tailwind-merge`
+- `sonner`
 
-Copy from basicsOS (nextjs-plan branch):
-- `components/ui/` — all Shadcn components
-- `components/ui/sidebar.tsx` — sidebar primitive
-- `lib/auth.ts`, `lib/auth-client.ts` — Better Auth setup
-- `lib/db/` — Drizzle config + schema
-- `hooks/use-organization.ts`, `hooks/use-me.ts`
-
-#### 1.2 New Slim Sidebar
-
-File: `components/workspace-sidebar.tsx`
-
-Four items: Home, Shop, Agent, Context. Icon-only by default, labels on hover/expand.
-Keep the same Shadcn Sidebar primitive from basicsOS — just strip down the nav groups.
-
-```typescript
-const NAV_ITEMS = [
-  { href: '/',        icon: HouseIcon,     label: 'Home',    tooltip: 'Workspace' },
-  { href: '/shop',    icon: StorefrontIcon, label: 'Shop',   tooltip: 'App Store' },
-  { href: '/agent',   icon: RobotIcon,     label: 'Agent',   tooltip: 'AI Agent' },
-  { href: '/context', icon: GraphIcon,     label: 'Context', tooltip: 'Data Universe' },
-]
-```
-
-Footer: user avatar with dropdown (profile, settings, sign out).
-
-#### 1.3 Launchpad Page
-
-File: `app/(workspace)/page.tsx` (this is the `/` route)
-
-Two sections:
-- `<AppGrid />` — top half, installed apps
-- `<ConnectionsGrid />` — bottom half, connected services
-
-`AppGrid` reads from `workspace_apps` table via `/api/apps` endpoint.
-Seed it with defaults on first run: Automations, CRM Group, Tasks, Notes, Meetings.
-
-`ConnectionsGrid` reads from gateway `/v1/connections` (proxied through `/api/connections`).
-
-App card component: icon, name, group indicator (▸), installed state. Framer Motion for hover scale.
-
-App group expansion: when clicking a group card, use Framer Motion `AnimatePresence` to expand sub-apps inline within the grid. No navigation — it expands in place.
-
-#### 1.4 Routing Shell
+**File structure delivered:**
 
 ```
 app/
-├── (workspace)/
-│   ├── layout.tsx          ← WorkspaceSidebar + main content area
-│   ├── page.tsx            ← Launchpad
-│   ├── shop/page.tsx       ← App Store (stub)
-│   ├── agent/page.tsx      ← Agent (stub)
-│   └── context/page.tsx    ← Context (stub)
-├── (apps)/
-│   ├── automations/        ← Automations Engine
-│   ├── crm/                ← CRM app group
-│   │   ├── contacts/
-│   │   ├── companies/
-│   │   └── deals/
-│   ├── tasks/
-│   ├── notes/
-│   └── meetings/
-├── (auth)/
-│   ├── sign-in/
-│   └── sign-up/
-└── api/
-    ├── apps/               ← workspace_apps CRUD
-    ├── connections/        ← OAuth proxy (port from basicsOS)
-    ├── workflows/          ← Sim executor (port from basicsOS)
-    └── me/
+├── globals.css             ← all design tokens (colors, radius, shadows, squircle shadows)
+├── layout.tsx              ← Inter font, sidebar + ml-16 main
+├── page.tsx                ← Launchpad (data-driven from apps/_registry)
+├── crm/page.tsx            ← CRM group view (Contacts, Companies, Deals)
+├── automations/page.tsx    ← stub
+├── tasks/page.tsx          ← stub
+├── notes/page.tsx          ← stub
+├── meetings/page.tsx       ← stub
+├── shop/page.tsx           ← stub
+├── agent/page.tsx          ← stub
+└── context/page.tsx        ← stub
+
+apps/                       ← App primitive layer (new — not in original plan)
+├── _types.ts               ← AppManifest + PhosphorIconComponent interfaces
+├── _registry.ts            ← INSTALLED_APPS = [...] — single source of truth
+├── automations/manifest.ts
+├── crm/manifest.ts         ← includes subApps for group tile preview
+├── tasks/manifest.ts
+├── notes/manifest.ts
+├── meetings/manifest.ts
+└── meeting-assistant/manifest.ts
+
+components/
+├── workspace-sidebar.tsx   ← 64px fixed, logo image, 4 nav icons, user avatar
+├── app-header.tsx          ← breadcrumb + right-side actions slot
+├── page-transition.tsx     ← Framer Motion fade+slide wrapper
+├── section-label.tsx       ← small-caps section divider
+├── launchpad/
+│   ├── app-tile.tsx        ← 80×80px squircle, iconBg, hover/press animations
+│   └── connection-tile.tsx ← same shape, connected dot, dashed variant
+└── ui/
+    └── empty-state.tsx
+
+lib/
+└── utils.ts                ← cn()
+
+public/
+└── logo.png                ← Basics brand logo (green rounded square + "1")
 ```
 
-#### 1.5 Auth + DB
+**Key design decisions made during build:**
 
-Port directly from basicsOS nextjs-plan branch:
-- `lib/auth.ts` — Better Auth with same config
-- `lib/db/schema.ts` — add new workspace tables on top of existing schema
-- `app/api/auth/[...all]/route.ts` — Better Auth handler
+- **App primitive pattern** — `apps/` directory holds typed manifests. Launchpad is data-driven. Adding a new app = create manifest → register → add route. TypeScript enforces the shape via `satisfies AppManifest`.
+- **`iconBg` on tiles** — each app tile has a colored squircle background (iOS-style). Icon is white on colored bg.
+- **Squircle shadow system** — `--shadow-squircle-color`, `--shadow-squircle-white`, `--shadow-squircle-green`, `--shadow-squircle-green-sm` defined in CSS vars.
+- **Brand green `#2D8653`** — replaces the original indigo accent throughout. Active sidebar items, CTAs, user avatar.
+- **Ambient mesh background** on launchpad — dot grid + soft radial color blobs (green, blue, amber).
+- **Sidebar: 64px wide**, logo at top, 4 nav icons vertically centered, user avatar at bottom.
+- **`vision.md`** written for LLM context.
 
-Run `pnpm drizzle-kit push` to create tables.
-
-#### Deliverable:
-Launchpad with app grid, slim sidebar with 4 items, clicking apps navigates full-page. Auth works. DB connected.
+**Not yet done from original Phase 1 plan** (moved to Phase 2):
+- Auth (Better Auth) — not wired up
+- DB (Drizzle + PostgreSQL) — not connected
+- `workspace_apps` table — still hardcoded in registry
+- API routes — none yet
+- Real data in any app
 
 ---
 
