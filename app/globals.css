@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+
+:root {
+  /* Surfaces */
+  --color-bg-base:        #F9F7F4;
+  --color-bg-surface:     #FFFFFF;
+  --color-bg-elevated:    #FFFFFF;
+  --color-bg-subtle:      #F4F2EF;
+  --color-bg-sidebar:     #EFEDE9;
+
+  /* Text */
+  --color-text-primary:   #18181B;
+  --color-text-secondary: #71717A;
+  --color-text-tertiary:  #A1A1AA;
+  --color-text-accent:    #2D8653;
+
+  /* Borders */
+  --color-border:         #E4E2DE;
+  --color-border-strong:  #D4D2CE;
+
+  /* Accent — Basics brand green */
+  --color-accent:         #2D8653;
+  --color-accent-light:   #E6F4ED;
+
+  /* Semantic */
+  --color-success:        #22C55E;
+  --color-warning:        #F59E0B;
+  --color-error:          #EF4444;
+  --color-info:           #2D8653;
+
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-2xl:  22px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+
+  /* Premium Squircle Shadows */
+  --shadow-squircle-color: 0 8px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04), inset 0 2px 2px rgba(255,255,255,0.2), inset 0 -2px 4px rgba(0,0,0,0.15);
+  --shadow-squircle-white: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02), inset 0 1px 1px rgba(255,255,255,1), inset 0 -1px 1px rgba(0,0,0,0.03);
+  --shadow-squircle-green: 0 4px 12px rgba(45,134,83,0.3), inset 0 2px 2px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.15);
+  --shadow-squircle-green-sm: 0 4px 10px rgba(45,134,83,0.15), inset 0 2px 2px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(45,134,83,0.1);
+}
+
+/* ─── Tailwind v4 Theme ──────────────────────────────────────── */
+
+@theme inline {
+  --font-sans: 'Inter', sans-serif;
+
+  /* Map CSS vars into Tailwind utilities */
+  --color-bg-base:        var(--color-bg-base);
+  --color-bg-surface:     var(--color-bg-surface);
+  --color-bg-elevated:    var(--color-bg-elevated);
+  --color-bg-subtle:      var(--color-bg-subtle);
+  --color-bg-sidebar:     var(--color-bg-sidebar);
+
+  --color-text-primary:   var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary:  var(--color-text-tertiary);
+  --color-text-accent:    var(--color-text-accent);
+
+  --color-border:         var(--color-border);
+  --color-border-strong:  var(--color-border-strong);
+
+  --color-accent:         var(--color-accent);
+  --color-accent-light:   var(--color-accent-light);
+
+  --shadow-squircle-color: var(--shadow-squircle-color);
+  --shadow-squircle-white: var(--shadow-squircle-white);
+  --shadow-squircle-green: var(--shadow-squircle-green);
+  --shadow-squircle-green-sm: var(--shadow-squircle-green-sm);
+}
+
+/* ─── Base Styles ────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── Typography Scale ───────────────────────────────────────── */
+
+.text-xs   { font-size: 11px; line-height: 1.5; }
+.text-sm   { font-size: 13px; line-height: 1.5; }
+.text-base { font-size: 14px; line-height: 1.6; }
+.text-md   { font-size: 15px; line-height: 1.5; }
+.text-lg   { font-size: 18px; line-height: 1.4; }
+.text-xl   { font-size: 22px; line-height: 1.3; }
+.text-2xl  { font-size: 28px; line-height: 1.2; }
+
+/* Headings: slightly tighter tracking */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.01em;
+}
