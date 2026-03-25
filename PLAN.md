@@ -818,6 +818,94 @@ Agent system prompt includes:
 
 ---
 
+### Phase 5B: Agent — Persistence & Thread Management
+
+**Goal:** Upgrade the agent from in-memory single-session to fully persistent multi-thread conversations, exactly matching the assistant-ui shadcn example with a working thread list sidebar.
+
+**Prerequisite:** Phase 5 UI is live (assistant-ui Thread + gateway wired). This phase layers persistence on top.
+
+#### 5B.1 DB Schema
+
+Add two tables to `lib/db/schema/agent.ts`:
+
+```sql
+agent_threads (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     text NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  title       text,                        -- auto-generated from first message
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
+)
+
+agent_messages (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id   uuid NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
+  role        text NOT NULL,               -- 'user' | 'assistant' | 'system'
+  parts       jsonb NOT NULL,              -- UIMessage parts array (AI SDK format)
+  metadata    jsonb,
+  created_at  timestamptz DEFAULT now()
+)
+```
+
+Push via `npm run db:push`.
+
+#### 5B.2 Thread Management API Routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET    | `/api/agent/threads` | List threads for current user (newest first) |
+| POST   | `/api/agent/threads` | Create new thread, return `{ id }` |
+| DELETE | `/api/agent/threads/[id]` | Delete thread + all its messages |
+| GET    | `/api/agent/threads/[id]/messages` | Load messages for a thread |
+| PATCH  | `/api/agent/threads/[id]` | Rename thread |
+
+All routes auth-guard via `auth.api.getSession()`.
+
+#### 5B.3 Update Chat Route for Persistence
+
+`app/api/agent/chat/route.ts` — add thread saving:
+
+```ts
+// On each POST:
+// 1. Resolve threadId from body (create if missing)
+// 2. Save user message to agent_messages before streaming
+// 3. Stream response from gateway
+// 4. On finish: save assistant message to agent_messages
+// 5. If thread has no title yet, auto-generate from first user message (trim to 60 chars)
+```
+
+Pass `threadId` back in the response headers so the client can update its URL.
+
+#### 5B.4 Switch Runtime to useRemoteThreadListRuntime
+
+Replace `useChatRuntime` in `apps/agent/components/agent-chat.tsx` with `useRemoteThreadListRuntime` from `@assistant-ui/react`:
+
+```ts
+const runtime = useRemoteThreadListRuntime({
+  list: () => fetch("/api/agent/threads").then(r => r.json()),
+  create: () => fetch("/api/agent/threads", { method: "POST" }).then(r => r.json()),
+  delete: (threadId) => fetch(`/api/agent/threads/${threadId}`, { method: "DELETE" }),
+  rename: (threadId, title) => fetch(`/api/agent/threads/${threadId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  }),
+  loadMessages: (threadId) => fetch(`/api/agent/threads/${threadId}/messages`).then(r => r.json()),
+  transport: new DefaultChatTransport({ api: "/api/agent/chat" }),
+})
+```
+
+The `ThreadListPrimitive` sidebar in `agent-chat.tsx` will automatically show real threads, support rename (double-click), and archive/delete from the `ThreadListItemMorePrimitive` overflow menu.
+
+#### 5B.5 Thread List UI Polish
+
+Extend `apps/agent/components/agent-chat.tsx`:
+- Add `ThreadListItemMorePrimitive` overflow menu per item: Rename, Delete
+- Add inline rename on double-click using `ThreadListItemPrimitive.Title` in edit mode
+- Show relative timestamps next to thread titles (`created_at`)
+- Empty state: "No conversations yet — start one below"
+
+---
+
 ### Phase 6: Context
 
 **Goal:** Unified data view across all apps.
@@ -952,20 +1040,23 @@ hooks/
 Start here in your first Claude Code session:
 
 ```
-□ pnpm create next-app@latest . --typescript --tailwind --app
-□ Install: drizzle-orm, better-auth, @tanstack/react-query, @phosphor-icons/react, framer-motion, sonner
-□ Copy components/ui/ from basicsOS
-□ Copy lib/auth.ts, lib/auth-client.ts from basicsOS
-□ Copy lib/db/schema.ts from basicsOS, add workspace_apps + app_groups tables
-□ Set up app/(auth)/sign-in and sign-up pages
-□ Build components/workspace-sidebar.tsx (4 items)
-□ Build app/(workspace)/layout.tsx with sidebar
-□ Build app/(workspace)/page.tsx — launchpad with hardcoded app grid
-□ Build app/(workspace)/shop/page.tsx — stub
-□ Build app/(workspace)/agent/page.tsx — stub
-□ Build app/(workspace)/context/page.tsx — stub
-□ Run pnpm drizzle-kit push, seed default workspace_apps
-□ Verify: sign in, see launchpad, click app, navigate, click sidebar items
+✅ npx create-next-app@latest — Next.js 16, TypeScript, Tailwind v4, App Router
+✅ Install: drizzle-orm, better-auth, @phosphor-icons/react, framer-motion, sonner, radix-ui/*
+✅ lib/auth.ts + lib/auth-client.ts — Better Auth with drizzle adapter, emailAndPassword
+✅ lib/db/schema/auth.ts — user, session, account, verification tables
+✅ lib/db/index.ts — lazy postgres singleton
+✅ drizzle.config.ts — reads .env.local
+✅ app/api/auth/[...all]/route.ts — Better Auth handler
+✅ proxy.ts — route protection, redirects unauthenticated → /login
+✅ app/(auth)/login/page.tsx — shadcn login-02, Basics logo, green right panel
+✅ components/login-form.tsx — wired to signIn.email() via FormData
+✅ app/(workspace)/layout.tsx — sidebar + ml-16 layout
+✅ app/(workspace)/page.tsx — launchpad, data-driven from INSTALLED_APPS
+✅ components/workspace-sidebar.tsx — user avatar dropdown with name/email + sign out
+✅ scripts/seed.ts — creates admin@example.com / admin123
+✅ docker-compose.yml — postgres only (port 5435)
+✅ drizzle-kit push + seed run against Docker postgres
+✅ Verify: sign in → launchpad → navigate apps → sign out
 ```
 
 ---
