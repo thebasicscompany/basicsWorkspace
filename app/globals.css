@@ -220,3 +220,44 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.6;
   }
 }
+
+/* ─── TipTap editor styles ──────────────────────────────────── */
+
+.tiptap p { margin: 0 0 0.5em; }
+.tiptap p:last-child { margin-bottom: 0; }
+.tiptap h1 { font-size: 1.5em; font-weight: 700; margin: 1em 0 0.4em; }
+.tiptap h2 { font-size: 1.25em; font-weight: 600; margin: 0.9em 0 0.35em; }
+.tiptap h3 { font-size: 1.1em; font-weight: 600; margin: 0.8em 0 0.3em; }
+.tiptap ul, .tiptap ol { padding-left: 1.5em; margin: 0.4em 0; }
+.tiptap li { margin: 0.15em 0; }
+.tiptap blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 1em;
+  margin: 0.6em 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+.tiptap code {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.88em;
+  font-family: ui-monospace, monospace;
+}
+.tiptap pre {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin: 0.6em 0;
+}
+.tiptap pre code { background: none; border: none; padding: 0; }
+.tiptap.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+  height: 0;
+}

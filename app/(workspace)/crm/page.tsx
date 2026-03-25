@@ -12,7 +12,7 @@ const CRM_APPS = [
     href: "/crm/contacts",
     icon: <Users size={32} weight="fill" className="text-white" />,
     iconBg: "bg-emerald-500",
-    subtitle: "48 records",
+    subtitle: "15 records",
   },
   {
     name: "Companies",

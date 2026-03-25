@@ -44,45 +44,54 @@ This is not a database with a shared layer on top. It is the product.
 
 ### Layer 1 — Records
 
-The nodes of the graph. Standard objects get typed tables (fast, relational, SQL-native). Custom objects users create (Airtable-style) go in a flexible `records` table backed by `object_config`.
+The nodes of the graph. **Everything — standard objects and custom objects — goes into a single `records` table** backed by `object_config`. There are no separate typed tables for contacts, deals, etc.
 
-**Standard objects** — typed tables:
-
-| Table | Key fields |
-|-------|-----------|
-| `contacts` | firstName, lastName, email, phone, companyId, customFields JSONB |
-| `companies` | name, domain, industry, size, customFields JSONB |
-| `deals` | name, status, amount, companyId, ownerId, closedAt, customFields JSONB |
-| `tasks` | title, status, dueAt, assigneeId, parentType, parentId, customFields JSONB |
-| `notes` | body, authorId, parentType, parentId |
-| `meetings` | title, transcript, summary, recordingUrl, startedAt, endedAt |
-
-`parentType` + `parentId` on tasks and notes is a generic reference — a task can belong to a contact, deal, company, or any custom object.
-
-`customFields JSONB` on standard tables allows power users to add ad-hoc fields without needing a custom object type.
-
-**Custom objects** — flexible schema:
+**Why unified storage:**
+Relationship traversal, Agent tools, Context Query blocks, and semantic search all reference records by `(object_type, id)`. With typed tables, every graph edge traversal requires branching logic: "is this a standard type → join `contacts`, or a custom type → join `records`?" With a single table, traversal is always one join, identical for all types. The performance case for typed tables doesn't apply at this scale, and Postgres generated columns can index frequently-queried JSONB fields if needed later.
 
 ```sql
 object_config (
-  id, workspace_id,
-  slug,           -- "projects", "leads", "invoices" — matches url path
-  name,           -- "Project"
-  name_plural,    -- "Projects"
-  icon,           -- phosphor icon name
-  color,          -- tailwind class
-  fields JSONB,   -- ObjectField[] — the Airtable-style field definitions
-  is_system,      -- true for built-in objects (contacts, deals, etc.)
-  position
+  id            uuid PRIMARY KEY,
+  org_id        text NOT NULL,
+  slug          text NOT NULL,    -- "contacts", "deals", "projects" — matches url path
+  name          text NOT NULL,    -- "Contact", "Deal", "Project"
+  name_plural   text NOT NULL,    -- "Contacts", "Deals", "Projects"
+  icon          text NOT NULL,    -- phosphor icon name
+  color         text NOT NULL,    -- tailwind class
+  fields        JSONB NOT NULL,   -- ObjectField[]
+  is_system     boolean DEFAULT false,  -- true for contacts, deals, tasks, notes, meetings
+  position      integer NOT NULL,
+  UNIQUE (org_id, slug)
 )
 
 records (
-  id, workspace_id,
-  object_type,    -- matches object_config.slug
-  data JSONB,     -- { "name": "Project Alpha", "status": "active", ... }
-  created_at, updated_at
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id      text NOT NULL,
+  object_type text NOT NULL,   -- matches object_config.slug
+  data        JSONB NOT NULL,  -- { "name": "Sarah Chen", "email": "sarah@co.com", ... }
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
 )
+
+-- Indexes
+INDEX (org_id, object_type, created_at DESC)
+CREATE INDEX ON records USING GIN (data)   -- for JSONB field queries
 ```
+
+**Standard system objects** (seeded into `object_config` on org creation with `is_system = true`):
+
+| slug | Core fields in `data` |
+|------|-----------------------|
+| `contacts` | firstName, lastName, email, phone, companyId |
+| `companies` | name, domain, industry, size |
+| `deals` | name, status, amount, companyId, ownerId, closedAt |
+| `tasks` | title, status, dueAt, assigneeId, parentType, parentId |
+| `notes` | body, authorId, parentType, parentId |
+| `meetings` | title, transcript, summary, recordingUrl, startedAt, endedAt |
+
+`parentType` + `parentId` on tasks and notes is a generic reference to any record by `(object_type, id)`. **Convention for cascade deletes:** every DELETE route must also delete orphaned tasks and notes via `WHERE data->>'parentType' = :type AND data->>'parentId' = :id`. A shared `deleteRecord()` helper in `lib/records.ts` should encapsulate this.
+
+**TypeScript interfaces** for standard objects are defined in code (`types/records.ts`) — not in the DB. The DB is schema-less; TypeScript is the schema.
 
 **ObjectField shape** (stored in `object_config.fields`):
 
@@ -90,14 +99,14 @@ records (
 type ObjectField = {
   id: string
   name: string           // "Deal Value"
-  key: string            // "deal_value" — used as JSONB key
+  key: string            // "deal_value" — used as JSONB key in data
   type:
     | "text"
     | "number"
     | "date"
     | "select"
     | "multi_select"
-    | "relation"         // FK to another object
+    | "relation"         // reference to another object type
     | "checkbox"
     | "url"
     | "email"
@@ -121,20 +130,22 @@ The write-ahead log. Every mutation in the system appends a row. This table is t
 
 ```sql
 context_events (
-  id, workspace_id, user_id,
-  source_app,    -- "crm" | "automations" | "tasks" | "meetings" | "agent"
-  event_type,    -- dot-namespaced: "contact.created", "deal.closed", "automation.completed"
-  entity_type,   -- "contact" | "deal" | "task" | custom slug
-  entity_id,
-  entity_name,   -- "Sarah Chen", "Pipeline #2" — denormalized for display
-  metadata JSONB,
-  created_at
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id      text NOT NULL,
+  user_id     text,
+  source_app  text NOT NULL,   -- "crm" | "automations" | "tasks" | "meetings" | "agent"
+  event_type  text NOT NULL,   -- dot-namespaced: "contacts.created", "deals.closed_won"
+  entity_type text NOT NULL,   -- object_config slug: "contacts" | "deals" | custom slug
+  entity_id   uuid NOT NULL,
+  entity_name text,            -- denormalized for display: "Sarah Chen", "Pipeline #2"
+  metadata    JSONB,
+  created_at  timestamptz DEFAULT now()
 )
 
 -- Indexes
-INDEX (workspace_id, created_at DESC)   -- timeline feed
-INDEX (entity_type, entity_id)          -- record detail page
-INDEX (event_type)                      -- automation trigger matching
+INDEX (org_id, created_at DESC)     -- timeline feed
+INDEX (entity_type, entity_id)      -- record detail page
+INDEX (event_type)                  -- automation trigger matching
 ```
 
 **Standard event types:**
@@ -159,20 +170,21 @@ Explicit typed graph edges. Not just foreign keys — first-class connections wi
 
 ```sql
 relationships (
-  id, workspace_id,
-  from_type,      -- "contact"
-  from_id,        -- "abc123"
-  to_type,        -- "deal"
-  to_id,          -- "xyz789"
-  relation_type,  -- see table below
-  metadata JSONB,
-  created_at
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id        text NOT NULL,
+  from_type     text NOT NULL,   -- object_config slug, e.g. "contacts"
+  from_id       uuid NOT NULL,
+  to_type       text NOT NULL,   -- object_config slug, e.g. "deals"
+  to_id         uuid NOT NULL,
+  relation_type text NOT NULL,   -- see table below
+  metadata      JSONB,
+  created_at    timestamptz DEFAULT now(),
+  UNIQUE (org_id, from_type, from_id, to_type, to_id, relation_type)
 )
 
 -- Indexes
-INDEX (from_type, from_id)
-INDEX (to_type, to_id)
-UNIQUE (from_type, from_id, to_type, to_id, relation_type)
+INDEX (org_id, from_type, from_id)
+INDEX (org_id, to_type, to_id)
 ```
 
 **Standard relation types:**
@@ -200,19 +212,22 @@ pgvector on top of everything. Powers semantic search in the Context app, the ag
 -- Requires: CREATE EXTENSION vector;
 
 context_embeddings (
-  id, workspace_id,
-  entity_type,    -- "contact" | "deal" | "note" | custom slug
-  entity_id,
-  chunk_text,     -- the text that was embedded (for display + debugging)
-  embedding       vector(1536),
-  model,          -- gateway model identifier
-  created_at
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id        text NOT NULL,
+  entity_type   text NOT NULL,    -- object_config slug, e.g. "contacts", "deals"
+  entity_id     uuid NOT NULL,
+  chunk_index   integer NOT NULL DEFAULT 0,  -- 0 for single-chunk entities; 0,1,2... for meetings
+  chunk_text    text NOT NULL,    -- the text that was embedded (for display + debugging)
+  embedding     vector(1536),     -- dimension matches gateway embedding model; update if model changes
+  model         text NOT NULL,    -- gateway model identifier, e.g. "basics-embed-small"
+  created_at    timestamptz DEFAULT now(),
+  UNIQUE (entity_type, entity_id, chunk_index)
 )
 
 -- Standard index
 INDEX (entity_type, entity_id)
 
--- HNSW index for ANN search (added via raw migration)
+-- HNSW index for ANN search (added via raw migration after pgvector extension)
 CREATE INDEX ON context_embeddings
   USING hnsw (embedding vector_cosine_ops)
   WITH (m = 16, ef_construction = 64);
@@ -230,6 +245,53 @@ Embeddings go through the **gateway API** (not directly to OpenAI) — vendor-ne
 ---
 
 ## Infrastructure
+
+### Multi-Tenancy — Org Model
+
+Every piece of workspace data is scoped to an **org** (organisation). Users belong to orgs with roles.
+
+Uses **Better Auth's `organization` plugin** — do not hand-roll this.
+
+```ts
+// lib/auth.ts — add to betterAuth() config
+import { organization } from "better-auth/plugins"
+
+export const auth = betterAuth({
+  plugins: [
+    organization({
+      allowUserToCreateOrganization: true,
+      creatorRole: "owner",
+      // On signup, auto-create an org for the user:
+      sendInvitationEmail: async (data) => { /* Resend via gateway */ },
+    })
+  ]
+})
+```
+
+Better Auth automatically adds these tables:
+```
+organization  (id, name, slug, metadata, createdAt)
+member        (id, organizationId, userId, role, createdAt)
+invitation    (id, organizationId, email, role, status, expiresAt, inviterId)
+```
+
+**Roles:** `owner` | `admin` | `member`. All application data (`records`, `context_events`, `relationships`, `context_embeddings`, `object_config`) uses `org_id` — not `user_id` — as the tenancy key.
+
+**Session → org resolution:** every API route resolves the active org from the session:
+```ts
+// lib/auth-helpers.ts
+export async function requireOrg(request: Request) {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) throw new Response("Unauthorized", { status: 401 })
+  const orgId = session.session.activeOrganizationId
+  if (!orgId) throw new Response("No active org", { status: 403 })
+  return { session, orgId, userId: session.user.id }
+}
+```
+
+On first login, if the user has no org, redirect to an org-creation screen (name your workspace).
+
+---
 
 ### PgBoss (Job Queue)
 
@@ -274,7 +336,7 @@ The single function every mutation calls. It appends the event, queues the autom
 // lib/context.ts
 
 export async function logContextEvent(event: {
-  workspaceId: string
+  orgId: string
   userId?: string
   sourceApp: string
   eventType: string
@@ -283,24 +345,24 @@ export async function logContextEvent(event: {
   entityName?: string
   metadata?: Record<string, unknown>
 }) {
-  // 1. Append to event log
+  // 1. Append to event log — awaited (must be durable before we return)
   const [row] = await db
     .insert(contextEvents)
     .values(event)
     .returning()
 
-  // 2. Queue: check automation triggers
-  await queue.send("check-automation-triggers", {
+  // 2 & 3. Queue jobs fire-and-forget — do NOT await.
+  // API response time must not be held hostage to queue latency.
+  // PgBoss guarantees delivery even if the process crashes immediately after.
+  void queue.send("check-automation-triggers", {
     eventId: row.id,
-    workspaceId: event.workspaceId,
+    orgId: event.orgId,
     eventType: event.eventType,
     entityType: event.entityType,
     entityId: event.entityId,
   })
-
-  // 3. Queue: refresh embedding
-  await queue.send("embed-entity", {
-    workspaceId: event.workspaceId,
+  void queue.send("embed-entity", {
+    orgId: event.orgId,
     entityType: event.entityType,
     entityId: event.entityId,
   })
@@ -312,41 +374,57 @@ export async function logContextEvent(event: {
 Usage in an API route:
 
 ```typescript
-// app/api/deals/route.ts
+// app/api/records/route.ts
 export async function POST(req: Request) {
-  const session = await requireSession()
-  const body = await req.json()
+  const { orgId, userId } = await requireOrg(req)
+  const { object_type, data } = await req.json()
 
-  const [deal] = await db.insert(deals).values({
-    ...body,
-    workspaceId: session.workspaceId,
+  const [record] = await db.insert(records).values({
+    orgId,
+    objectType: object_type,
+    data,
   }).returning()
 
   await logContextEvent({
-    workspaceId: session.workspaceId,
-    userId: session.userId,
-    sourceApp: "crm",
-    eventType: "deal.created",
-    entityType: "deal",
-    entityId: deal.id,
-    entityName: deal.name,
+    orgId,
+    userId,
+    sourceApp: object_type,   // e.g. "deals", "contacts"
+    eventType: `${object_type}.created`,
+    entityType: object_type,
+    entityId: record.id,
+    entityName: data.name ?? data.firstName ?? record.id,
   })
 
-  return Response.json(deal)
+  return Response.json(record)
 }
 ```
 
-### PgBoss Workers
+### PgBoss Workers — Execution Model
+
+Workers are **long-running Node.js processes** that call `queue.work(...)`. They cannot run inside Next.js serverless functions. Two deployment targets:
+
+**Local / Electron (default)**
+The app runs as an Electron desktop app. The Electron **main process** spawns the worker as a child process on app launch:
+```ts
+// electron/main.ts
+import { fork } from "child_process"
+const worker = fork("dist/lib/queue/worker-process.js")
+app.on("quit", () => worker.kill())
+```
+PgBoss uses the same local Postgres instance the Next.js dev server connects to. Automations run entirely offline. This is the free tier.
+
+**Hosted / Basics Cloud (paid)**
+For teams who don't run the desktop app, or who need automations to fire while the app is closed (24/7 triggers, scheduled runs), Basics Cloud hosts the worker process alongside a managed Postgres instance. This is a separate billed service. The Next.js app points to the cloud DB via `DATABASE_URL`; the cloud worker process runs independently. Implementation deferred — nail local-first first.
 
 ```typescript
 // lib/queue/workers.ts
 
 // Worker 1 — Automation trigger fan-out
 queue.work("check-automation-triggers", async (job) => {
-  const { workspaceId, eventType, entityType, entityId } = job.data
+  const { orgId, eventType, entityType, entityId } = job.data
 
   // Find deployed workflows whose trigger block matches this event type
-  const matching = await getWorkflowsWithTrigger(workspaceId, eventType)
+  const matching = await getWorkflowsWithTrigger(orgId, eventType)
 
   for (const workflow of matching) {
     await queue.send("run-automation", {
@@ -358,24 +436,28 @@ queue.work("check-automation-triggers", async (job) => {
 
 // Worker 2 — Embedding refresh
 queue.work("embed-entity", async (job) => {
-  const { workspaceId, entityType, entityId } = job.data
+  const { orgId, entityType, entityId } = job.data
 
-  const text = await getEntityText(entityType, entityId)
-  const embedding = await gatewayEmbedding(text)
+  // getEntityChunks returns [{chunkIndex, text}] — one chunk for most types,
+  // multiple for meetings (transcript split at ~500 tokens with overlap)
+  const chunks = await getEntityChunks(entityType, entityId)
 
-  await db
-    .insert(contextEmbeddings)
-    .values({ workspaceId, entityType, entityId, chunkText: text, embedding, model: "text-embedding-3-small" })
-    .onConflictDoUpdate({
-      target: [contextEmbeddings.entityType, contextEmbeddings.entityId],
-      set: { chunkText: text, embedding, createdAt: new Date() },
-    })
+  for (const { chunkIndex, text } of chunks) {
+    const embedding = await gatewayEmbedding(text)
+    await db
+      .insert(contextEmbeddings)
+      .values({ orgId, entityType, entityId, chunkIndex, chunkText: text, embedding, model: "basics-embed-small" })
+      .onConflictDoUpdate({
+        target: [contextEmbeddings.entityType, contextEmbeddings.entityId, contextEmbeddings.chunkIndex],
+        set: { chunkText: text, embedding, createdAt: new Date() },
+      })
+  }
 })
 
 // Worker 3 — Run automation
 queue.work("run-automation", async (job) => {
   const { workflowId, triggerData } = job.data
-  await executeSimWorkflow(workflowId, triggerData)
+  await executeSimWorkflow(workflowId, triggerData)  // Phase 3 — Sim integration
 })
 ```
 
@@ -611,7 +693,7 @@ tools = [
 ]
 ```
 
-Every tool call goes through the **gateway API** — the agent never hits the DB directly.
+**Clarification on tool execution:** Agent tools hit the **workspace's own `/api/` routes** — not the external gateway. The gateway (`api.basicsos.com`) is only for LLM inference and embeddings. Tool calls execute as authenticated fetch requests against the Next.js API, which reads/writes the local Postgres DB. The AI model running in the gateway receives tool results and reasons over them, but it never has direct DB access.
 
 ---
 
@@ -671,50 +753,66 @@ This keeps the embedding pipeline vendor-neutral. Swap underlying model without 
 
 ```
 lib/db/schema/
-├── auth.ts              ← user, session, account, verification (exists)
-├── records.ts           ← contacts, companies, deals, tasks, notes, meetings
-├── objects.ts           ← object_config, records (custom types)
+├── auth.ts              ← user, session, account, verification, organization, member, invitation (Better Auth managed)
+├── objects.ts           ← object_config, records  (all entity types — standard + custom)
 ├── context.ts           ← context_events, relationships
 ├── embeddings.ts        ← context_embeddings (pgvector)
+├── agent.ts             ← agent_threads, agent_messages  (Phase 5B)
 └── index.ts             ← re-exports all
 ```
+
+Note: there are no separate typed tables (`contacts.ts`, `deals.ts`, etc.). All records live in `objects.ts` → `records` table.
 
 ---
 
 ## Implementation Order
 
-### Phase 2A — Schema + Plumbing (Week 1)
-- [ ] Add pgvector extension to Docker postgres
-- [ ] Write all schema files, run `drizzle-kit push`
-- [ ] Set up PgBoss (`lib/queue.ts`)
-- [ ] Write `logContextEvent` helper (`lib/context.ts`)
-- [ ] Add `/v1/embeddings` endpoint to gateway
-- [ ] Wire up `embed-entity` worker
+### Phase 2A — Schema + Plumbing ✅
+- [x] Enable Better Auth `organization` plugin, run `drizzle-kit push` for org/member/invitation tables
+- [x] Add pgvector extension to Docker postgres
+- [x] Write `objects.ts`, `context.ts`, `embeddings.ts` schema files, run `drizzle-kit push`
+- [x] Seed system `object_config` rows (contacts, companies, deals, tasks, notes, meetings) on org creation
+- [x] Set up PgBoss (`lib/queue.ts`) — local worker process for Electron
+- [x] Write `logContextEvent` helper (`lib/context.ts`)
+- [x] Write `requireOrg()` auth helper (`lib/auth-helpers.ts`)
+- [x] Wire up `embed-entity` worker (calls gateway `/v1/embeddings`)
 
-### Phase 2B — Standard Object APIs (Week 2)
-- [ ] CRUD routes for contacts, companies, deals, tasks, notes, meetings
-- [ ] Each mutation calls `logContextEvent`
-- [ ] Relationships API
-- [ ] Context events API (timeline feed)
+### Phase 2B — Records API ✅
+- [x] Generic CRUD at `/api/records` — all object types use the same routes
+- [x] `/api/records?type=contacts&filter[status]=open` list with filter
+- [x] `/api/records/:id` get/update/delete (includes cascade-delete of orphaned tasks/notes)
+- [x] Each mutation calls `logContextEvent` (fire-and-forget queue sends)
+- [x] Relationships API (`/api/relationships`)
+- [x] Context events API (`/api/context/events` — timeline feed)
 
-### Phase 2C — Custom Objects (Week 3)
-- [ ] `object_config` CRUD
-- [ ] Field builder UI (Airtable-style modal)
-- [ ] `/api/objects/[slug]/records` dynamic CRUD
-- [ ] Custom object types appear in Context Query block dropdown
+### Phase 2C — Custom Objects
+- [ ] `object_config` CRUD (`/api/objects`)
+- [ ] Field builder UI (Airtable-style modal) in the Context app
+- [ ] Custom types automatically work via the generic records API — no extra routes needed
+- [ ] Custom types appear in Context Query block dropdown (reads `object_config`)
 
-### Phase 2D — Automations Bridge (Week 4)
-- [ ] Lift Sim executor into `apps/automations/`
-- [ ] Register Context Query block
-- [ ] Register Workspace Context Event trigger
-- [ ] `check-automation-triggers` worker
+### Phase 2D — Record & Context UI ⬤ IN PROGRESS
+- [x] `RecordTable` component — Twenty-inspired div-flex grid, column resize, row selection, sticky columns, sort
+- [x] `ContactsTable` — contacts-specific column defs (Name, Email, Phone, Company, Status chip, Created)
+- [x] Contacts list page (`/crm/contacts`) — live search, filter rule builder (Radix Popover), CSV export
+- [x] `useContactsFilter` hook — search + AND-filter logic
+- [ ] Wire contacts page to real `/api/records?type=contacts` (currently mock data)
+- [ ] Companies list page (`/crm/companies`) — same RecordTable pattern
+- [ ] Deals list page (`/crm/deals`) — same pattern, with amount/status columns
+- [ ] Record detail page (`/crm/[type]/[id]`) — fields + timeline + relationships panel
+- [ ] Context app timeline view (reads `context_events`, infinite scroll)
+- [ ] Context app semantic search (pgvector cosine similarity)
+- [ ] Graph view — react-force-graph over `relationships` table (v2)
+
+### Phase 3 — Sim / Automations Engine
+**This is a large, standalone effort — budget 2–3 weeks separately.**
+- [ ] Audit Sim codebase at `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim` — catalogue dependencies, DB schema, block registry
+- [ ] Port Sim executor into `apps/automations/` — resolve import paths, adapt DB connections
+- [ ] Port React Flow canvas and block UI
+- [ ] Register Context Query block (new — reads the context layer)
+- [ ] Register Workspace Context Event trigger (new — listens to `context_events`)
+- [ ] `check-automation-triggers` worker → fan-out to matching workflows
 - [ ] `run-automation` worker → Sim executor
-
-### Phase 2E — Context App UI (Week 5)
-- [ ] Timeline view (reads `context_events`)
-- [ ] Semantic search (reads `context_embeddings` via pgvector)
-- [ ] Record detail page with timeline + relationships
-- [ ] Graph view (v2 — react-force-graph over `relationships`)
 
 ---
 
@@ -722,11 +820,15 @@ lib/db/schema/
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Custom object storage | JSONB in `records` table | No schema migrations when users add fields. Trade-off (less SQL-native querying) acceptable for AI-first product where queries go through tools anyway. |
-| Job queue | PgBoss | Postgres-native, no extra infra, survives restarts, has retries. Swap to BullMQ + Redis when scale demands. |
-| Embedding calls | Gateway API | Vendor-neutral. One place to swap models, track tokens, handle auth. |
-| Event granularity (v1) | Entity-level only | "deal.updated" not "deal.amount changed from $50k to $75k". Add field-level diffs in v2 when the event schema is proven. |
-| Relationship model | Explicit typed table | First-class graph edges enable AI traversal. FK-only approach loses the semantics (why are these connected? what type of connection?). |
-| Trigger delivery | PgBoss fan-out | Real-time (sub-second from event to automation trigger). Postgres-native. No polling latency. |
-| Embeddings | Day 1 | Every record and event gets embedded on write. Semantic search is too central to the AI experience to add later. |
-| Automation engine | Sim (lifted wholesale) | Production-grade DAG executor with 200+ blocks, pause/resume, 50+ triggers. Don't rebuild this. |
+| All records in one table | Unified `records` + `object_config` | Relationship traversal, agent tools, and context queries work identically for standard and custom objects. No branching logic. Typed tables would save SQL verbosity but add graph complexity — wrong tradeoff for an AI-first product. |
+| Multi-tenancy | Better Auth `organization` plugin | Avoids hand-rolling org/member/invitation — Better Auth handles it natively. All data scoped to `org_id`. |
+| Worker execution | Electron main process (local) / separate service (cloud) | Local-first: workers run free in the Electron shell with no extra infra. Cloud tier charges for hosted 24/7 automation execution. |
+| Job queue | PgBoss | Postgres-native, no extra infra, survives restarts, has retries. `void queue.send()` keeps API routes fast. Swap to BullMQ + Redis when scale demands. |
+| Embedding calls | Gateway API (`/v1/embeddings`) | Vendor-neutral. One place to swap models, track tokens, handle auth. |
+| Chunk embeddings | `(entity_type, entity_id, chunk_index)` unique | Single chunk for most types (index 0); meetings chunk transcripts into multiple rows. Conflict target includes `chunk_index`. |
+| Event granularity (v1) | Entity-level only | "deal.updated" not "deal.amount changed from $50k to $75k". Add field-level diffs in v2. |
+| Relationship model | Explicit typed table | First-class graph edges enable AI traversal. FK-only approach loses relationship semantics. |
+| Trigger delivery | PgBoss fan-out | Sub-second from event to automation trigger. Postgres-native, no polling. |
+| Embeddings | Day 1 | Every record gets embedded on write. Semantic search is too central to add later. |
+| Automation engine | Sim (Phase 3, separate effort) | Production-grade DAG executor. Port, don't rebuild. Budget 2–3 weeks standalone. |
+| Agent tool execution | Workspace `/api/` routes | Tools hit the app's own API — not the gateway. The gateway is LLM-only. |

@@ -641,43 +641,52 @@ public/
 
 **Goal:** All core apps working as full pages navigated to from the launchpad.
 
-#### 2.1 CRM App (App Group)
+> **STATUS: ⬤ IN PROGRESS** — 2A, 2B, CRM, Context, Tasks, Notes complete. 2C (custom objects) and dynamic launchpad remaining.
 
-Port from basicsOS:
-- ObjectRegistry pattern (object_config + custom_field_defs)
-- ObjectListPage → `app/(apps)/crm/[object]/page.tsx`
-- RecordDetailPage → `app/(apps)/crm/[object]/[id]/page.tsx`
-- All hooks: useRecords, useRecord, useCreateRecord, useUpdateRecord, useDeleteRecord
-- DataTable component with views, sorts, filters
-- Field types registry (all 18 types)
+#### 2.1 CRM App ✅
 
-CRM is the "app group" in the launchpad — clicking it expands to show Contacts, Companies, Deals sub-apps.
+- [x] `components/ui/record-table.tsx` — generic Twenty-inspired table (div-flex, column resize, sticky cols, row selection, sort, skeleton loader)
+- [x] `apps/crm/components/ContactsTable.tsx` / `CompaniesTable.tsx` / `DealsTable.tsx`
+- [x] `apps/crm/components/FilterPopover.tsx` — Radix Popover filter rule builder
+- [x] `apps/crm/hooks/useContactsFilter.ts` / `useRecords.ts`
+- [x] Contacts, Companies, Deals pages — wired to real API, search + filter + CSV export
+- [x] `apps/crm/components/RecordDetail.tsx` — fields grid + activity timeline panel
+- [x] `/crm/contacts/[id]`, `/crm/companies/[id]`, `/crm/deals/[id]` — detail pages
 
-#### 2.2 Tasks
+#### 2.2 Tasks ✅
 
-Port from basicsOS:
-- `app/(apps)/tasks/page.tsx`
-- useRecords('tasks') hook
-- Time-based grouping (Overdue, Today, Tomorrow, This Week, Later)
+- [x] `apps/tasks/components/TasksKanban.tsx` — @dnd-kit kanban (3 columns: To Do / In Progress / Done)
+- [x] Drag between columns → optimistic PATCH, inline title edit, add task per column
+- [x] Wired to `/api/records?type=tasks`
 
-#### 2.3 Notes
+#### 2.3 Notes ✅
 
-Port from basicsOS:
-- `app/(apps)/notes/page.tsx`
-- Notes attached to contacts/deals
+- [x] `apps/notes/components/NotesApp.tsx` — split panel: note list sidebar + TipTap rich editor
+- [x] Toolbar (bold, italic, lists, blockquote), auto-save (600ms debounce), delete on hover
+- [x] Wired to `/api/records?type=notes`
 
-#### 2.4 Meetings
+#### 2.4 Context App ✅
 
-Port from basicsOS:
-- `app/(apps)/meetings/page.tsx`
-- Meeting recordings list
+- [x] `apps/context/components/ContextAsk.tsx` — Perplexity-style AI ask bar (assistant-ui, no threads)
+- [x] `apps/context/components/TimelineFeed.tsx` — infinite scroll event feed with source filters
+- [x] `/api/context/ask` — context-aware chat route
+- [x] Unified page: ask bar at top, timeline below (no tabs)
 
-#### 2.5 App Install/Uninstall
+#### 2.5 Meetings
 
-- `workspace_apps` table tracks what's installed
-- Uninstall → remove from launchpad grid (but data persists)
-- Install from Shop → add row, appears in grid
-- Default apps auto-installed on first workspace creation (seed migration)
+- [ ] `app/(workspace)/meetings/page.tsx` — recordings list (deferred, needs more infrastructure)
+
+#### 2.6 Custom Objects (2C) — NEXT
+
+- [ ] `object_config` CRUD — `/api/objects` routes
+- [ ] Field builder modal — add/edit/remove typed fields on any object type
+- [ ] Custom object pages generated from `object_config` (dynamic routes)
+
+#### 2.7 Dynamic Launchpad
+
+- [ ] `workspace_apps` table — launchpad becomes dynamic (currently driven by static `apps/_registry.ts`)
+- [ ] Install from Shop → adds row, appears in grid
+- [ ] Uninstall → removes from grid (data persists)
 
 ---
 
@@ -1103,6 +1112,8 @@ Start here in your first Claude Code session:
   - Available in Shop as installable app
 - **RBAC** — scope which apps are visible to which team roles
 - **Context Graph view** — D3 relationship visualization
+- **MCP Server** — expose the context layer as a Model Context Protocol server so external agents (Claude Code, Cursor, Cline, OpenHands, etc.) can query records, search embeddings, and read the event timeline as native agent tools. Wraps the existing `/api/context/` REST surface. Tools map 1:1 to the in-app agent tools (`get_records`, `search`, `get_timeline`, `get_relationships`, `create_record`, `update_record`). Requires API key auth layer first.
+- **API Keys** — service account tokens for external integrations and the MCP server. Managed in Settings → API.
 - **Webhook triggers** — external events → automation run
 - **Workflow deployment** — publish automation as public API endpoint or embeddable chat widget
 - **Mobile app** — React Native wrapper, same backend
