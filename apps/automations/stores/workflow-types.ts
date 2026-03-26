@@ -94,7 +94,7 @@ export interface BlockState {
 export interface SubBlockState {
   id: string
   type: SubBlockType
-  value: string | number | string[][] | null
+  value: any
 }
 
 export interface LoopBlock {

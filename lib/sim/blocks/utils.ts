@@ -12,19 +12,9 @@ import { useProvidersStore } from '@/apps/automations/stores/providers/store'
  * Returns model options for combobox subblocks, combining all provider sources.
  */
 export function getModelOptions() {
-  const providersState = useProvidersStore.getState()
-  const baseModels = providersState.providers.base.models
-  const ollamaModels = providersState.providers.ollama.models
-  const vllmModels = providersState.providers.vllm.models
-  const openrouterModels = providersState.providers.openrouter.models
-  const allModels = Array.from(
-    new Set([...baseModels, ...ollamaModels, ...vllmModels, ...openrouterModels])
-  )
-
-  return allModels.map((model) => {
-    const icon = getProviderIcon(model)
-    return { label: model, id: model, ...(icon && { icon }) }
-  })
+  // All models come from the gateway — single source of truth
+  const { getModelOptions: getGatewayModels } = require('@/lib/sim/providers/utils')
+  return getGatewayModels()
 }
 
 /**

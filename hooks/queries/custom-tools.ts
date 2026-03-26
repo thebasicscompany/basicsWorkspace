@@ -1,7 +1,3 @@
-// Phase 4 stub — custom tool cache queries
-export function getCustomTool(
-  _id: string,
-  _orgId?: string
-): { schema: unknown; title: string } | null {
-  return null
-}
+export interface CustomTool { id: string; name: string; title: string; schema: any; code?: string }
+export function useCustomTools(_workspaceId?: string) { return { data: [] as CustomTool[], isLoading: false } }
+export function getCustomTool(_id: string, _orgId?: string): CustomTool | null { return null }

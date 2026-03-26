@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { workflows, workflowBlocks } from "@/lib/db/schema"
+import { workflows, workflowBlocks, workflowEdges } from "@/lib/db/schema"
 import { requireOrg } from "@/lib/auth-helpers"
 import { logContextEvent } from "@/lib/context"
 
@@ -25,7 +25,12 @@ export async function GET(req: Request, { params }: { params: Params }) {
     .from(workflowBlocks)
     .where(eq(workflowBlocks.workflowId, id as `${string}-${string}-${string}-${string}-${string}`))
 
-  return Response.json({ workflow, blocks })
+  const edges = await db
+    .select()
+    .from(workflowEdges)
+    .where(eq(workflowEdges.workflowId, id as `${string}-${string}-${string}-${string}-${string}`))
+
+  return Response.json({ workflow, blocks, edges })
 }
 
 export async function PATCH(req: Request, { params }: { params: Params }) {
@@ -37,6 +42,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     name?: string
     description?: string
     blocks?: Array<Record<string, unknown>>
+    edges?: Array<{ sourceBlockId: string; targetBlockId: string; sourceHandle?: string | null; targetHandle?: string | null }>
   }
 
   const [existing] = await db
@@ -47,7 +53,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (!existing) return Response.json({ error: "Not found" }, { status: 404 })
 
-  const { name, description, blocks } = body
+  const { name, description, blocks, edges } = body
 
   const metaUpdates: Partial<typeof workflows.$inferInsert> = { updatedAt: new Date() }
   if (name !== undefined) metaUpdates.name = name
@@ -60,6 +66,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     .returning()
 
   if (blocks !== undefined) {
+    // Delete existing blocks (cascade-deletes edges via FK)
     await db
       .delete(workflowBlocks)
       .where(eq(workflowBlocks.workflowId, id as `${string}-${string}-${string}-${string}-${string}`))
@@ -67,6 +74,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     if (blocks.length > 0) {
       await db.insert(workflowBlocks).values(
         blocks.map((b) => ({
+          // Preserve client-side block ID so edges can reference them
+          id: (b.id as string) ?? undefined,
           workflowId: id as `${string}-${string}-${string}-${string}-${string}`,
           type: b.type as string,
           name: (b.name as string | undefined) ?? "Block",
@@ -83,6 +92,19 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
           data: b.data as Record<string, unknown> | undefined,
         }))
       )
+
+      // Insert edges after blocks (so FK references are valid)
+      if (edges && edges.length > 0) {
+        await db.insert(workflowEdges).values(
+          edges.map((e) => ({
+            workflowId: id as `${string}-${string}-${string}-${string}-${string}`,
+            sourceBlockId: e.sourceBlockId as `${string}-${string}-${string}-${string}-${string}`,
+            targetBlockId: e.targetBlockId as `${string}-${string}-${string}-${string}-${string}`,
+            sourceHandle: e.sourceHandle ?? null,
+            targetHandle: e.targetHandle ?? null,
+          }))
+        )
+      }
     }
   }
 

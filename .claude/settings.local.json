@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(WF_ID=\"f13a401d-4954-495e-9a2b-52111c07090a\")",
+      "Bash(curl -s -b /tmp/cookies.txt -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/automations/$WF_ID\")",
+      "Bash(WF_ID=\"f13a401d-4954-495e-9a2b-52111c07090a\" curl -s -b /tmp/cookies.txt \"http://localhost:3000/automations/$WF_ID\")",
+      "Bash(python3 -c \"import sys; print\\(sys.stdin.read\\(\\)[:500]\\)\")",
+      "Bash(curl -s -b /tmp/cookies.txt http://localhost:3000/automations/$WF_ID)",
+      "Bash(curl:*)",
+      "Bash(WF_ID=\"f13a401d-4954-495e-9a2b-52111c07090a\" curl -s -b /tmp/cookies.txt \"http://localhost:3000/api/workflows/$WF_ID\")",
+      "Bash(find C:UsersaravbDesktopCodebasicsbasicsOSsimpackagesserversrclibsimexecutor -type f -name *.ts)",
+      "Bash(docker exec:*)"
+    ]
+  }
+}

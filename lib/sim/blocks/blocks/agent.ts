@@ -116,10 +116,10 @@ Return ONLY the JSON array.`,
     {
       id: 'model',
       title: 'Model',
-      type: 'combobox',
-      placeholder: 'Type or select a model...',
+      type: 'dropdown',
+      placeholder: 'Select a model...',
       required: true,
-      defaultValue: 'claude-sonnet-4-5',
+      defaultValue: 'basics-chat-fast-openai',
       options: getModelOptions,
     },
     {

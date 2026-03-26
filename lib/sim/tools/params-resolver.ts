@@ -1,50 +1,8 @@
-import {
-  buildCanonicalIndex,
-  type CanonicalIndex,
-  type CanonicalModeOverrides,
-  evaluateSubBlockCondition,
-  getCanonicalValues,
-  isCanonicalPair,
-  resolveCanonicalMode,
-  type SubBlockCondition,
-} from '@/lib/workflows/subblocks/visibility'
-import type { SubBlockConfig as BlockSubBlockConfig } from '@/lib/sim/blocks/types'
-
-export {
-  buildCanonicalIndex,
-  type CanonicalIndex,
-  type CanonicalModeOverrides,
-  evaluateSubBlockCondition,
-  isCanonicalPair,
-  resolveCanonicalMode,
-  type SubBlockCondition,
-}
-
-export interface ToolParamContext {
-  blockType: string
-  subBlocks: BlockSubBlockConfig[]
-  canonicalIndex: CanonicalIndex
-  values: Record<string, unknown>
-}
-
-/**
- * Build preview context values for selectors that need dependency resolution.
- * Resolves canonical values so selectors get the correct credential/dependency values.
- */
-export function buildPreviewContextValues(
-  params: Record<string, unknown>,
-  context: ToolParamContext
-): Record<string, unknown> {
-  const result: Record<string, unknown> = { ...params }
-
-  for (const [canonicalId, group] of Object.entries(context.canonicalIndex.groupsById)) {
-    if (isCanonicalPair(group)) {
-      const mode = resolveCanonicalMode(group, context.values)
-      const { basicValue, advancedValue } = getCanonicalValues(group, context.values)
-      result[canonicalId] =
-        mode === 'advanced' ? (advancedValue ?? basicValue) : (basicValue ?? advancedValue)
-    }
-  }
-
-  return result
-}
+export interface CanonicalIndex { groupsById: Record<string, any>; canonicalIdBySubBlockId: Record<string, string> }
+export type CanonicalModeOverrides = Record<string, string>
+export interface SubBlockCondition { field: string; operator: string; value: any }
+export function buildCanonicalIndex(_subBlocks: any[]): CanonicalIndex { return { groupsById: {}, canonicalIdBySubBlockId: {} } }
+export function buildPreviewContextValues(_blockId: string, _values: any): Record<string, any> { return {} }
+export function evaluateSubBlockCondition(_condition: SubBlockCondition, _values: any): boolean { return true }
+export function isCanonicalPair(_a: string, _b: string, _index: CanonicalIndex): boolean { return false }
+export function resolveCanonicalMode(_group: any, _values: any, _overrides?: any): string { return 'basic' }

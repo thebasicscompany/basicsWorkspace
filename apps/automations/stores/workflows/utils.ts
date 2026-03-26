@@ -2,15 +2,18 @@
  * Workflow utilities — mirrors Sim's stores/workflows/utils.ts data shapes exactly.
  * The executor reads BlockState + SubBlockState, so these must match Sim 1:1.
  */
+import type { Edge } from 'reactflow'
 import { getBlock } from '@/lib/sim/blocks'
-import type { SubBlockConfig } from '@/lib/sim/blocks/types'
+import type { SubBlockConfig, SubBlockType } from '@/lib/sim/blocks/types'
+import { normalizeName } from '@/lib/sim/executor/constants'
+import { useSubBlockStore } from '@/apps/automations/stores/subblock'
 
 // ─── Types matching Sim exactly ──────────────────────────────────────────────
 
 export interface SubBlockState {
   id: string
-  type: string
-  value: string | number | string[][] | null
+  type: SubBlockType
+  value: any
 }
 
 export interface BlockState {
@@ -91,7 +94,7 @@ export function prepareBlockState(options: {
 
       subBlocks[subBlock.id] = {
         id: subBlock.id,
-        type: subBlock.type,
+        type: subBlock.type as SubBlockType,
         value: initialValue as SubBlockState['value'],
       }
     })
@@ -126,6 +129,7 @@ export function prepareBlockState(options: {
 
 export function blockStateToApiBlock(block: BlockState) {
   return {
+    id: block.id,
     type: block.type,
     name: block.name,
     positionX: String(block.position.x),
@@ -177,5 +181,166 @@ export function apiBlockToBlockState(apiBlock: {
     horizontalHandles: apiBlock.horizontalHandles ?? true,
     locked: apiBlock.locked ?? false,
     height: apiBlock.height ?? 0,
+  }
+}
+
+// ─── Utility functions (ported from Sim stores/workflows/utils.ts) ──────────
+
+/**
+ * Filters edges to only include valid ones (both source and target blocks exist)
+ */
+export function filterValidEdges(edges: Edge[], blocks: Record<string, BlockState>): Edge[] {
+  return edges.filter((edge) => {
+    return blocks[edge.source] && blocks[edge.target]
+  })
+}
+
+/**
+ * Filters out duplicate edges
+ */
+export function filterNewEdges(edgesToAdd: Edge[], currentEdges: Edge[]): Edge[] {
+  return edgesToAdd.filter((edge) => {
+    if (edge.source === edge.target) return false
+    return !currentEdges.some(
+      (e) =>
+        e.source === edge.source &&
+        e.sourceHandle === edge.sourceHandle &&
+        e.target === edge.target &&
+        e.targetHandle === edge.targetHandle
+    )
+  })
+}
+
+/**
+ * Generates a unique block name by finding the highest number suffix
+ */
+export function getUniqueBlockName(baseName: string, existingBlocks: Record<string, any>): string {
+  const normalizedBaseName = normalizeName(baseName)
+  if (normalizedBaseName === 'start' || normalizedBaseName === 'starter') return 'Start'
+  if (normalizedBaseName === 'response') return 'Response'
+
+  const baseNameMatch = baseName.match(/^(.*?)(\s+\d+)?$/)
+  const namePrefix = baseNameMatch ? baseNameMatch[1].trim() : baseName
+  const normalizedBase = normalizeName(namePrefix)
+
+  const existingNumbers = Object.values(existingBlocks)
+    .filter((block: any) => {
+      const blockNameMatch = block.name?.match(/^(.*?)(\s+\d+)?$/)
+      const blockPrefix = blockNameMatch ? blockNameMatch[1].trim() : block.name
+      return blockPrefix && normalizeName(blockPrefix) === normalizedBase
+    })
+    .map((block: any) => {
+      const match = block.name?.match(/(\d+)$/)
+      return match ? Number.parseInt(match[1], 10) : 0
+    })
+
+  const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0
+
+  if (maxNumber === 0 && existingNumbers.length === 0) return `${namePrefix} 1`
+  return `${namePrefix} ${maxNumber + 1}`
+}
+
+/**
+ * Merges workflow block states with subblock values from the store.
+ * This is critical for the executor — it combines the block structure
+ * with the latest user-edited values.
+ */
+export function mergeSubblockState(
+  blocks: Record<string, BlockState>,
+  workflowId?: string,
+  blockId?: string
+): Record<string, BlockState> {
+  const subBlockStore = useSubBlockStore.getState()
+  const workflowSubblockValues = workflowId ? subBlockStore.workflowValues[workflowId] || {} : {}
+
+  const blocksToProcess = blockId ? { [blockId]: blocks[blockId] } : blocks
+
+  return Object.entries(blocksToProcess).reduce(
+    (acc, [id, block]) => {
+      if (!block) return acc
+
+      const blockSubBlocks = block.subBlocks || {}
+      const blockValues = workflowSubblockValues[id] || {}
+
+      const mergedSubBlocks = Object.entries(blockSubBlocks).reduce(
+        (subAcc, [subBlockId, subBlock]) => {
+          if (!subBlock) return subAcc
+
+          let storedValue = null
+          if (workflowId) {
+            if (blockValues[subBlockId] !== undefined) {
+              storedValue = blockValues[subBlockId]
+            }
+          } else {
+            storedValue = subBlockStore.getValue(id, subBlockId)
+          }
+
+          subAcc[subBlockId] = {
+            ...subBlock,
+            value: (storedValue !== undefined && storedValue !== null
+              ? storedValue
+              : subBlock.value) as SubBlockState['value'],
+          }
+          return subAcc
+        },
+        {} as Record<string, SubBlockState>
+      )
+
+      // Add orphaned values (exist in store but not in block structure)
+      Object.entries(blockValues).forEach(([subBlockId, value]) => {
+        if (!mergedSubBlocks[subBlockId] && value !== null && value !== undefined) {
+          mergedSubBlocks[subBlockId] = {
+            id: subBlockId,
+            type: 'short-input',
+            value: value as SubBlockState['value'],
+          }
+        }
+      })
+
+      acc[id] = { ...block, subBlocks: mergedSubBlocks }
+      return acc
+    },
+    {} as Record<string, BlockState>
+  )
+}
+
+/**
+ * Remaps condition/router block IDs within subBlock values when a block is duplicated.
+ */
+export function remapConditionIds(
+  subBlocks: Record<string, SubBlockState>,
+  subBlockValues: Record<string, unknown>,
+  oldBlockId: string,
+  newBlockId: string
+): void {
+  for (const [subBlockId, subBlock] of Object.entries(subBlocks)) {
+    if (subBlock.type !== 'condition-input' && subBlock.type !== 'router-input') continue
+
+    const value = subBlockValues[subBlockId] ?? subBlock.value
+    if (typeof value !== 'string') continue
+
+    try {
+      const parsed = JSON.parse(value)
+      if (!Array.isArray(parsed)) continue
+
+      let changed = false
+      for (const item of parsed) {
+        if (item && typeof item === 'object' && item.id) {
+          const oldPrefix = `${oldBlockId}-`
+          if (typeof item.id === 'string' && item.id.startsWith(oldPrefix)) {
+            item.id = `${newBlockId}-${item.id.slice(oldPrefix.length)}`
+            changed = true
+          }
+        }
+      }
+
+      if (changed) {
+        const newValue = JSON.stringify(parsed)
+        subBlock.value = newValue
+        subBlockValues[subBlockId] = newValue
+      }
+    } catch {
+      // Not valid JSON, skip
+    }
   }
 }

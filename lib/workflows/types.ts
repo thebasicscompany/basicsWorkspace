@@ -20,6 +20,16 @@ export interface InputFormatField {
 /** Properties that are accessible on UserFile objects in block references */
 export const USER_FILE_ACCESSIBLE_PROPERTIES = ['name', 'type', 'size', 'url'] as const
 
+export type UserFileAccessibleProperty = (typeof USER_FILE_ACCESSIBLE_PROPERTIES)[number] | 'id'
+
+export const USER_FILE_PROPERTY_TYPES: Record<UserFileAccessibleProperty, string> = {
+  id: 'string',
+  name: 'string',
+  url: 'string',
+  size: 'number',
+  type: 'string',
+}
+
 export interface WorkflowRunContext {
   workflowId: string
   orgId: string

@@ -699,10 +699,19 @@ export class AgentBlockHandler implements BlockHandler {
     return messages.length > 0 ? messages : undefined
   }
 
-  private extractValidMessages(messages?: Message[]): Message[] {
-    if (!messages || !Array.isArray(messages)) return []
+  private extractValidMessages(messages?: Message[] | string): Message[] {
+    let parsed = messages
+    // Handle JSON string from DB storage
+    if (typeof parsed === 'string') {
+      try {
+        parsed = JSON.parse(parsed)
+      } catch {
+        return []
+      }
+    }
+    if (!parsed || !Array.isArray(parsed)) return []
 
-    return messages.filter(
+    return parsed.filter(
       (msg): msg is Message =>
         msg &&
         typeof msg === 'object' &&
