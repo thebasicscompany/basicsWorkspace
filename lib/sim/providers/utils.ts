@@ -97,7 +97,17 @@ export async function transformBlockTool(
   }
 }
 
-// providers map expected by blocks/utils.ts
+// providers map expected by blocks/utils.ts — empty stubs for providers not routed through our gateway
+const emptyProvider = (id: string, name: string) => ({ id, name, models: [] as string[] })
+
 export const providers: Record<string, { id: string; name: string; models: string[] }> = {
   gateway: { id: 'gateway', name: 'Basics AI', models: [...GATEWAY_MODELS] },
+  vertex: emptyProvider('vertex', 'Google Vertex AI'),
+  bedrock: emptyProvider('bedrock', 'AWS Bedrock'),
+  'azure-openai': emptyProvider('azure-openai', 'Azure OpenAI'),
+  'azure-anthropic': emptyProvider('azure-anthropic', 'Azure Anthropic'),
+  ollama: emptyProvider('ollama', 'Ollama'),
+  vllm: emptyProvider('vllm', 'vLLM'),
+  openrouter: emptyProvider('openrouter', 'OpenRouter'),
+  base: emptyProvider('base', 'Base'),
 }

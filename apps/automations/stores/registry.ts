@@ -32,7 +32,7 @@ export const useWorkflowRegistry = create<RegistryState>((set) => ({
     try {
       const res = await fetch('/api/workflows')
       const data = await res.json()
-      set({ workflows: data.data ?? [], isLoading: false })
+      set({ workflows: data.workflows ?? [], isLoading: false })
     } catch (err) {
       set({ error: String(err), isLoading: false })
     }

@@ -2,7 +2,7 @@
 import { createLogger } from '@/lib/sim/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { getBlock } from '@/blocks'
+import { getBlock } from '@/lib/sim/blocks'
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
 import { populateTriggerFieldsFromConfig } from '@/hooks/use-trigger-config-aggregation'
 import { useWorkflowRegistry } from '@/apps/automations/stores/registry'

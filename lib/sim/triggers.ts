@@ -27,3 +27,7 @@ const EMPTY_TRIGGER: TriggerDefinition = {
 export function getTrigger(_type: string): TriggerDefinition {
   return EMPTY_TRIGGER
 }
+
+export function isTriggerValid(_type: string): boolean {
+  return TRIGGER_DEFINITIONS.some((t) => t.id === _type)
+}
