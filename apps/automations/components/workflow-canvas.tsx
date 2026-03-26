@@ -30,6 +30,7 @@ import { useWorkflowRegistry } from '@/apps/automations/stores/registry'
 import { useWorkflowStore } from '@/apps/automations/stores/workflow'
 import { WorkflowBlockNode, type BlockNodeData } from './workflow-block-node'
 import { BlockEditorPanel } from './block-editor-panel'
+import { ExecutionLogPanel, type ExecutionEvent } from './execution-log-panel'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [toolbarOpen, setToolbarOpen] = useState(false)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
+  const [executionEvents, setExecutionEvents] = useState<ExecutionEvent[]>([])
+  const [logPanelOpen, setLogPanelOpen] = useState(false)
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Set active workflow in registry so stores work correctly
@@ -224,6 +227,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   async function runWorkflow() {
     if (isRunning) return
     setIsRunning(true)
+    setExecutionEvents([])
+    setLogPanelOpen(true)
     try {
       const res = await fetch(`/api/workflows/${workflowId}/run`, {
         method: 'POST',
@@ -239,17 +244,14 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         if (done) break
         buffer += decoder.decode(value, { stream: true })
 
-        // Parse SSE events
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const event = JSON.parse(line.slice(6))
-              if (event.type === 'complete' || event.type === 'error') {
-                // Execution finished
-              }
+              const event = JSON.parse(line.slice(6)) as ExecutionEvent
+              setExecutionEvents((prev) => [...prev, event])
             } catch {
               // Ignore malformed events
             }
@@ -258,6 +260,10 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
       }
     } catch (err) {
       console.error('Workflow execution failed:', err)
+      setExecutionEvents((prev) => [
+        ...prev,
+        { type: 'error', error: err instanceof Error ? err.message : 'Execution failed' },
+      ])
     } finally {
       setIsRunning(false)
     }
@@ -418,7 +424,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
           />
         )}
 
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -447,6 +453,14 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
               }}
             />
           </ReactFlow>
+
+          <ExecutionLogPanel
+            events={executionEvents}
+            isRunning={isRunning}
+            isOpen={logPanelOpen}
+            onToggle={() => setLogPanelOpen((o) => !o)}
+            onClose={() => { setLogPanelOpen(false); setExecutionEvents([]) }}
+          />
         </div>
 
         {selectedConfig && selectedBlock && (

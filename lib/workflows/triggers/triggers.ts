@@ -78,9 +78,17 @@ export function getLegacyStarterMode(_block: unknown): 'manual' | 'api' | 'chat'
   return null
 }
 
-export function resolveStartCandidates(
-  _blockMap: Record<string, unknown>,
+type MinimalBlock = { type: string; subBlocks?: Record<string, unknown> | undefined }
+
+export interface StartBlockCandidate<T extends MinimalBlock = MinimalBlock> {
+  blockId: string
+  block: T
+  path: StartBlockPath
+}
+
+export function resolveStartCandidates<T extends MinimalBlock>(
+  _blockMap: Record<string, T>,
   _opts?: { execution: string; isChildWorkflow: boolean }
-): { blockId: string; block: { original: any }; path: StartBlockPath }[] {
+): StartBlockCandidate<T>[] {
   return []
 }

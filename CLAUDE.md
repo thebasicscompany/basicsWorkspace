@@ -59,7 +59,7 @@ export function proxy(request: NextRequest) { ... }
 export const config = { matcher: [...] }
 ```
 Checks `better-auth.session_token` cookie; redirects unauthenticated → `/login`.
-PUBLIC_PATHS: `["/login", "/api/auth"]`
+PUBLIC_PATHS: `["/login", "/api/auth", "/api/function"]`
 
 ### Docker
 `docker-compose.yml` runs **Postgres only** (not the Next.js app).
@@ -164,20 +164,61 @@ Call `logContextEvent()` after writing to the DB. This feeds the Events layer, q
 ### Sim reference repo
 `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim` — the source of truth for all block definitions, executor logic, and canvas interactions. **Our goal is 1:1 functional parity with Sim's workflow system.** UI styling uses our design tokens, but data shapes and behavior must match exactly so the executor works unchanged.
 
-### What exists (Phase 3A–3D partial)
+### What exists (Phase 3A–3D complete, 3E definitions done)
 
 | Layer | Files | Status |
 |-------|-------|--------|
 | **Workflow API** | `app/api/workflows/` | Full CRUD, edge persistence, SSE executor, logs |
+| **Function execute** | `app/api/function/execute/` | JS code execution for Function blocks |
 | **DB schema** | `lib/db/schema/workflows.ts` | workflows, workflowBlocks, workflowEdges, workflowExecutionLogs, workflowSubflows |
 | **Block registry** | `lib/sim/blocks/` | 180+ blocks, ported from Sim verbatim |
 | **Sim executor** | `lib/sim/executor/`, `lib/sim/providers/`, `lib/sim/tools/` | Ported, wired to /run endpoint |
-| **Canvas** | `apps/automations/components/workflow-canvas.tsx` | ReactFlow canvas, toolbar, edge persistence, Run button |
+| **Gateway integration** | `lib/sim/providers/gateway.ts` | All LLM calls → gateway (GATEWAY_URL env), BYOK support |
+| **Canvas** | `apps/automations/components/workflow-canvas.tsx` | ReactFlow canvas, toolbar, edge persistence, Run button, auto-save with subblock sync |
 | **Block editor** | `apps/automations/components/block-editor-panel.tsx` | Right-side panel, renders all sub-block input types |
-| **Sub-block inputs** | `apps/automations/components/sub-blocks/` | 33 files, all 34 SubBlockTypes have components |
-| **Tag system** | `apps/automations/lib/tags.ts`, `block-outputs.ts`, `block-path-calculator.ts` | Edge-based accessibility, tag dropdown with portal, overlay highlighting |
-| **Stores** | `apps/automations/stores/` | workflow, registry, subblock, execution, panel, settings |
-| **Trigger types** | `lib/workflows/triggers/triggers.ts` | TRIGGER_TYPES, StartBlockPath, classifyStartBlockType — copied from Sim |
+| **Sub-block inputs** | `apps/automations/components/sub-blocks/` | All ported from Sim, using shadcn components (Select, Popover, Button, etc.) |
+| **Sub-block hooks** | `sub-blocks/hooks/` | use-sub-block-value, use-sub-block-input — full Sim port |
+| **Sub-block controller** | `sub-blocks/sub-block-input-controller.tsx` | Headless controller wiring env-var + tag dropdowns |
+| **Tag system** | `apps/automations/lib/tags.ts`, `block-outputs.ts`, `block-path-calculator.ts` | Edge-based accessibility, tag dropdown with portal |
+| **Formatted text** | `sub-blocks/formatted-text.tsx` | Prism-based syntax highlighting for references and env vars |
+| **Stores** | `apps/automations/stores/` | workflow, registry, subblock, execution, panel, settings, variables, workflow-diff |
+| **Trigger definitions** | `lib/sim/triggers/` | 193 files — all 30+ service triggers ported from Sim |
+| **Trigger types** | `lib/workflows/triggers/triggers.ts` | TRIGGER_TYPES, StartBlockPath, classifyStartBlockType, StartBlockCandidate |
+| **Trigger utils** | `lib/workflows/triggers/trigger-utils.ts` | hasTriggerCapability, generateMockPayload, etc. |
+
+### Gateway Setup
+- **Gateway repo**: `C:\Users\aravb\Desktop\Code\basics\basicsAdmin`
+- **Gateway port**: 3002 (set in `infra/gateway/.env`)
+- **Env vars in `.env.local`**: `GATEWAY_URL=http://localhost:3002`, `GATEWAY_API_KEY=bos_live_sk_...`
+- **Provider keys**: Set `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` in gateway's `.env`
+- **Models**: All models route through gateway aliases (`basics-chat-fast-openai`, `basics-chat-smart-openai`, etc.)
+- **BYOK**: Users can enter their own API key in the Agent block → passed as `x-byok-provider`/`x-byok-api-key` headers
+
+### What works end-to-end (tested)
+- Agent blocks with LLM calls (OpenAI, Gemini via gateway)
+- Function blocks with JS code execution
+- Multi-block chains (Start → Agent → Function)
+- Messages input with role selection (system/user/assistant)
+- Model dropdown (shadcn Select) with gateway model list
+- Auto-save (block edits + subblock value changes → DB)
+- Run button with SSE streaming of execution events
+
+### Phase 3E remaining: Trigger Runtime
+**See `PLAN-PHASE3E-TRIGGERS.md` for full implementation plan.**
+
+Summary: Trigger *definitions* are done (193 files). The *runtime* that receives webhooks, runs schedules, and executes deployed workflows is not yet built. Key pieces:
+1. Webhook receive endpoint (`app/api/webhooks/trigger/[path]/`)
+2. Deploy route (`app/api/workflows/[id]/deploy/`)
+3. Webhook registration at deploy time (`lib/webhooks/deploy.ts`)
+4. Schedule infrastructure (PgBoss cron worker)
+5. Deploy button in canvas UI
+6. DB schema additions (webhook, workflowSchedule, workflowDeploymentVersion tables)
+
+### Other remaining work
+- **Execution logs panel** — show run results in-canvas instead of network tab
+- **tool-input.tsx** — still has `@ts-nocheck`, needs MCP/OAuth/custom tools infrastructure to fully port
+- **Environment variables** — store is empty, no management UI yet
+- **Code editor** — uses react-simple-code-editor + Prism but the emcn Code compound component is a stub
 
 ### Phase 3D remaining: Sim file reconciliation
 
