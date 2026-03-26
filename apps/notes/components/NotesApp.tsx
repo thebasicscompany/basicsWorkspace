@@ -217,7 +217,7 @@ function NoteListItem({
         >
           {note.title}
         </span>
-        <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", shrink: 0, whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", flexShrink: 0, whiteSpace: "nowrap" }}>
           {dateStr}
         </span>
       </div>

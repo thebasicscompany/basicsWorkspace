@@ -1,0 +1,58 @@
+import type { TableRowGetParams, TableRowResponse } from '@/lib/sim/tools/table/types'
+import type { ToolConfig } from '@/lib/sim/tools/types'
+
+export const tableGetRowTool: ToolConfig<TableRowGetParams, TableRowResponse> = {
+  id: 'table_get_row',
+  name: 'Get Row',
+  description: 'Get a single row by ID',
+  version: '1.0.0',
+
+  params: {
+    tableId: {
+      type: 'string',
+      required: true,
+      description: 'Table ID',
+      visibility: 'user-only',
+    },
+    rowId: {
+      type: 'string',
+      required: true,
+      description: 'Row ID to retrieve',
+      visibility: 'user-or-llm',
+    },
+  },
+
+  request: {
+    url: (params: TableRowGetParams) => {
+      const orgId = params._context?.orgId
+      if (!orgId) {
+        throw new Error('Workspace ID is required in execution context')
+      }
+
+      return `/api/table/${params.tableId}/rows/${params.rowId}?orgId=${encodeURIComponent(orgId)}`
+    },
+    method: 'GET',
+    headers: () => ({
+      'Content-Type': 'application/json',
+    }),
+  },
+
+  transformResponse: async (response): Promise<TableRowResponse> => {
+    const result = await response.json()
+    const data = result.data || result
+
+    return {
+      success: true,
+      output: {
+        row: data.row,
+        message: data.message || 'Row retrieved successfully',
+      },
+    }
+  },
+
+  outputs: {
+    success: { type: 'boolean', description: 'Whether row was retrieved' },
+    row: { type: 'json', description: 'Row data' },
+    message: { type: 'string', description: 'Status message' },
+  },
+}

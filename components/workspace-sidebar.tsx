@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as Tooltip from "@radix-ui/react-tooltip"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { House, Storefront, Robot, Graph, SignOut } from "@phosphor-icons/react"
+import { House, Storefront, Robot, Graph, GearSix, SignOut } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { useSession, signOut } from "@/lib/auth-client"
 
@@ -149,6 +149,16 @@ function UserMenu() {
           </div>
 
           <DropdownMenu.Separator className="h-px bg-[#F0EEEB] mx-1 mb-1" />
+
+          <DropdownMenu.Item
+            onSelect={() => router.push("/settings")}
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[13px] text-zinc-600 cursor-pointer outline-none select-none hover:bg-zinc-50 data-[highlighted]:bg-zinc-50 transition-colors"
+          >
+            <GearSix size={15} weight="regular" />
+            Settings
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Separator className="h-px bg-[#F0EEEB] mx-1 my-1" />
 
           <DropdownMenu.Item
             onSelect={handleSignOut}

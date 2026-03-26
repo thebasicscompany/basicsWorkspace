@@ -20,23 +20,16 @@ basics-workspace is a company OS desktop/web app. Automations-first. Mac Launchp
 
 ## Current Phase
 
-**Phase 0+1 complete. Phase 2 is next.**
+**Phases 0–2 complete. Phase 3 is next.**
 
 - Phase 0: Launchpad, shell, design system ✅
 - Phase 1: Auth (Better Auth), DB (Drizzle + Postgres), route groups, logout ✅
-- Phase 2: Shared context layer — **read `CONTEXT_ARCHITECTURE.md` before starting**
-
-### Phase 2 overview
-
-`CONTEXT_ARCHITECTURE.md` is the complete blueprint. Key points:
-- Four-layer model: Records → Events → Relationships → Embeddings
-- All API mutations must call `logContextEvent()` helper
-- PgBoss workers handle async: trigger checks, embedding refresh, automation runs
-- New Sim block type: Context Query; new Sim trigger: Workspace Context Event
-- All LLM/embedding calls go through gateway API (`/api/gateway/`)
-- Sim repo is at `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim`
-
-Implementation order: 2A (schema + plumbing) → 2B (standard APIs) → 2C (custom objects) → 2D (automations bridge) → 2E (Context app UI)
+- Phase 2: Shared context layer ✅
+  - 2A: Schema + plumbing (records, context_events, relationships, embeddings, PgBoss, `logContextEvent`, `requireOrg`) ✅
+  - 2B: Records API — full CRUD, filters, cursor pagination, relationships, context events ✅
+  - 2C: Custom objects — `/api/objects` CRUD, Objects app, field builder modal, dynamic record pages, inline editing ✅
+  - 2D: CRM list pages (contacts, companies, deals), record detail + activity timeline, Context app (timeline feed, ask/AI) ✅
+- Phase 3: Sim + automations engine — **see Sim repo at `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim`**
 
 ## Auth & DB (live — Phase 1 complete)
 
@@ -158,6 +151,6 @@ Font: Inter. All sizes are CSS vars. No Geist, no system fonts.
 2. Wrap content in `<PageTransition>`
 3. Use `style={{ background: "var(--color-bg-base)" }}` on the content div
 
-## Phase 2 discipline — every API mutation must
+## API discipline — every mutation must
 
 Call `logContextEvent()` after writing to the DB. This feeds the Events layer, queues PgBoss jobs for trigger checks and embedding refresh. See `CONTEXT_ARCHITECTURE.md` §Layer 2 for the full helper implementation.

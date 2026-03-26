@@ -140,7 +140,7 @@ const Composer: FC<{ autoFocus?: boolean }> = ({ autoFocus }) => (
       <ComposerPrimitive.Input
         placeholder="Ask about your workspace…"
         className="flex-1 bg-transparent outline-none resize-none"
-        style={{ fontSize: 14, color: "var(--color-text-primary)", maxHeight: 200, minHeight: 24 }}
+        style={{ fontSize: 14, color: "var(--color-text-primary)" }}
         rows={1}
         autoFocus={autoFocus}
         aria-label="Ask about your workspace"

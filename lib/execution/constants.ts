@@ -1,0 +1,3 @@
+export const MAX_CALL_CHAIN_DEPTH = 10
+export const DEFAULT_TIMEOUT_MS = 300_000
+export const DEFAULT_EXECUTION_TIMEOUT_MS = 300_000

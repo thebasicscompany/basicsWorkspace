@@ -7,6 +7,9 @@ export const organization = pgTable("organization", {
   logo: text("logo"),
   metadata: text("metadata"),
   createdAt: timestamp("created_at").$default(() => new Date()).notNull(),
+  gatewayApiKey: text("gateway_api_key"),
+  byokProvider: text("byok_provider"),
+  byokApiKey: text("byok_api_key"),
 })
 
 export const member = pgTable("member", {
