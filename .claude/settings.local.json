@@ -9,7 +9,13 @@
       "Bash(curl:*)",
       "Bash(WF_ID=\"f13a401d-4954-495e-9a2b-52111c07090a\" curl -s -b /tmp/cookies.txt \"http://localhost:3000/api/workflows/$WF_ID\")",
       "Bash(find C:UsersaravbDesktopCodebasicsbasicsOSsimpackagesserversrclibsimexecutor -type f -name *.ts)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(WF_ID=\"d8416647-c74c-4993-b7d8-aeedba3271ba\")",
+      "Bash(__NEW_LINE_e648e6f80d14b2a1__ echo:*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

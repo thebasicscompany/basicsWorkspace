@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  json,
   jsonb,
   numeric,
   pgTable,
@@ -110,3 +111,50 @@ export const workflowExecutionLogs = pgTable(
     index("workflow_exec_logs_org_started_idx").on(table.orgId, table.startedAt),
   ]
 )
+
+// --- Phase 3E: Trigger Runtime tables (copied from Sim) ---
+
+export const workflowDeploymentVersion = pgTable("workflow_deployment_version", {
+  id: text("id").primaryKey(),
+  workflowId: uuid("workflow_id")
+    .notNull()
+    .references(() => workflows.id, { onDelete: "cascade" }),
+  version: integer("version").notNull().default(1),
+  state: jsonb("state").$type<Record<string, unknown>>(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: text("created_by"),
+  deployedBy: text("deployed_by"),
+  name: text("name"),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const webhook = pgTable("webhook", {
+  id: text("id").primaryKey(),
+  workflowId: uuid("workflow_id").notNull(),
+  deploymentVersionId: text("deployment_version_id"),
+  blockId: text("block_id"),
+  path: text("path").notNull(),
+  provider: text("provider"),
+  providerConfig: json("provider_config"),
+  isActive: boolean("is_active").notNull().default(true),
+  failedCount: integer("failed_count").default(0),
+  lastFailedAt: timestamp("last_failed_at"),
+  credentialSetId: text("credential_set_id"),
+  archivedAt: timestamp("archived_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+export const workflowSchedule = pgTable("workflow_schedule", {
+  id: text("id").primaryKey(),
+  workflowId: uuid("workflow_id")
+    .notNull()
+    .references(() => workflows.id, { onDelete: "cascade" }),
+  blockId: text("block_id").notNull(),
+  cronExpression: text("cron_expression").notNull(),
+  timezone: text("timezone").notNull().default("UTC"),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+})

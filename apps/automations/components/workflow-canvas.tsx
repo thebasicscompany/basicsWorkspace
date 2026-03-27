@@ -17,7 +17,8 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Play, ArrowLeft, Plus, MagnifyingGlass, X } from '@phosphor-icons/react'
+import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket } from '@phosphor-icons/react'
+import { DeployModal } from './deploy/deploy-modal'
 import { getBlock, getBlocksByCategory, type BlockConfig } from '@/lib/sim/blocks'
 import {
   prepareBlockState,
@@ -102,6 +103,10 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [isRunning, setIsRunning] = useState(false)
   const [executionEvents, setExecutionEvents] = useState<ExecutionEvent[]>([])
   const [logPanelOpen, setLogPanelOpen] = useState(false)
+  const [isDeployed, setIsDeployed] = useState(false)
+  const [isDeploying, setIsDeploying] = useState(false)
+  const [deployedAt, setDeployedAt] = useState<string | null>(null)
+  const [deployModalOpen, setDeployModalOpen] = useState(false)
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Set active workflow in registry so stores work correctly
@@ -151,6 +156,57 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         })
       })
   }, [workflowId, setNodes, setEdges])
+
+  // Check deployment status
+  useEffect(() => {
+    fetch(`/api/workflows/${workflowId}/deploy`)
+      .then((r) => r.json())
+      .then((data) => {
+        setIsDeployed(!!data.isDeployed)
+        setDeployedAt(data.deployedAt ?? null)
+      })
+      .catch(() => {})
+  }, [workflowId])
+
+  const handleDeployClick = useCallback(async () => {
+    if (isDeployed) {
+      // Already deployed — just open the modal
+      setDeployModalOpen(true)
+      return
+    }
+
+    // Not deployed — deploy first, then open modal
+    setIsDeploying(true)
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to deploy')
+      setIsDeployed(true)
+      setDeployedAt(data.deployedAt ?? new Date().toISOString())
+      setDeployModalOpen(true)
+    } catch (err: any) {
+      console.error('Deploy error:', err)
+      alert(err.message || 'Deploy failed')
+    } finally {
+      setIsDeploying(false)
+    }
+  }, [workflowId, isDeployed])
+
+  const handleUndeploy = useCallback(async () => {
+    const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'DELETE' })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to undeploy')
+    setIsDeployed(false)
+    setDeployedAt(null)
+  }, [workflowId])
+
+  const handleDeploy = useCallback(async () => {
+    const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to deploy')
+    setIsDeployed(true)
+    setDeployedAt(data.deployedAt ?? new Date().toISOString())
+  }, [workflowId])
 
   const onConnect = useCallback(
     (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
@@ -412,6 +468,19 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
             <Play size={12} weight="fill" />
             {isRunning ? 'Running\u2026' : 'Run'}
           </button>
+          <button
+            onClick={handleDeployClick}
+            disabled={isDeploying}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-50"
+            style={{
+              background: isDeployed ? '#dcfce7' : 'var(--color-text-primary)',
+              color: isDeployed ? '#166534' : '#fff',
+              border: isDeployed ? '1px solid #bbf7d0' : 'none',
+            }}
+          >
+            <Rocket size={12} weight="fill" />
+            {isDeploying ? 'Deploying\u2026' : isDeployed ? 'Live' : 'Deploy'}
+          </button>
         </div>
       </div>
 
@@ -469,9 +538,21 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
             block={selectedBlock}
             config={selectedConfig}
             onClose={() => setSelectedBlockId(null)}
+            isDeployed={isDeployed}
           />
         )}
       </div>
+
+      <DeployModal
+        open={deployModalOpen}
+        onOpenChange={setDeployModalOpen}
+        workflowId={workflowId}
+        isDeployed={isDeployed}
+        deployedAt={deployedAt}
+        blockStates={blockStates}
+        onUndeploy={handleUndeploy}
+        onDeploy={handleDeploy}
+      />
     </div>
   )
 }

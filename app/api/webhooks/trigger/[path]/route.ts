@@ -1,0 +1,127 @@
+/**
+ * Webhook trigger receive endpoint — adapted from Sim's app/api/webhooks/trigger/[path]/route.ts
+ * Receives external HTTP calls and executes the associated workflow.
+ */
+import { createLogger } from '@/lib/sim/logger'
+import { type NextRequest, NextResponse } from 'next/server'
+import {
+  findAllWebhooksForPath,
+  handleProviderChallenges,
+  parseWebhookBody,
+  queueWebhookExecution,
+  shouldSkipWebhookEvent,
+  verifyProviderAuth,
+} from '@/lib/webhooks/processor'
+import { blockExistsInDeployment } from '@/lib/workflows/persistence/utils'
+
+const logger = createLogger('WebhookTriggerAPI')
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string }> }) {
+  const requestId = crypto.randomUUID()
+  const { path } = await params
+
+  // Handle provider-specific GET verifications (WhatsApp, etc.)
+  const challengeResponse = await handleProviderChallenges({}, request, requestId, path)
+  if (challengeResponse) {
+    return challengeResponse
+  }
+
+  return new NextResponse('Method not allowed', { status: 405 })
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string }> }
+) {
+  const requestId = crypto.randomUUID()
+  const { path } = await params
+
+  // Handle provider challenges before body parsing
+  const earlyChallenge = await handleProviderChallenges({}, request, requestId, path)
+  if (earlyChallenge) {
+    return earlyChallenge
+  }
+
+  const parseResult = await parseWebhookBody(request, requestId)
+
+  if (parseResult instanceof NextResponse) {
+    return parseResult
+  }
+
+  const { body, rawBody } = parseResult
+
+  const challengeResponse = await handleProviderChallenges(body, request, requestId, path)
+  if (challengeResponse) {
+    return challengeResponse
+  }
+
+  // Find all webhooks for this path
+  const webhooksForPath = await findAllWebhooksForPath({ requestId, path })
+
+  if (webhooksForPath.length === 0) {
+    logger.warn(`[${requestId}] Webhook or workflow not found for path: ${path}`)
+    return new NextResponse('Not Found', { status: 404 })
+  }
+
+  // Process each webhook
+  const responses: NextResponse[] = []
+
+  for (const { webhook: foundWebhook, workflow: foundWorkflow } of webhooksForPath) {
+    const authError = await verifyProviderAuth(
+      foundWebhook,
+      foundWorkflow,
+      request,
+      rawBody,
+      requestId
+    )
+    if (authError) {
+      if (webhooksForPath.length > 1) {
+        logger.warn(`[${requestId}] Auth failed for webhook ${foundWebhook.id}, continuing to next`)
+        continue
+      }
+      return authError
+    }
+
+    if (foundWebhook.blockId) {
+      const blockExists = await blockExistsInDeployment(foundWorkflow.id, foundWebhook.blockId)
+      if (!blockExists) {
+        logger.info(
+          `[${requestId}] Trigger block ${foundWebhook.blockId} not found in deployment for workflow ${foundWorkflow.id}`
+        )
+        if (webhooksForPath.length > 1) {
+          continue
+        }
+        return new NextResponse('Trigger block not found in deployment', { status: 404 })
+      }
+    }
+
+    if (shouldSkipWebhookEvent(foundWebhook, body, requestId)) {
+      continue
+    }
+
+    const response = await queueWebhookExecution(foundWebhook, foundWorkflow, body, request, {
+      requestId,
+      path,
+    })
+    responses.push(response)
+  }
+
+  if (responses.length === 0) {
+    return new NextResponse('No webhooks processed successfully', { status: 500 })
+  }
+
+  if (responses.length === 1) {
+    return responses[0]
+  }
+
+  logger.info(
+    `[${requestId}] Processed ${responses.length} webhooks for path: ${path}`
+  )
+  return NextResponse.json({
+    success: true,
+    webhooksProcessed: responses.length,
+  })
+}

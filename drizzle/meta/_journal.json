@@ -8,6 +8,27 @@
       "when": 1774480688588,
       "tag": "0000_silent_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774560965487,
+      "tag": "0001_omniscient_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774561129712,
+      "tag": "0002_lucky_shocker",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774577191050,
+      "tag": "0003_tiresome_vulcan",
+      "breakpoints": true
     }
   ]
 }

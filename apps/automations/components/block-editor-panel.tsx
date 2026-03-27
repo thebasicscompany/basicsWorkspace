@@ -1,6 +1,7 @@
 'use client'
 
-import { X } from '@phosphor-icons/react'
+import { useState, useMemo } from 'react'
+import { X, Copy, Check, Link as LinkIcon } from '@phosphor-icons/react'
 import type { BlockConfig } from '@/lib/sim/blocks'
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
 import type { BlockState } from '@/apps/automations/stores/workflows/utils'
@@ -11,16 +12,28 @@ export function BlockEditorPanel({
   block,
   config,
   onClose,
+  isDeployed,
 }: {
   workflowId: string
   block: BlockState
   config: BlockConfig<any>
   onClose: () => void
+  isDeployed?: boolean
 }) {
   const Icon = config.icon
   const basicSubBlocks = (config.subBlocks ?? []).filter(
     (sb: SubBlockConfig) => !sb.mode || sb.mode === 'basic' || sb.mode === 'both'
   )
+
+  // Compute webhook URL for trigger blocks (matches Sim's webhookUrlDisplay logic)
+  const webhookUrl = useMemo(() => {
+    if (config.category !== 'triggers' && !block.triggerMode) return null
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    const triggerPath = (block.subBlocks as any)?.triggerPath?.value || block.id
+    return `${baseUrl}/api/webhooks/trigger/${triggerPath}`
+  }, [config.category, block.triggerMode, block.id, block.subBlocks])
+
+  const [urlCopied, setUrlCopied] = useState(false)
 
   return (
     <div
@@ -68,6 +81,53 @@ export function BlockEditorPanel({
           >
             {config.description}
           </p>
+        </div>
+      )}
+
+      {/* Webhook URL (trigger blocks only) */}
+      {webhookUrl && (
+        <div
+          className="px-4 py-3"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
+          <p
+            className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
+            <LinkIcon size={10} className="inline mr-1" />
+            Webhook URL
+          </p>
+          {isDeployed ? (
+            <div
+              className="flex items-center gap-2 rounded-lg p-2"
+              style={{ background: 'var(--color-bg-base)', border: '1px solid var(--color-border)' }}
+            >
+              <code
+                className="text-[10px] flex-1 font-mono break-all"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                {webhookUrl}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(webhookUrl)
+                  setUrlCopied(true)
+                  setTimeout(() => setUrlCopied(false), 2000)
+                }}
+                className="p-1 rounded hover:bg-zinc-100 flex-shrink-0"
+              >
+                {urlCopied ? (
+                  <Check size={12} style={{ color: 'var(--color-accent)' }} />
+                ) : (
+                  <Copy size={12} style={{ color: 'var(--color-text-tertiary)' }} />
+                )}
+              </button>
+            </div>
+          ) : (
+            <p className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>
+              Deploy this workflow to generate a webhook URL
+            </p>
+          )}
         </div>
       )}
 
