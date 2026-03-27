@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { create } from 'zustand'
 import { useWorkflowRegistry } from '@/apps/automations/stores/registry'
 import {

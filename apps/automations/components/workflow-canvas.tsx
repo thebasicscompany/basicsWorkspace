@@ -31,7 +31,8 @@ import { useWorkflowRegistry } from '@/apps/automations/stores/registry'
 import { useWorkflowStore } from '@/apps/automations/stores/workflow'
 import { WorkflowBlockNode, type BlockNodeData } from './workflow-block-node'
 import { BlockEditorPanel } from './block-editor-panel'
-import { ExecutionLogPanel, type ExecutionEvent } from './execution-log-panel'
+import { Terminal } from './terminal/terminal'
+import { useTerminalConsoleStore } from '@/apps/automations/stores/terminal'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -101,8 +102,6 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [toolbarOpen, setToolbarOpen] = useState(false)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
-  const [executionEvents, setExecutionEvents] = useState<ExecutionEvent[]>([])
-  const [logPanelOpen, setLogPanelOpen] = useState(false)
   const [isDeployed, setIsDeployed] = useState(false)
   const [isDeploying, setIsDeploying] = useState(false)
   const [deployedAt, setDeployedAt] = useState<string | null>(null)
@@ -283,8 +282,15 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   async function runWorkflow() {
     if (isRunning) return
     setIsRunning(true)
-    setExecutionEvents([])
-    setLogPanelOpen(true)
+
+    const executionId = crypto.randomUUID()
+    const { addConsole, updateConsole, toggleConsole, isOpen } = useTerminalConsoleStore.getState()
+
+    // Open terminal if closed
+    if (!isOpen) toggleConsole()
+
+    let blockOrder = 0
+
     try {
       const res = await fetch(`/api/workflows/${workflowId}/run`, {
         method: 'POST',
@@ -306,8 +312,38 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const event = JSON.parse(line.slice(6)) as ExecutionEvent
-              setExecutionEvents((prev) => [...prev, event])
+              const event = JSON.parse(line.slice(6))
+
+              if (event.type === 'block:complete') {
+                blockOrder++
+                addConsole({
+                  workflowId,
+                  blockId: event.blockId || 'unknown',
+                  blockName: event.blockName || event.blockType || 'Block',
+                  blockType: event.blockType || 'unknown',
+                  executionId,
+                  executionOrder: blockOrder,
+                  startedAt: event.startedAt || new Date().toISOString(),
+                  endedAt: event.endedAt || new Date().toISOString(),
+                  durationMs: event.durationMs,
+                  success: event.success !== false,
+                  output: event.output,
+                  error: event.error || null,
+                })
+              } else if (event.type === 'error') {
+                blockOrder++
+                addConsole({
+                  workflowId,
+                  blockId: event.blockId || 'error',
+                  blockName: event.blockName || 'Error',
+                  blockType: 'error',
+                  executionId,
+                  executionOrder: blockOrder,
+                  startedAt: new Date().toISOString(),
+                  success: false,
+                  error: event.error || 'Unknown error',
+                })
+              }
             } catch {
               // Ignore malformed events
             }
@@ -316,10 +352,18 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
       }
     } catch (err) {
       console.error('Workflow execution failed:', err)
-      setExecutionEvents((prev) => [
-        ...prev,
-        { type: 'error', error: err instanceof Error ? err.message : 'Execution failed' },
-      ])
+      blockOrder++
+      addConsole({
+        workflowId,
+        blockId: 'error',
+        blockName: 'Execution Error',
+        blockType: 'error',
+        executionId,
+        executionOrder: blockOrder,
+        startedAt: new Date().toISOString(),
+        success: false,
+        error: err instanceof Error ? err.message : 'Execution failed',
+      })
     } finally {
       setIsRunning(false)
     }
@@ -493,43 +537,39 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
           />
         )}
 
-        <div className="flex-1 relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={(_e, node) => setSelectedBlockId(node.id)}
-            onPaneClick={() => setSelectedBlockId(null)}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            nodeTypes={NODE_TYPES}
-            fitView
-            fitViewOptions={{ padding: 0.3 }}
-          >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={20}
-              size={1}
-              color="#D4D2CE"
-            />
-            <Controls
-              style={{
-                background: 'var(--color-bg-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 10,
-              }}
-            />
-          </ReactFlow>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 relative">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={(_e, node) => setSelectedBlockId(node.id)}
+              onPaneClick={() => setSelectedBlockId(null)}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              nodeTypes={NODE_TYPES}
+              fitView
+              fitViewOptions={{ padding: 0.3 }}
+            >
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={20}
+                size={1}
+                color="#D4D2CE"
+              />
+              <Controls
+                style={{
+                  background: 'var(--color-bg-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 10,
+                }}
+              />
+            </ReactFlow>
+          </div>
 
-          <ExecutionLogPanel
-            events={executionEvents}
-            isRunning={isRunning}
-            isOpen={logPanelOpen}
-            onToggle={() => setLogPanelOpen((o) => !o)}
-            onClose={() => { setLogPanelOpen(false); setExecutionEvents([]) }}
-          />
+          <Terminal workflowId={workflowId} />
         </div>
 
         {selectedConfig && selectedBlock && (

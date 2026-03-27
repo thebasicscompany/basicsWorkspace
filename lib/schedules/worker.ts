@@ -15,6 +15,7 @@ import { apiBlockToBlockState } from '@/apps/automations/stores/workflows/utils'
 import type { BlockState as SerializerBlockState } from '@/apps/automations/stores/workflow-types'
 import { Serializer } from '@/lib/sim/serializer'
 import { Executor } from '@/lib/sim/executor'
+import { getEffectiveEnvVars } from '@/lib/environment/utils.server'
 import type { Edge } from 'reactflow'
 
 const logger = createLogger('ScheduleWorker')
@@ -147,9 +148,12 @@ async function executeOneScheduledWorkflow(job: Job<ScheduleJobData>) {
     const executionId = crypto.randomUUID()
     const startTime = Date.now()
 
+    const envVarValues = wf.userId
+      ? await getEffectiveEnvVars(wf.userId)
+      : {}
     const executor = new Executor({
       workflow: serialized,
-      envVarValues: {},
+      envVarValues,
       workflowVariables: (wf.variables as Record<string, unknown>) ?? {},
     })
 

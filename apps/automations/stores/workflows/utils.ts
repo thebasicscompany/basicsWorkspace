@@ -2,11 +2,21 @@
  * Workflow utilities — mirrors Sim's stores/workflows/utils.ts data shapes exactly.
  * The executor reads BlockState + SubBlockState, so these must match Sim 1:1.
  */
-import type { Edge } from 'reactflow'
+import type { Edge, Position } from 'reactflow'
 import { getBlock } from '@/lib/sim/blocks'
 import type { SubBlockConfig, SubBlockType } from '@/lib/sim/blocks/types'
 import { normalizeName } from '@/lib/sim/executor/constants'
 import { useSubBlockStore } from '@/apps/automations/stores/subblock'
+
+const DEFAULT_DUPLICATE_OFFSET = { x: 50, y: 50 }
+
+function uuidv4(): string {
+  return crypto.randomUUID()
+}
+
+function remapConditionEdgeHandle(handle: string, oldBlockId: string, newBlockId: string): string {
+  return handle.replace(oldBlockId, newBlockId)
+}
 
 // ─── Types matching Sim exactly ──────────────────────────────────────────────
 
@@ -342,5 +352,131 @@ export function remapConditionIds(
     } catch {
       // Not valid JSON, skip
     }
+  }
+}
+
+/**
+ * Regenerates block IDs for paste/duplicate operations.
+ * Copied from Sim's stores/workflows/utils.ts with import path changes.
+ * Loop/parallel params included for forward compatibility.
+ */
+export function regenerateBlockIds(
+  blocks: Record<string, BlockState>,
+  edges: Edge[],
+  loops: Record<string, any>,
+  parallels: Record<string, any>,
+  subBlockValues: Record<string, Record<string, unknown>>,
+  positionOffset: { x: number; y: number },
+  existingBlockNames: Record<string, BlockState>,
+  uniqueNameFn: (name: string, blocks: Record<string, BlockState>) => string
+): {
+  blocks: Record<string, BlockState>
+  edges: Edge[]
+  loops: Record<string, any>
+  parallels: Record<string, any>
+  subBlockValues: Record<string, Record<string, unknown>>
+  idMap: Map<string, string>
+} {
+  const blockIdMap = new Map<string, string>()
+  const nameMap = new Map<string, string>()
+  const newBlocks: Record<string, BlockState> = {}
+  const newSubBlockValues: Record<string, Record<string, unknown>> = {}
+  const allBlocksForNaming = { ...existingBlockNames }
+
+  // First pass: generate new IDs and names
+  Object.entries(blocks).forEach(([oldId, block]) => {
+    const newId = uuidv4()
+    blockIdMap.set(oldId, newId)
+
+    const oldNormalizedName = normalizeName(block.name)
+    const nameConflicts = Object.values(allBlocksForNaming).some(
+      (existing) => normalizeName(existing.name) === oldNormalizedName
+    )
+    const newName = nameConflicts ? uniqueNameFn(block.name, allBlocksForNaming) : block.name
+    nameMap.set(oldNormalizedName, normalizeName(newName))
+
+    const newBlock: BlockState = {
+      ...block,
+      id: newId,
+      name: newName,
+      position: {
+        x: block.position.x + positionOffset.x,
+        y: block.position.y + positionOffset.y,
+      },
+      subBlocks: JSON.parse(JSON.stringify(block.subBlocks)),
+      data: block.data ? { ...block.data } : block.data,
+      locked: false,
+    }
+
+    newBlocks[newId] = newBlock
+    allBlocksForNaming[newId] = newBlock
+
+    if (subBlockValues[oldId]) {
+      newSubBlockValues[newId] = JSON.parse(JSON.stringify(subBlockValues[oldId]))
+    }
+
+    remapConditionIds(newBlock.subBlocks, newSubBlockValues[newId] || {}, oldId, newId)
+  })
+
+  // Second pass: update parentId references
+  Object.entries(newBlocks).forEach(([, block]) => {
+    if (block.data?.parentId) {
+      const oldParentId = block.data.parentId as string
+      const newParentId = blockIdMap.get(oldParentId)
+      if (newParentId) {
+        block.data = { ...block.data, parentId: newParentId, extent: 'parent' }
+      } else if (existingBlockNames[oldParentId]) {
+        block.data = { ...block.data, parentId: oldParentId, extent: 'parent' }
+      } else {
+        block.data = { ...block.data, parentId: undefined, extent: undefined }
+      }
+    }
+  })
+
+  // Remap edges
+  const newEdges = edges.map((edge) => {
+    const newSource = blockIdMap.get(edge.source) || edge.source
+    const newSourceHandle =
+      edge.sourceHandle && blockIdMap.has(edge.source)
+        ? remapConditionEdgeHandle(edge.sourceHandle, edge.source, newSource)
+        : edge.sourceHandle
+    return {
+      ...edge,
+      id: uuidv4(),
+      source: newSource,
+      target: blockIdMap.get(edge.target) || edge.target,
+      sourceHandle: newSourceHandle,
+    }
+  })
+
+  // Remap loops
+  const newLoops: Record<string, any> = {}
+  Object.entries(loops).forEach(([oldId, loop]) => {
+    const newId = blockIdMap.get(oldId) || oldId
+    newLoops[newId] = {
+      ...loop,
+      id: newId,
+      nodes: loop.nodes?.map((nodeId: string) => blockIdMap.get(nodeId) || nodeId) ?? [],
+    }
+  })
+
+  // Remap parallels
+  const newParallels: Record<string, any> = {}
+  Object.entries(parallels).forEach(([oldId, parallel]) => {
+    const newId = blockIdMap.get(oldId) || oldId
+    newParallels[newId] = {
+      ...parallel,
+      id: newId,
+      nodes: parallel.nodes?.map((nodeId: string) => blockIdMap.get(nodeId) || nodeId) ?? [],
+    }
+  })
+
+  return {
+    blocks: newBlocks,
+    edges: newEdges,
+    loops: newLoops,
+    parallels: newParallels,
+    subBlockValues: newSubBlockValues,
+    idMap: blockIdMap,
   }
 }

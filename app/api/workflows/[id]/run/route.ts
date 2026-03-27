@@ -2,6 +2,7 @@ import { eq, and } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { workflows, workflowBlocks, workflowEdges, workflowExecutionLogs } from "@/lib/db/schema"
 import { requireOrg } from "@/lib/auth-helpers"
+import { getEffectiveEnvVars } from "@/lib/environment/utils.server"
 import { apiBlockToBlockState } from "@/apps/automations/stores/workflows/utils"
 import type { BlockState as SerializerBlockState } from "@/apps/automations/stores/workflow-types"
 import { Serializer } from "@/lib/sim/serializer"
@@ -67,9 +68,10 @@ export async function POST(req: Request, { params }: { params: Params }) {
       send({ type: "start", executionId, workflowId: id })
 
       try {
+        const envVarValues = await getEffectiveEnvVars(ctx.userId)
         const executor = new Executor({
           workflow: serialized,
-          envVarValues: {},
+          envVarValues,
           workflowVariables: (workflow.variables as Record<string, unknown>) ?? {},
         })
 

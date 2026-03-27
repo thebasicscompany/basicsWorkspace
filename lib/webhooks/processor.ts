@@ -12,6 +12,7 @@ import { apiBlockToBlockState } from '@/apps/automations/stores/workflows/utils'
 import type { BlockState as SerializerBlockState } from '@/apps/automations/stores/workflow-types'
 import { Serializer } from '@/lib/sim/serializer'
 import { Executor } from '@/lib/sim/executor'
+import { getEffectiveEnvVars } from '@/lib/environment/utils.server'
 import type { Edge } from 'reactflow'
 
 const logger = createLogger('WebhookProcessor')
@@ -208,9 +209,12 @@ export async function queueWebhookExecution(
     const executionId = crypto.randomUUID()
     const startTime = Date.now()
 
+    const envVarValues = foundWorkflow.userId
+      ? await getEffectiveEnvVars(foundWorkflow.userId)
+      : {}
     const executor = new Executor({
       workflow: serialized,
-      envVarValues: {},
+      envVarValues,
       workflowVariables: (foundWorkflow.variables as Record<string, unknown>) ?? {},
     })
 
