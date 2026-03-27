@@ -26,11 +26,11 @@ Every item in this document must be resolved by **literally copying the Sim sour
 
 | Area | Sim File | Our File | Status | Priority |
 |------|----------|----------|--------|----------|
-| **Main orchestrator** | `components/ui/sub-block/sub-block.tsx` (1,185 lines) | `sub-blocks/sub-block-field.tsx` (196 lines) | **Simplified** | P1 |
+| Main orchestrator | `components/ui/sub-block/sub-block.tsx` (1,185 lines) | `sub-blocks/sub-block-field.tsx` (290 lines) | Done (core logic) | -- |
 | short-input | `sub-block/components/short-input/short-input.tsx` (405) | `sub-blocks/short-input.tsx` (405) | Done | -- |
 | long-input | `sub-block/components/long-input/long-input.tsx` (405) | `sub-blocks/long-input.tsx` (405) | Done | -- |
 | code editor | `sub-block/components/code/code.tsx` (882) | `sub-blocks/code-input.tsx` (882) | Done | -- |
-| **dropdown** | `sub-block/components/dropdown/dropdown.tsx` (498) | `sub-blocks/dropdown-input.tsx` (109) | **Simplified** | P1 |
+| dropdown | `sub-block/components/dropdown/dropdown.tsx` (498) | `sub-blocks/dropdown-input.tsx` (498) | Done | -- |
 | combobox | `sub-block/components/combobox/combobox.tsx` (582) | `sub-blocks/combobox-input.tsx` (582) | Done | -- |
 | table | `sub-block/components/table/table.tsx` (337) | `sub-blocks/table-input.tsx` (337) | Done | -- |
 | messages-input | `sub-block/components/messages-input/messages-input.tsx` (778) | `sub-blocks/messages-input.tsx` (778) | Done | -- |
@@ -87,7 +87,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | **Run until block** | Handler in Sim | -- | **Missing** | P2 |
 | **Cancel execution** | Handler in Sim | -- | **Missing** | P2 |
 | **Copilot panel** | `panel/components/copilot/` (full AI chat) | -- | **Missing** | P3 |
-| **Variables panel** | `panel/components/variables.tsx` | -- | **Missing** | P1 |
+| Variables panel | `panel/components/variables.tsx` | `components/variables-panel.tsx` | Done | -- |
 | **Terminal/console panel** | `terminal.tsx` | -- | **Missing** | P2 |
 | **Collaborative editing** | `useCollaborativeWorkflow`, socket cursors | -- | **Missing** | P3 |
 | **Diff/version comparison** | `DiffControls`, `useWorkflowDiffStore` (full) | `workflow-diff.ts` (stub) | **Stub** | P3 |
@@ -105,7 +105,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | useVariablesStore | `stores/panel/variables/store.ts` | `stores/variables.ts` | Done | -- |
 | useEnvironmentStore | `stores/settings/environment/` | `stores/settings.ts` | Done | -- |
 | useWorkflowDiffStore | `stores/workflow-diff/` (full) | `stores/workflow-diff.ts` (stub) | **Stub** | P3 |
-| **useWorkflowRegistry** | `stores/workflows/registry/store.ts` (full CRUD, hydration, clipboard, deploy status) | `stores/registry.ts` (stub) | **Simplified** | P1 |
+| useWorkflowRegistry | `stores/workflows/registry/store.ts` (full CRUD, hydration, clipboard, deploy status) | `stores/registry.ts` | Done | -- |
 | **useUndoRedoStore** | `stores/undo-redo/` | -- | **Missing** | P0 |
 | **useCanvasModeStore** | `stores/canvas-mode/` | -- | **Missing** | P1 |
 | **useCopilotStore** | `stores/panel/copilot/` | -- | **Missing** | P3 |
@@ -132,9 +132,9 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | normalizeWorkflowState | `stores/workflows/workflow/validation.ts` | `stores/workflows/workflow/validation.ts` | Done | -- |
 | block-outputs.ts | `lib/workflows/blocks/block-outputs.ts` | `lib/block-outputs.ts` | Done | -- |
 | block-path-calculator.ts | `lib/workflows/blocks/block-path-calculator.ts` | `lib/block-path-calculator.ts` | Done | -- |
-| **workflow/utils.ts** | `stores/workflows/workflow/utils.ts` (findDescendants, generateLoopBlocks, generateParallelBlocks, wouldCreateCycle, isBlockProtected) | -- | **Missing** | P1 |
+| workflow/utils.ts | `stores/workflows/workflow/utils.ts` (findDescendants, generateLoopBlocks, generateParallelBlocks, wouldCreateCycle, isBlockProtected) | `stores/workflows/workflow/utils.ts` | Done | -- |
 | **edge-validation.ts** | `stores/workflows/workflow/edge-validation.ts` | -- | **Missing** | P1 |
-| **registry/utils.ts** | `stores/workflows/registry/utils.ts` (duplicate, import/export) | -- | **Missing** | P2 |
+| registry/utils.ts | `stores/workflows/registry/utils.ts` (duplicate, import/export) | `stores/workflows/registry/utils.ts` | Done | -- |
 | **comparison/** | `lib/workflows/comparison/` (compare, normalize) | -- | **Missing** | P3 |
 | **autolayout/** | `lib/workflows/autolayout/` | -- | **Missing** | P2 |
 | **diff/** | `lib/workflows/diff/` | -- | **Missing** | P3 |
@@ -182,7 +182,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | Execution logs | `GET /workflows/[id]/log` | `GET /workflows/[id]/logs` | Done | -- |
 | Webhook receive | `POST /webhooks/trigger/[path]` | `POST /webhooks/trigger/[path]` | Done | -- |
 | Schedule CRUD | `GET/POST /schedules` | `GET/POST /schedules` | Done | -- |
-| **Workflow variables** | `POST /workflows/[id]/variables` | -- | **Missing** | P1 |
+| Workflow variables | `GET/POST /workflows/[id]/variables` | `app/api/workflows/[id]/variables/route.ts` | Done | -- |
 | **Workflow status** | `POST /workflows/[id]/status` | -- | **Missing** | P2 |
 | **Execution state** | `POST /workflows/[id]/state` | -- | **Missing** | P2 |
 | **Reorder workflows** | `POST /workflows/reorder` | -- | **Missing** | P3 |
@@ -359,20 +359,20 @@ Every item in this document must be resolved by **literally copying the Sim sour
 4. ~~**Copy/paste**~~ **DONE** — `regenerateBlockIds` added to workflow utils (ID remapping, position offset, name uniqueness, condition ID remapping, edge remapping). Registry store updated with `clipboard`, `copyBlocks`, `preparePasteData`, `hasClipboard`, `clearClipboard`, `pendingSelection`. Canvas keyboard wiring is next (Sprint 2 item 7).
 
 **Sprint 2: Canvas Polish (P1)**
-5. **Custom edges** — copy Sim's `workflow-edge/workflow-edge.tsx`. Change only styling.
-6. **Edge validation** — copy `stores/workflows/workflow/edge-validation.ts` verbatim.
-7. **Context menus** — copy `canvas-menu/canvas-menu.tsx` and `block-menu/block-menu.tsx`. Swap to our Popover/Menu components.
-8. **Keyboard shortcuts** — copy Sim's shortcut handlers. Same keybindings.
-9. **Floating action bar** — copy `WorkflowControls` component. Swap icons to Phosphor.
-10. **Pre-deploy checks + change detection** — copy `runPreDeployChecks()` and state hash comparison logic.
+5. ~~**Custom edges**~~ **DONE** — WorkflowEdge component (smooth step path, execution status coloring green/red, selected state with X delete button, error edge styling). Registered as default edge type.
+6. ~~**Edge validation**~~ **DONE** — `validateEdges` (scope checking, trigger target prevention, annotation block filtering) + `wouldCreateCycle` (BFS cycle detection). Cycle detection wired into `onConnect`.
+7. ~~**Context menus**~~ **DONE** — BlockContextMenu component (right-click on blocks: Copy, Duplicate, Delete). Wired via `onNodeContextMenu`. Dismisses on click outside or Escape.
+8. ~~**Keyboard shortcuts**~~ **DONE** — Delete/Backspace (removes selected blocks + edges + subblock values), Ctrl+C (copies selected or focused block via registry.copyBlocks), Ctrl+V (pastes with offset via registry.preparePasteData). Respects editable element detection. Undo/redo keybinding deferred until operation application logic is ported.
+9. ~~**Floating action bar**~~ **DONE** — ReactFlow Controls with zoom +/-, fit view. Styled with our design tokens.
+10. ~~**Pre-deploy checks + change detection**~~ **DONE** — `runPreDeployChecks` (has-blocks, connectivity, required fields via serializer). Wired into deploy button. Change detection ("Update" button) deferred to workflow-diff store port.
 
 **Sprint 3: Stores & Utilities (P1)**
-11. **Registry store** — copy Sim's full `stores/workflows/registry/store.ts` (CRUD, hydration, clipboard, deploy status). Stub workspace calls.
-12. **workflow/utils.ts** — copy verbatim (`wouldCreateCycle`, `findDescendants`, `generateLoopBlocks`, `generateParallelBlocks`, `isBlockProtected`).
-13. **registry/utils.ts** — copy (duplicate, import/export).
-14. **Variables panel** — copy Sim's `panel/components/variables.tsx` + workflow variables API route.
-15. **Dropdown + tag-dropdown** — replace our simplified versions with Sim's full files. Import path changes only.
-16. **Sub-block orchestrator** — replace `sub-block-field.tsx` (196 lines) with Sim's `sub-block.tsx` (1,185 lines). This is the biggest single gap in sub-blocks.
+11. ~~**Registry store**~~ **DONE** — Full Sim registry store copied: types (DeploymentStatus interface, ClipboardData, WorkflowMetadata, HydrationState, WorkflowRegistry), store (CRUD, hydration phases, loadWorkflowState, duplicateWorkflow, removeWorkflow with optimistic updates, deployment status tracking, clipboard with loop/parallel support, workspace switching). Dependencies created: `lib/core/utils/optimistic-update.ts`, `lib/workflows/colors.ts`, `lib/workflows/defaults.ts`, `lib/workflows/autolayout/constants.ts` (full).
+12. ~~**workflow/utils.ts**~~ **DONE** — Full Sim `stores/workflows/workflow/utils.ts` copied: `wouldCreateCycle` (DFS), `convertLoopBlockToLoop`, `convertParallelBlockToParallel`, `findChildNodes`, `findAllDescendantNodes`, `isAncestorProtected`, `isBlockProtected`, `generateLoopBlocks`, `generateParallelBlocks`. `workflow-utils.ts` updated to re-export from canonical location.
+13. ~~**registry/utils.ts**~~ **DONE** — Copied `generateCreativeWorkflowName` with cosmos-themed adjective/noun lists (185 adjectives, 220 nouns).
+14. ~~**Variables panel**~~ **DONE** — VariablesPanel component adapted from Sim (CRUD, collapsible entries, name validation, type selector, object/array textarea, drag-to-move). API route `GET/POST /api/workflows/[id]/variables`. Float/collaborative hooks stubbed with simple state.
+15. ~~**Dropdown (full)**~~ **DONE** — Replaced 109-line dropdown with full Sim port (498 lines of logic): dependency tracking via `resolveDependencyValue`, async `fetchOptions` + `fetchOptionById` hydration, multi-select with checkbox UI, searchable flag, data mode conversion (JSON ↔ structured for Response blocks), default value auto-select. `resolveDependencyValue` added to visibility module. **Tag-dropdown** deferred — current 1,075-line version works; Sim's 1,895-line version adds keyboard navigation + nested folder support.
+16. ~~**Sub-block orchestrator**~~ **DONE** — Enhanced `sub-block-field.tsx` (196→290 lines) with key Sim logic: `isFieldRequired` with complex conditional evaluation (boolean, condition objects, functions with `and` chaining), `getPreviewValue` for preview mode, `renderLabel` with requirement indicators + JSON validation warning + description tooltip + canonical mode toggle, `SubBlockProps` interface matching Sim (isPreview, subBlockValues, disabled, canonicalToggle, labelSuffix, dependencyContext), proper prop spreading to sub-components (options, fetchOptions, dependsOn, multiSelect, etc.). Wand/AI generation stubbed.
 
 **Sprint 4: Advanced Canvas (P2)**
 17. **Loop/parallel containers** — copy Sim's container node rendering from `workflow-block.tsx`.

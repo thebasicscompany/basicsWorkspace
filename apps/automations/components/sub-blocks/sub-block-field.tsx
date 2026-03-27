@@ -1,5 +1,7 @@
 'use client'
 
+import { type JSX, memo, useMemo, useRef, useState, useCallback } from 'react'
+import { Warning, Copy, Check, ArrowsLeftRight } from '@phosphor-icons/react'
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
 import { useSubBlockValue } from './hooks/use-sub-block-value'
 import { baseInputClass, baseStyle } from './shared'
@@ -80,60 +82,246 @@ const INPUT_COMPONENTS: Partial<Record<string, React.ComponentType<any>>> = {
 // Text-based types that get the tag controller wrapper + overlay
 const TAG_ENABLED_TYPES = new Set(['short-input', 'long-input', 'code'])
 
-// ─── SubBlockField ───────────────────────────────────────────────────────────
+// ─── Helpers from Sim's sub-block.tsx ────────────────────────────────────────
 
-export function SubBlockField({
-  blockId,
-  config,
-}: {
+/**
+ * Returns whether the field is required for validation.
+ * Evaluates conditional requirements based on current field values.
+ * Supports boolean, condition objects, and functions that return conditions.
+ */
+const isFieldRequired = (config: SubBlockConfig, subBlockValues?: Record<string, any>): boolean => {
+  if (!config.required) return false
+  if (typeof config.required === 'boolean') return config.required
+
+  const evalCond = (
+    cond: {
+      field: string
+      value: string | number | boolean | Array<string | number | boolean>
+      not?: boolean
+      and?: {
+        field: string
+        value: string | number | boolean | Array<string | number | boolean> | undefined
+        not?: boolean
+      }
+    },
+    values: Record<string, any>
+  ): boolean => {
+    const fieldValue = values[cond.field]?.value
+    const condValue = cond.value
+
+    let match: boolean
+    if (Array.isArray(condValue)) {
+      match = condValue.includes(fieldValue)
+    } else {
+      match = fieldValue === condValue
+    }
+
+    if (cond.not) match = !match
+
+    if (cond.and) {
+      const andFieldValue = values[cond.and.field]?.value
+      const andCondValue = cond.and.value
+      let andMatch: boolean
+      if (Array.isArray(andCondValue)) {
+        andMatch = andCondValue.includes(andFieldValue)
+      } else {
+        andMatch = andFieldValue === andCondValue
+      }
+      if (cond.and.not) andMatch = !andMatch
+      match = match && andMatch
+    }
+
+    return match
+  }
+
+  const condition = typeof config.required === 'function' ? config.required() : config.required
+  return evalCond(condition, subBlockValues || {})
+}
+
+/**
+ * Retrieves the preview value for a specific sub-block.
+ * Only returns a value when in preview mode and subBlockValues are provided.
+ */
+const getPreviewValue = (
+  config: SubBlockConfig,
+  isPreview: boolean,
+  subBlockValues?: Record<string, any>
+): unknown => {
+  if (!isPreview || !subBlockValues) return undefined
+  return subBlockValues[config.id]?.value ?? null
+}
+
+/**
+ * Interface for wand control handlers exposed by sub-block inputs.
+ * Stubbed — wand (AI generation) not yet wired.
+ */
+export interface WandControlHandlers {
+  onWandTrigger: (prompt: string) => void
+  isWandActive: boolean
+  isWandStreaming: boolean
+}
+
+/**
+ * Props for the SubBlock component.
+ * Matches Sim's SubBlockProps interface.
+ */
+interface SubBlockProps {
   blockId: string
   config: SubBlockConfig
-}) {
-  const [value, setValue] = useSubBlockValue(blockId, config.id)
-  const label = config.title || config.id
+  isPreview?: boolean
+  subBlockValues?: Record<string, any>
+  disabled?: boolean
+  allowExpandInPreview?: boolean
+  canonicalToggle?: {
+    mode: 'basic' | 'advanced'
+    disabled?: boolean
+    onToggle?: () => void
+  }
+  labelSuffix?: React.ReactNode
+  dependencyContext?: Record<string, unknown>
+}
+
+/**
+ * Renders the label with optional validation indicators.
+ * Adapted from Sim — wand/copy/external-link stubbed.
+ */
+function renderLabel(
+  config: SubBlockConfig,
+  isValidJson: boolean,
+  subBlockValues?: Record<string, any>,
+  canonicalToggle?: SubBlockProps['canonicalToggle'],
+  labelSuffix?: React.ReactNode
+): JSX.Element | null {
+  if (config.type === 'switch') return null
+  if (!config.title) return null
+
+  const required = isFieldRequired(config, subBlockValues)
+  const showCanonicalToggle = !!canonicalToggle
 
   return (
-    <div>
-      <label
-        className="text-[11px] font-medium block mb-1"
-        style={{ color: 'var(--color-text-secondary)' }}
-      >
-        {label}
-        {config.required === true && (
-          <span style={{ color: '#ef4444' }}> *</span>
-        )}
+    <div className="flex items-center justify-between gap-1.5 pl-0.5 mb-1">
+      <label className="flex items-baseline gap-1.5 whitespace-nowrap text-[11px] font-medium text-[var(--color-text-secondary)]">
+        {config.title}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {labelSuffix}
+        {config.type === 'code' &&
+          (config as any).language === 'json' &&
+          !isValidJson && (
+            <span className="inline-flex" title="Invalid JSON">
+              <Warning size={12} className="text-red-500" />
+            </span>
+          )}
       </label>
-
-      {TAG_ENABLED_TYPES.has(config.type) ? (
-        <TagEnabledInput blockId={blockId} config={config} />
-      ) : INPUT_COMPONENTS[config.type] ? (
-        (() => {
-          const Component = INPUT_COMPONENTS[config.type]!
-          return (
-            <Component
-              blockId={blockId}
-              subBlockId={config.id}
-              config={config}
-              value={value}
-              onChange={setValue}
-            />
-          )
-        })()
-      ) : (
-        <TagEnabledInput blockId={blockId} config={{ ...config, type: 'short-input' as any }} />
+      {config.description && (
+        <span
+          className="truncate text-[10px] text-[var(--color-text-tertiary)]"
+          title={config.description}
+        >
+          {config.description}
+        </span>
+      )}
+      {showCanonicalToggle && (
+        <button
+          type="button"
+          onClick={canonicalToggle.onToggle}
+          disabled={canonicalToggle.disabled}
+          className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-base)] disabled:opacity-50"
+          title={`Switch to ${canonicalToggle.mode === 'basic' ? 'advanced' : 'basic'} mode`}
+        >
+          <ArrowsLeftRight size={10} />
+          {canonicalToggle.mode === 'basic' ? 'Advanced' : 'Basic'}
+        </button>
       )}
     </div>
   )
 }
+
+// ─── SubBlockField ───────────────────────────────────────────────────────────
+
+export const SubBlockField = memo(function SubBlockField({
+  blockId,
+  config,
+  isPreview = false,
+  subBlockValues,
+  disabled = false,
+  canonicalToggle,
+  labelSuffix,
+  dependencyContext,
+}: SubBlockProps) {
+  const [value, setValue] = useSubBlockValue(blockId, config.id)
+  const [isValidJson, setIsValidJson] = useState(true)
+
+  // Derive preview value
+  const previewValue = getPreviewValue(config, isPreview, subBlockValues)
+
+  // Build component props — spread config fields that sub-components need
+  const componentProps = useMemo(
+    () => ({
+      blockId,
+      subBlockId: config.id,
+      config,
+      value: isPreview ? previewValue : value,
+      onChange: setValue,
+      isPreview,
+      previewValue,
+      disabled,
+      placeholder: config.placeholder,
+      // Dropdown-specific
+      options: (config as any).options,
+      defaultValue: (config as any).defaultValue,
+      multiSelect: (config as any).multiSelect,
+      fetchOptions: (config as any).fetchOptions,
+      fetchOptionById: (config as any).fetchOptionById,
+      dependsOn: (config as any).dependsOn,
+      searchable: (config as any).searchable,
+      // Slider-specific
+      min: (config as any).min,
+      max: (config as any).max,
+      step: (config as any).step,
+    }),
+    [blockId, config, value, setValue, isPreview, previewValue, disabled]
+  )
+
+  return (
+    <div>
+      {renderLabel(config, isValidJson, subBlockValues, canonicalToggle, labelSuffix)}
+
+      {TAG_ENABLED_TYPES.has(config.type) ? (
+        <TagEnabledInput
+          blockId={blockId}
+          config={config}
+          isPreview={isPreview}
+          disabled={disabled}
+        />
+      ) : INPUT_COMPONENTS[config.type] ? (
+        (() => {
+          const Component = INPUT_COMPONENTS[config.type]!
+          return <Component {...componentProps} />
+        })()
+      ) : (
+        <TagEnabledInput
+          blockId={blockId}
+          config={{ ...config, type: 'short-input' as any }}
+          isPreview={isPreview}
+          disabled={disabled}
+        />
+      )}
+    </div>
+  )
+})
 
 // ─── Tag-enabled text inputs with controller ─────────────────────────────────
 
 function TagEnabledInput({
   blockId,
   config,
+  isPreview = false,
+  disabled = false,
 }: {
   blockId: string
   config: SubBlockConfig
+  isPreview?: boolean
+  disabled?: boolean
 }) {
   return (
     <SubBlockInputController
@@ -141,10 +329,11 @@ function TagEnabledInput({
       subBlockId={config.id}
       config={config}
     >
-      {({ ref, value, disabled, onChange, onKeyDown, onDrop, onDragOver, onFocus, onScroll }) => {
+      {({ ref, value, disabled: ctrlDisabled, onChange, onKeyDown, onDrop, onDragOver, onFocus, onScroll }) => {
         const isLong = config.type === 'long-input'
         const isCode = config.type === 'code'
         const rows = isCode ? (config.rows ?? 4) : isLong ? (config.rows ?? 3) : undefined
+        const isDisabled = disabled || ctrlDisabled || isPreview
 
         if (isLong || isCode) {
           return (
@@ -159,7 +348,7 @@ function TagEnabledInput({
               onFocus={onFocus}
               onScroll={onScroll}
               placeholder={config.placeholder}
-              disabled={disabled}
+              disabled={isDisabled}
               className={`${baseInputClass} resize-none ${isCode ? 'font-mono' : ''}`}
               style={{
                 ...baseStyle,
@@ -182,7 +371,7 @@ function TagEnabledInput({
             onFocus={onFocus}
             placeholder={config.placeholder}
             readOnly={config.readOnly}
-            disabled={disabled}
+            disabled={isDisabled}
             className={baseInputClass}
             style={{
               ...baseStyle,

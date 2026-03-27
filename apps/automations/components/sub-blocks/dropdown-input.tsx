@@ -1,6 +1,8 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import isEqual from 'lodash/isEqual'
+import { useStoreWithEqualityFn } from 'zustand/traditional'
 import {
   Select,
   SelectContent,
@@ -8,101 +10,501 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { buildCanonicalIndex, resolveDependencyValue } from '@/lib/workflows/subblocks/visibility'
 import { useSubBlockValue } from '@/apps/automations/components/sub-blocks/hooks/use-sub-block-value'
+import { getBlock } from '@/lib/sim/blocks/registry'
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
+import { getDependsOnFields } from '@/lib/sim/blocks/utils'
+import { ResponseBlockHandler } from '@/lib/sim/executor/handlers/response/response-handler'
+import { useWorkflowRegistry } from '@/apps/automations/stores/registry'
+import { useSubBlockStore } from '@/apps/automations/stores/subblock'
+import { useWorkflowStore } from '@/apps/automations/stores/workflow'
 
-interface DropdownOption {
-  label: string
-  id: string
-  icon?: any
-  disabled?: boolean
-}
+/**
+ * Dropdown option type - can be a simple string or an object with label, id, and optional icon.
+ * Options with `hidden: true` are excluded from the picker but still resolve for label display,
+ * so existing workflows that reference them continue to work.
+ */
+type DropdownOption =
+  | string
+  | {
+      label: string
+      id: string
+      icon?: React.ComponentType<{ className?: string }>
+      hidden?: boolean
+    }
 
+/**
+ * Props for the Dropdown component
+ */
 interface DropdownProps {
+  /** Static options array or function that returns options */
+  options: DropdownOption[] | (() => DropdownOption[])
+  /** Default value to select when no value is set */
+  defaultValue?: string
+  /** Unique identifier for the block */
   blockId: string
+  /** Unique identifier for the sub-block */
   subBlockId: string
-  config?: SubBlockConfig
+  /** Current value(s) - string for single select, array for multi-select */
+  value?: string | string[]
+  /** Whether component is in preview mode */
   isPreview?: boolean
-  previewValue?: string | null
+  /** Value to display in preview mode */
+  previewValue?: string | string[] | null
+  /** Whether the dropdown is disabled */
   disabled?: boolean
-  // Legacy props from SubBlockField — ignored, we read from store
-  value?: any
-  onChange?: any
+  /** Placeholder text when no value is selected */
+  placeholder?: string
+  /** Enable multi-select mode */
+  multiSelect?: boolean
+  /** Async function to fetch options dynamically */
+  fetchOptions?: (
+    blockId: string,
+    subBlockId: string
+  ) => Promise<Array<{ label: string; id: string }>>
+  /** Async function to fetch a single option's label by ID (for hydration) */
+  fetchOptionById?: (
+    blockId: string,
+    subBlockId: string,
+    optionId: string
+  ) => Promise<{ label: string; id: string } | null>
+  /** Field dependencies that trigger option refetch when changed */
+  dependsOn?: SubBlockConfig['dependsOn']
+  /** Enable search input in dropdown */
+  searchable?: boolean
 }
 
+/**
+ * Dropdown component with support for single/multi-select, async options, and data mode conversion
+ *
+ * @remarks
+ * - Supports both static and dynamic (fetched) options
+ * - Can operate in single-select or multi-select mode
+ * - Special handling for dataMode subblock to convert between JSON and structured formats
+ * - Integrates with the workflow state management system
+ */
 export const Dropdown = memo(function Dropdown({
+  options,
+  defaultValue,
   blockId,
   subBlockId,
-  config,
-  isPreview,
+  value: propValue,
+  isPreview = false,
   previewValue,
   disabled,
+  placeholder = 'Select an option...',
+  multiSelect = false,
+  fetchOptions,
+  fetchOptionById,
+  dependsOn,
+  searchable = false,
 }: DropdownProps) {
-  const [storeValue, setStoreValue] = useSubBlockValue<string>(blockId, subBlockId)
-  const [fetchedOptions, setFetchedOptions] = useState<DropdownOption[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [storeValue, setStoreValue] = useSubBlockValue<string | string[]>(blockId, subBlockId) as [
+    string | string[] | null | undefined,
+    (value: string | string[]) => void,
+  ]
 
-  const value = isPreview ? previewValue : storeValue
-  const options = config?.options
+  const dependsOnFields = useMemo(() => getDependsOnFields(dependsOn), [dependsOn])
 
-  // Evaluate static options
-  const staticOptions = useMemo(() => {
-    const opts = typeof options === 'function' ? options() : options ?? []
-    return opts as DropdownOption[]
+  const activeWorkflowId = useWorkflowRegistry((s) => s.activeWorkflowId)
+  const blockState = useWorkflowStore((state) => state.blocks[blockId])
+  const blockConfig = blockState?.type ? getBlock(blockState.type) : null
+  const canonicalIndex = useMemo(
+    () => buildCanonicalIndex(blockConfig?.subBlocks || []),
+    [blockConfig?.subBlocks]
+  )
+  const canonicalModeOverrides = blockState?.data?.canonicalModes
+  const dependencyValues = useStoreWithEqualityFn(
+    useSubBlockStore,
+    useCallback(
+      (state: any) => {
+        if (dependsOnFields.length === 0 || !activeWorkflowId) return []
+        const workflowValues = state.workflowValues[activeWorkflowId] || {}
+        const blockValues = workflowValues[blockId] || {}
+        return dependsOnFields.map((depKey: string) =>
+          resolveDependencyValue(depKey, blockValues, canonicalIndex, canonicalModeOverrides)
+        )
+      },
+      [dependsOnFields, activeWorkflowId, blockId, canonicalIndex, canonicalModeOverrides]
+    ),
+    isEqual
+  )
+
+  const [fetchedOptions, setFetchedOptions] = useState<Array<{ label: string; id: string }>>([])
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [hydratedOption, setHydratedOption] = useState<{ label: string; id: string } | null>(null)
+
+  const previousModeRef = useRef<string | null>(null)
+  const previousDependencyValuesRef = useRef<string>('')
+
+  const [builderData, setBuilderData] = useSubBlockValue<any[]>(blockId, 'builderData')
+  const [data, setData] = useSubBlockValue<string>(blockId, 'data')
+
+  const builderDataRef = useRef(builderData)
+  const dataRef = useRef(data)
+
+  useEffect(() => {
+    builderDataRef.current = builderData
+    dataRef.current = data
+  }, [builderData, data])
+
+  const value = isPreview ? previewValue : propValue !== undefined ? propValue : storeValue
+
+  const singleValue = multiSelect ? null : (value as string | null | undefined)
+  const multiValues = multiSelect
+    ? Array.isArray(value)
+      ? value
+      : value
+        ? [value as string]
+        : []
+    : null
+
+  const fetchOptionsIfNeeded = useCallback(async () => {
+    if (!fetchOptions || isPreview || disabled) return
+
+    setIsLoadingOptions(true)
+    setFetchError(null)
+    try {
+      const opts = await fetchOptions(blockId, subBlockId)
+      setFetchedOptions(opts)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch options'
+      setFetchError(errorMessage)
+      setFetchedOptions([])
+    } finally {
+      setIsLoadingOptions(false)
+    }
+  }, [fetchOptions, blockId, subBlockId, isPreview, disabled])
+
+  /**
+   * Handles open state changes to trigger option fetching
+   */
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        void fetchOptionsIfNeeded()
+      }
+    },
+    [fetchOptionsIfNeeded]
+  )
+
+  const evaluatedOptions = useMemo(() => {
+    return typeof options === 'function' ? options() : options
   }, [options])
 
-  // Fetch dynamic options if fetchOptions is defined
-  useEffect(() => {
-    if (!config?.fetchOptions || isPreview || disabled) return
-    let cancelled = false
-    setIsLoading(true)
-    config.fetchOptions(blockId, subBlockId).then((result: any) => {
-      if (!cancelled) {
-        setFetchedOptions(Array.isArray(result) ? result : [])
-        setIsLoading(false)
-      }
-    }).catch(() => {
-      if (!cancelled) setIsLoading(false)
-    })
-    return () => { cancelled = true }
-  }, [config?.fetchOptions, blockId, isPreview, disabled])
+  const normalizedFetchedOptions = useMemo(() => {
+    return fetchedOptions.map((opt) => ({ label: opt.label, id: opt.id }))
+  }, [fetchedOptions])
 
   const allOptions = useMemo(() => {
-    return config?.fetchOptions && fetchedOptions.length > 0
-      ? fetchedOptions
-      : staticOptions
-  }, [config?.fetchOptions, fetchedOptions, staticOptions])
+    let opts: DropdownOption[] =
+      fetchOptions && normalizedFetchedOptions.length > 0
+        ? normalizedFetchedOptions
+        : evaluatedOptions
 
-  const handleChange = useCallback((newValue: string | null) => {
-    if (!isPreview && !disabled && newValue) {
-      setStoreValue(newValue)
+    if (hydratedOption) {
+      const alreadyPresent = opts.some((o) =>
+        typeof o === 'string' ? o === hydratedOption.id : o.id === hydratedOption.id
+      )
+      if (!alreadyPresent) {
+        opts = [hydratedOption, ...opts]
+      }
     }
-  }, [isPreview, disabled, setStoreValue])
 
-  const displayValue = typeof value === 'string' ? value : ''
+    return opts
+  }, [fetchOptions, normalizedFetchedOptions, evaluatedOptions, hydratedOption])
 
+  interface NormalizedOption {
+    label: string
+    value: string
+    icon?: React.ComponentType<{ className?: string }>
+    hidden?: boolean
+  }
+
+  const normalizedOptions = useMemo((): NormalizedOption[] => {
+    return allOptions.map((opt) => {
+      if (typeof opt === 'string') {
+        return { label: opt.toLowerCase(), value: opt }
+      }
+      return {
+        label: opt.label.toLowerCase(),
+        value: opt.id,
+        icon: 'icon' in opt ? opt.icon : undefined,
+        hidden: opt.hidden,
+      }
+    })
+  }, [allOptions])
+
+  const optionMap = useMemo(() => {
+    return new Map(normalizedOptions.map((opt) => [opt.value, opt.label]))
+  }, [normalizedOptions])
+
+  const defaultOptionValue = useMemo(() => {
+    if (multiSelect) return undefined
+    if (defaultValue !== undefined) {
+      return defaultValue
+    }
+
+    if (normalizedOptions.length > 0) {
+      return normalizedOptions[0].value
+    }
+
+    return undefined
+  }, [defaultValue, normalizedOptions, multiSelect])
+
+  useEffect(() => {
+    if (multiSelect || defaultOptionValue === undefined) {
+      return
+    }
+    if (storeValue === null || storeValue === undefined || storeValue === '') {
+      setStoreValue(defaultOptionValue)
+    }
+  }, [storeValue, defaultOptionValue, setStoreValue, multiSelect])
+
+  /**
+   * Normalizes variable references in JSON strings by wrapping them in quotes
+   */
+  const normalizeVariableReferences = (jsonString: string): string => {
+    return jsonString.replace(/([^"]<[^>]+>)/g, '"$1"')
+  }
+
+  /**
+   * Converts a JSON string to builder data format for structured editing
+   */
+  const convertJsonToBuilderData = (jsonString: string): any[] => {
+    try {
+      const normalizedJson = normalizeVariableReferences(jsonString)
+      const parsed = JSON.parse(normalizedJson)
+
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return Object.entries(parsed).map(([key, value]) => {
+          const fieldType = inferType(value)
+          const fieldValue =
+            fieldType === 'object' || fieldType === 'array' ? JSON.stringify(value, null, 2) : value
+
+          return {
+            id: crypto.randomUUID(),
+            name: key,
+            type: fieldType,
+            value: fieldValue,
+            collapsed: false,
+          }
+        })
+      }
+
+      return []
+    } catch (error) {
+      return []
+    }
+  }
+
+  /**
+   * Infers the type of a value for builder data field configuration
+   */
+  const inferType = (value: any): 'string' | 'number' | 'boolean' | 'object' | 'array' => {
+    if (typeof value === 'boolean') return 'boolean'
+    if (typeof value === 'number') return 'number'
+    if (Array.isArray(value)) return 'array'
+    if (typeof value === 'object' && value !== null) return 'object'
+    return 'string'
+  }
+
+  useEffect(() => {
+    if (multiSelect || subBlockId !== 'dataMode' || isPreview || disabled) return
+
+    const currentMode = storeValue as string
+    const previousMode = previousModeRef.current
+
+    if (previousMode !== null && previousMode !== currentMode) {
+      if (currentMode === 'json' && previousMode === 'structured') {
+        const currentBuilderData = builderDataRef.current
+        if (
+          currentBuilderData &&
+          Array.isArray(currentBuilderData) &&
+          currentBuilderData.length > 0
+        ) {
+          const jsonString = ResponseBlockHandler.convertBuilderDataToJsonString(currentBuilderData)
+          setData(jsonString)
+        }
+      } else if (currentMode === 'structured' && previousMode === 'json') {
+        const currentData = dataRef.current
+        if (currentData && typeof currentData === 'string' && currentData.trim().length > 0) {
+          const builderArray = convertJsonToBuilderData(currentData)
+          setBuilderData(builderArray)
+        }
+      }
+    }
+
+    previousModeRef.current = currentMode
+  }, [storeValue, subBlockId, isPreview, disabled, setData, setBuilderData, multiSelect])
+
+  /**
+   * Handles selection change for single-select mode
+   */
+  const handleChange = useCallback(
+    (selectedValue: string | null) => {
+      if (!isPreview && !disabled && selectedValue) {
+        setStoreValue(selectedValue)
+      }
+    },
+    [isPreview, disabled, setStoreValue]
+  )
+
+  /**
+   * Handles multi-select toggle
+   */
+  const handleMultiSelectToggle = useCallback(
+    (toggledValue: string) => {
+      if (!isPreview && !disabled && multiValues) {
+        const newValues = multiValues.includes(toggledValue)
+          ? multiValues.filter((v) => v !== toggledValue)
+          : [...multiValues, toggledValue]
+        setStoreValue(newValues)
+      }
+    },
+    [isPreview, disabled, setStoreValue, multiValues]
+  )
+
+  /**
+   * Effect to clear fetched options and hydrated option when dependencies actually change
+   */
+  useEffect(() => {
+    if (fetchOptions && dependsOnFields.length > 0) {
+      const currentDependencyValuesStr = JSON.stringify(dependencyValues)
+      const previousDependencyValuesStr = previousDependencyValuesRef.current
+
+      if (
+        previousDependencyValuesStr &&
+        currentDependencyValuesStr !== previousDependencyValuesStr
+      ) {
+        setFetchedOptions([])
+        setHydratedOption(null)
+      }
+
+      previousDependencyValuesRef.current = currentDependencyValuesStr
+    }
+  }, [dependencyValues, fetchOptions, dependsOnFields.length])
+
+  /**
+   * Effect to fetch options when needed (on mount, when enabled, or when dependencies change)
+   */
+  useEffect(() => {
+    if (
+      fetchOptions &&
+      !isPreview &&
+      !disabled &&
+      fetchedOptions.length === 0 &&
+      !isLoadingOptions &&
+      !fetchError
+    ) {
+      fetchOptionsIfNeeded()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    fetchOptions,
+    isPreview,
+    disabled,
+    fetchedOptions.length,
+    isLoadingOptions,
+    fetchError,
+    dependencyValues,
+  ])
+
+  /**
+   * Effect to hydrate the stored value's label by fetching it individually
+   */
+  useEffect(() => {
+    if (!fetchOptionById || isPreview || disabled) return
+
+    const valueToHydrate = multiSelect ? null : (singleValue as string | null | undefined)
+    if (!valueToHydrate) return
+
+    if (valueToHydrate.startsWith('<') || valueToHydrate.includes('{{')) return
+    if (hydratedOption?.id === valueToHydrate) return
+
+    const alreadyInFetchedOptions = fetchedOptions.some((opt) => opt.id === valueToHydrate)
+    const alreadyInStaticOptions = evaluatedOptions.some((opt) =>
+      typeof opt === 'string' ? opt === valueToHydrate : opt.id === valueToHydrate
+    )
+    if (alreadyInFetchedOptions || alreadyInStaticOptions) return
+
+    let isActive = true
+    fetchOptionById(blockId, subBlockId, valueToHydrate)
+      .then((option) => {
+        if (isActive) setHydratedOption(option)
+      })
+      .catch(() => {
+        if (isActive) setHydratedOption(null)
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [
+    fetchOptionById,
+    singleValue,
+    multiSelect,
+    blockId,
+    subBlockId,
+    isPreview,
+    disabled,
+    fetchedOptions,
+    evaluatedOptions,
+    hydratedOption?.id,
+  ])
+
+  const visibleOptions = normalizedOptions.filter((opt) => !opt.hidden)
+
+  // Multi-select: render as checkboxes
+  if (multiSelect) {
+    return (
+      <div className="rounded border border-[var(--color-border)] bg-[var(--color-bg-base)] p-1.5">
+        {visibleOptions.length === 0 && (
+          <div className="px-2 py-1 text-xs text-[var(--color-text-tertiary)]">
+            {isLoadingOptions ? 'Loading...' : 'No options'}
+          </div>
+        )}
+        {visibleOptions.map((opt) => (
+          <label
+            key={opt.value}
+            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--color-bg-surface)]"
+          >
+            <input
+              type="checkbox"
+              checked={multiValues?.includes(opt.value) ?? false}
+              onChange={() => handleMultiSelectToggle(opt.value)}
+              disabled={isPreview || disabled}
+              className="rounded border-[var(--color-border)]"
+            />
+            <span className="text-[var(--color-text-primary)]">{opt.label}</span>
+          </label>
+        ))}
+      </div>
+    )
+  }
+
+  // Single select: render with our Select component
   return (
     <Select
-      value={displayValue}
+      value={singleValue ?? undefined}
       onValueChange={handleChange}
-      disabled={isPreview || disabled || isLoading}
+      disabled={isPreview || disabled || isLoadingOptions}
+      onOpenChange={handleOpenChange}
     >
-      <SelectTrigger
-        size="sm"
-        className="w-full text-xs"
-      >
-        <SelectValue placeholder={config?.placeholder ?? 'Select...'} />
+      <SelectTrigger size="sm" className="w-full text-xs">
+        <SelectValue placeholder={isLoadingOptions ? 'Loading...' : placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {allOptions.map((opt) => {
-          const optId = typeof opt === 'string' ? opt : opt.id
-          const optLabel = typeof opt === 'string' ? opt : opt.label
-          return (
-            <SelectItem key={optId} value={optId} disabled={(opt as DropdownOption)?.disabled}>
-              {optLabel}
-            </SelectItem>
-          )
-        })}
+        {fetchError && (
+          <div className="px-2 py-1 text-xs text-red-500">{fetchError}</div>
+        )}
+        {visibleOptions.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   )

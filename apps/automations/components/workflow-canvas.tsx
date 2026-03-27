@@ -9,6 +9,7 @@ import ReactFlow, {
   Controls,
   type Connection,
   type Edge,
+  type EdgeTypes,
   type Node,
   type NodeTypes,
   ReactFlowProvider,
@@ -17,7 +18,7 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket } from '@phosphor-icons/react'
+import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket, BracketsCurly } from '@phosphor-icons/react'
 import { DeployModal } from './deploy/deploy-modal'
 import { getBlock, getBlocksByCategory, type BlockConfig } from '@/lib/sim/blocks'
 import {
@@ -33,6 +34,11 @@ import { WorkflowBlockNode, type BlockNodeData } from './workflow-block-node'
 import { BlockEditorPanel } from './block-editor-panel'
 import { Terminal } from './terminal/terminal'
 import { useTerminalConsoleStore } from '@/apps/automations/stores/terminal'
+import { WorkflowEdge } from './workflow-edge'
+import { wouldCreateCycle } from '@/apps/automations/stores/workflows/edge-validation'
+import { BlockContextMenu } from './block-context-menu'
+import { runPreDeployChecks } from '@/apps/automations/lib/pre-deploy-checks'
+import { VariablesPanel } from './variables-panel'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +58,10 @@ interface ApiEdge {
 
 const NODE_TYPES: NodeTypes = {
   workflowBlock: WorkflowBlockNode,
+}
+
+const EDGE_TYPES: EdgeTypes = {
+  workflow: WorkflowEdge,
 }
 
 // ─── Convert between BlockState and ReactFlow Nodes ──────────────────────────
@@ -106,6 +116,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [isDeploying, setIsDeploying] = useState(false)
   const [deployedAt, setDeployedAt] = useState<string | null>(null)
   const [deployModalOpen, setDeployModalOpen] = useState(false)
+  const [variablesPanelOpen, setVariablesPanelOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; blockId: string } | null>(null)
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Set active workflow in registry so stores work correctly
@@ -169,12 +181,21 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
   const handleDeployClick = useCallback(async () => {
     if (isDeployed) {
-      // Already deployed — just open the modal
       setDeployModalOpen(true)
       return
     }
 
-    // Not deployed — deploy first, then open modal
+    // Run pre-deploy validation
+    const checkResult = runPreDeployChecks({
+      blocks: blockStates as any,
+      edges,
+      workflowId,
+    })
+    if (!checkResult.passed) {
+      alert(checkResult.error || 'Pre-deploy validation failed')
+      return
+    }
+
     setIsDeploying(true)
     try {
       const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'POST' })
@@ -189,7 +210,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     } finally {
       setIsDeploying(false)
     }
-  }, [workflowId, isDeployed])
+  }, [workflowId, isDeployed, blockStates, edges])
 
   const handleUndeploy = useCallback(async () => {
     const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'DELETE' })
@@ -208,8 +229,13 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   }, [workflowId])
 
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
-    [setEdges]
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return
+      if (connection.source === connection.target) return
+      if (wouldCreateCycle(connection.source, connection.target, edges)) return
+      setEdges((eds) => addEdge({ ...connection, type: 'workflow' }, eds))
+    },
+    [setEdges, edges]
   )
 
   // Sync node position changes back to blockStates
@@ -369,6 +395,187 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     }
   }
 
+  // ─── Context menu handlers ──────────────────────────────────────────────────
+
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault()
+      setContextMenu({ x: event.clientX, y: event.clientY, blockId: node.id })
+    },
+    []
+  )
+
+  const deleteBlock = useCallback(
+    (blockId: string) => {
+      setBlockStates((prev) => {
+        const next = { ...prev }
+        delete next[blockId]
+        return next
+      })
+      setNodes((ns) => ns.filter((n) => n.id !== blockId))
+      setEdges((es) => es.filter((e) => e.source !== blockId && e.target !== blockId))
+
+      const subBlockStore = useSubBlockStore.getState()
+      const existing = { ...subBlockStore.workflowValues[workflowId] }
+      delete existing[blockId]
+      subBlockStore.setWorkflowValues(workflowId, existing)
+
+      if (selectedBlockId === blockId) setSelectedBlockId(null)
+    },
+    [workflowId, selectedBlockId, setNodes, setEdges]
+  )
+
+  const duplicateBlock = useCallback(
+    (blockId: string) => {
+      const registry = useWorkflowRegistry.getState()
+      registry.copyBlocks([blockId])
+      const pasteData = registry.preparePasteData({ x: 50, y: 50 })
+      if (!pasteData) return
+
+      const subBlockStore = useSubBlockStore.getState()
+      const existingSubBlocks = { ...subBlockStore.workflowValues[workflowId] }
+      const newNodes: Node<BlockNodeData>[] = []
+
+      setBlockStates((prev) => {
+        const next = { ...prev }
+        for (const [id, block] of Object.entries(pasteData.blocks)) {
+          next[id] = block
+          newNodes.push(blockStateToNode(block))
+          if (pasteData.subBlockValues[id]) {
+            existingSubBlocks[id] = pasteData.subBlockValues[id]
+          } else {
+            const vals: Record<string, any> = {}
+            for (const [sbId, sb] of Object.entries(block.subBlocks)) vals[sbId] = sb.value
+            existingSubBlocks[id] = vals
+          }
+        }
+        return next
+      })
+      setNodes((ns) => [...ns, ...newNodes])
+      setEdges((es) => [...es, ...pasteData.edges])
+      subBlockStore.setWorkflowValues(workflowId, existingSubBlocks)
+    },
+    [workflowId, setNodes, setEdges]
+  )
+
+  const copyBlock = useCallback(
+    (blockId: string) => {
+      useWorkflowRegistry.getState().copyBlocks([blockId])
+    },
+    []
+  )
+
+  // ─── Keyboard shortcuts (Delete, Copy, Paste) ───────────────────────────────
+
+  useEffect(() => {
+    function isInEditableElement(): boolean {
+      const el = document.activeElement
+      if (!el) return false
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return true
+      if ((el as HTMLElement).isContentEditable) return true
+      const role = el.getAttribute('role')
+      if (role === 'textbox' || role === 'combobox') return true
+      return false
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (isInEditableElement()) return
+
+      const isCtrl = event.ctrlKey || event.metaKey
+
+      // Delete / Backspace — remove selected blocks and edges
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const selectedNodes = reactFlow.getNodes().filter((n) => n.selected)
+        if (selectedNodes.length === 0) return
+
+        event.preventDefault()
+        const idsToRemove = new Set(selectedNodes.map((n) => n.id))
+
+        setBlockStates((prev) => {
+          const next = { ...prev }
+          for (const id of idsToRemove) delete next[id]
+          return next
+        })
+        setNodes((ns) => ns.filter((n) => !idsToRemove.has(n.id)))
+        setEdges((es) =>
+          es.filter((e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target))
+        )
+
+        // Clean subblock store
+        const subBlockStore = useSubBlockStore.getState()
+        const existing = { ...subBlockStore.workflowValues[workflowId] }
+        for (const id of idsToRemove) delete existing[id]
+        subBlockStore.setWorkflowValues(workflowId, existing)
+
+        setSelectedBlockId(null)
+        return
+      }
+
+      // Ctrl+C — Copy selected blocks
+      if (isCtrl && event.key === 'c') {
+        const selection = window.getSelection()
+        if (selection && selection.toString().length > 0) return // allow native text copy
+
+        const selectedNodes = reactFlow.getNodes().filter((n) => n.selected)
+        const blockIds = selectedNodes.length > 0
+          ? selectedNodes.map((n) => n.id)
+          : selectedBlockId ? [selectedBlockId] : []
+
+        if (blockIds.length > 0) {
+          event.preventDefault()
+          useWorkflowRegistry.getState().copyBlocks(blockIds)
+        }
+        return
+      }
+
+      // Ctrl+V — Paste blocks
+      if (isCtrl && event.key === 'v') {
+        const registry = useWorkflowRegistry.getState()
+        if (!registry.hasClipboard()) return
+
+        event.preventDefault()
+        const viewport = reactFlow.getViewport()
+        const center = reactFlow.screenToFlowPosition({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        })
+        const pasteData = registry.preparePasteData({ x: 50, y: 50 })
+        if (!pasteData) return
+
+        // Add each pasted block
+        const newNodes: Node<BlockNodeData>[] = []
+        const subBlockStore = useSubBlockStore.getState()
+        const existingSubBlocks = { ...subBlockStore.workflowValues[workflowId] }
+
+        setBlockStates((prev) => {
+          const next = { ...prev }
+          for (const [id, block] of Object.entries(pasteData.blocks)) {
+            next[id] = block
+            newNodes.push(blockStateToNode(block))
+            if (pasteData.subBlockValues[id]) {
+              existingSubBlocks[id] = pasteData.subBlockValues[id]
+            } else {
+              const vals: Record<string, any> = {}
+              for (const [sbId, sb] of Object.entries(block.subBlocks)) {
+                vals[sbId] = sb.value
+              }
+              existingSubBlocks[id] = vals
+            }
+          }
+          return next
+        })
+        setNodes((ns) => [...ns, ...newNodes])
+        setEdges((es) => [...es, ...pasteData.edges])
+
+        subBlockStore.setWorkflowValues(workflowId, existingSubBlocks)
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [reactFlow, workflowId, selectedBlockId, setNodes, setEdges])
+
   async function saveName() {
     if (!draftName.trim() || draftName === workflow?.name) {
       setEditingName(false)
@@ -504,6 +711,22 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
             Add Block
           </button>
           <button
+            onClick={() => setVariablesPanelOpen((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{
+              background: variablesPanelOpen
+                ? 'var(--color-accent-light)'
+                : 'var(--color-bg-base)',
+              border: `1px solid ${variablesPanelOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
+              color: variablesPanelOpen
+                ? 'var(--color-accent)'
+                : 'var(--color-text-primary)',
+            }}
+          >
+            <BracketsCurly size={12} weight="bold" />
+            Variables
+          </button>
+          <button
             onClick={runWorkflow}
             disabled={isRunning}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-opacity disabled:opacity-50"
@@ -545,11 +768,14 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
-              onNodeClick={(_e, node) => setSelectedBlockId(node.id)}
-              onPaneClick={() => setSelectedBlockId(null)}
+              onNodeClick={(_e, node) => { setSelectedBlockId(node.id); setContextMenu(null) }}
+              onNodeContextMenu={onNodeContextMenu}
+              onPaneClick={() => { setSelectedBlockId(null); setContextMenu(null) }}
               onDrop={onDrop}
               onDragOver={onDragOver}
               nodeTypes={NODE_TYPES}
+              edgeTypes={EDGE_TYPES}
+              defaultEdgeOptions={{ type: 'workflow' }}
               fitView
               fitViewOptions={{ padding: 0.3 }}
             >
@@ -560,6 +786,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
                 color="#D4D2CE"
               />
               <Controls
+                showInteractive={false}
                 style={{
                   background: 'var(--color-bg-surface)',
                   border: '1px solid var(--color-border)',
@@ -571,6 +798,19 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
           <Terminal workflowId={workflowId} />
         </div>
+
+        {contextMenu && blockStates[contextMenu.blockId] && (
+          <BlockContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            blockId={contextMenu.blockId}
+            blockName={blockStates[contextMenu.blockId].name}
+            onClose={() => setContextMenu(null)}
+            onDelete={deleteBlock}
+            onDuplicate={duplicateBlock}
+            onCopy={copyBlock}
+          />
+        )}
 
         {selectedConfig && selectedBlock && (
           <BlockEditorPanel
@@ -592,6 +832,11 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         blockStates={blockStates}
         onUndeploy={handleUndeploy}
         onDeploy={handleDeploy}
+      />
+
+      <VariablesPanel
+        isOpen={variablesPanelOpen}
+        onClose={() => setVariablesPanelOpen(false)}
       />
     </div>
   )

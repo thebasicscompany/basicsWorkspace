@@ -101,6 +101,32 @@ export function buildCanonicalIndex(
   return { groupsById, canonicalIdBySubBlockId }
 }
 
+/**
+ * Resolve the dependency value for a dependsOn key, honoring canonical swaps.
+ */
+export function resolveDependencyValue(
+  dependencyKey: string,
+  values: Record<string, unknown>,
+  canonicalIndex: CanonicalIndex,
+  overrides?: CanonicalModeOverrides
+): unknown {
+  const canonicalId =
+    canonicalIndex.groupsById[dependencyKey]?.canonicalId ||
+    canonicalIndex.canonicalIdBySubBlockId[dependencyKey]
+
+  if (!canonicalId) {
+    return values[dependencyKey]
+  }
+
+  const group = canonicalIndex.groupsById[canonicalId]
+  if (!group) return values[dependencyKey]
+
+  const { basicValue, advancedValue } = getCanonicalValues(group, values)
+  const mode = resolveCanonicalMode(group, values, overrides)
+  if (mode === 'advanced') return advancedValue ?? basicValue
+  return basicValue ?? advancedValue
+}
+
 /** Returns true if a sub-block should be visible given current values */
 export function isSubBlockVisible(
   _blockType: string,

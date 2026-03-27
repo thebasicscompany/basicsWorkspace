@@ -84,7 +84,8 @@
       "Bash(grep:*)",
       "Bash(find '/c/Users/aravb/Desktop/Code/basics/basicsOS/app/\\(sim-canvas\\)' -type f \\\\\\( -name \"*log*\" -o -name \"*execution*\" -o -name \"*console*\" -o -name \"*terminal*\" \\\\\\))",
       "Bash(npm install:*)",
-      "Bash(npx drizzle-kit:*)"
+      "Bash(npx drizzle-kit:*)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(f''''{w[id]} — {w[name]}''''\\) for w in \\(data.get\\(''''workflows''''\\) or data.get\\(''''data''''\\) or []\\)[:5]]\")"
     ]
   }
 }
