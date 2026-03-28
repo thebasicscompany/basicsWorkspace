@@ -3,6 +3,7 @@
  * Only import path changes applied.
  */
 import { createLogger } from '@/lib/sim/logger'
+import cronstrue from 'cronstrue'
 import { Cron } from 'croner'
 
 const logger = createLogger('ScheduleUtils')
@@ -296,5 +297,52 @@ export function calculateNextRunTime(
     throw new Error(
       `Failed to calculate next run time for schedule type ${scheduleType}: ${error instanceof Error ? error.message : String(error)}`
     )
+  }
+}
+
+function getTimezoneAbbreviation(timezone: string): string {
+  if (timezone === 'UTC') return 'UTC'
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    })
+    const parts = formatter.formatToParts(new Date())
+    const tzPart = parts.find((p) => p.type === 'timeZoneName')
+    return tzPart?.value || timezone
+  } catch {
+    return timezone
+  }
+}
+
+/**
+ * Convert a cron expression to a human-readable string.
+ *
+ * @param cronExpression - The cron expression to parse
+ * @param timezone - Optional IANA timezone string to include in the description
+ * @returns Human-readable description of the schedule
+ */
+export const parseCronToHumanReadable = (cronExpression: string, timezone?: string): string => {
+  try {
+    const baseDescription = cronstrue
+      .toString(cronExpression, {
+        use24HourTimeFormat: false,
+        verbose: false,
+      })
+      .replace(/\b0(\d:\d{2})/g, '$1')
+
+    if (timezone && timezone !== 'UTC') {
+      const tzAbbr = getTimezoneAbbreviation(timezone)
+      return `${baseDescription} (${tzAbbr})`
+    }
+
+    return baseDescription
+  } catch (error) {
+    logger.warn('Failed to parse cron expression with cronstrue:', {
+      cronExpression,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return `Schedule: ${cronExpression}${timezone && timezone !== 'UTC' ? ` (${getTimezoneAbbreviation(timezone)})` : ''}`
   }
 }

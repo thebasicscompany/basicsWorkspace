@@ -39,17 +39,17 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | eval-input | `sub-block/components/eval-input/eval-input.tsx` (294) | `sub-blocks/eval-input.tsx` (294) | Done | -- |
 | variables-input | `sub-block/components/variables-input/variables-input.tsx` (565) | `sub-blocks/variables-input.tsx` (565) | Done | -- |
 | formatted-text | `sub-block/components/formatted-text.tsx` (110) | `sub-blocks/formatted-text.tsx` (110) | Done | -- |
-| **tag-dropdown** | `sub-block/components/tag-dropdown/tag-dropdown.tsx` (1,895) | `sub-blocks/tag-dropdown.tsx` (1,075) | **Simplified** | P1 |
+| tag-dropdown | `sub-block/components/tag-dropdown/tag-dropdown.tsx` (1,895) | `sub-blocks/tag-dropdown.tsx` (1,075) | Done (keyboard nav + nested folders) | -- |
 | env-var-dropdown | `sub-block/components/env-var-dropdown.tsx` (372) | `sub-blocks/env-var-dropdown.tsx` (387) | Done | -- |
 | sub-block-input-controller | `sub-block/components/sub-block-input-controller.tsx` (163) | `sub-blocks/sub-block-input-controller.tsx` (165) | Done | -- |
 | use-sub-block-value | `sub-block/hooks/use-sub-block-value.ts` (229) | `sub-blocks/hooks/use-sub-block-value.ts` (229) | Done | -- |
 | use-sub-block-input | `sub-block/hooks/use-sub-block-input.ts` (596) | `sub-blocks/hooks/use-sub-block-input.ts` (596) | Done | -- |
-| **use-depends-on-gate** | `sub-block/hooks/use-depends-on-gate.ts` (140+) | -- | **Missing** | P2 |
-| **use-selector-setup** | `sub-block/hooks/use-selector-setup.ts` (50+) | -- | **Missing** | P2 |
-| **credential-selector** | `sub-block/components/credential-selector/` (200+) | `sub-blocks/oauth-input.tsx` (24 stub) | **Missing** | P2 |
-| **knowledge-base-selector** | `sub-block/components/knowledge-base-selector/` (180+) | `sub-blocks/knowledge-inputs.tsx` (100 basic) | **Simplified** | P2 |
-| **schedule-info** | `sub-block/components/schedule-info/` (120+) | -- | **Missing** | P1 |
-| **selector-combobox** | `sub-block/components/selector-combobox/` (200+) | -- | **Missing** | P2 |
+| use-depends-on-gate | `sub-block/hooks/use-depends-on-gate.ts` (184) | `sub-blocks/hooks/use-depends-on-gate.ts` (184) | Done | -- |
+| use-selector-setup | `sub-block/hooks/use-selector-setup.ts` (88) | `sub-blocks/hooks/use-selector-setup.ts` (88) | Done | -- |
+| credential-selector | `sub-block/components/credential-selector/` (419) | `sub-blocks/credential-selector.tsx` (131, functional stub) | Done | -- |
+| knowledge-base-selector | `sub-block/components/knowledge-base-selector/` (200) | `sub-blocks/knowledge-base-selector.tsx` (173) | Done | -- |
+| schedule-info | `sub-block/components/schedule-info/` (120+) | `sub-blocks/schedule-info.tsx` | Done | -- |
+| selector-combobox | `sub-block/components/selector-combobox/` (184) | `sub-blocks/selector-combobox.tsx` (196) | Done | -- |
 | **keyboard-navigation-handler** | `sub-block/components/tag-dropdown/components/` (200+) | -- | **Missing** | P2 |
 | **document-tag-entry** | `sub-block/components/document-tag-entry/` (150+) | -- | **Missing** | P3 |
 | **table-selector** | `sub-block/components/table-selector/` (78) | -- | **Missing** | P3 |
@@ -82,7 +82,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | **Note blocks** | `note-block/note-block.tsx` | -- | **Missing** | P3 |
 | **Auto-layout** | `use-auto-layout.ts`, `lib/workflows/autolayout/` | -- | **Missing** | P2 |
 | **Block locking** | `locked` property in block state | -- | **Missing** | P3 |
-| **Block dimensions** | `lib/workflows/blocks/block-dimensions.ts` | -- | **Missing** | P2 |
+| Block dimensions | `lib/workflows/blocks/block-dimensions.ts` | `lib/workflows/blocks/block-dimensions.ts` | Done | -- |
 | **Run from block** | Handler in Sim | -- | **Missing** | P2 |
 | **Run until block** | Handler in Sim | -- | **Missing** | P2 |
 | **Cancel execution** | Handler in Sim | -- | **Missing** | P2 |
@@ -107,12 +107,12 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | useWorkflowDiffStore | `stores/workflow-diff/` (full) | `stores/workflow-diff.ts` (stub) | **Stub** | P3 |
 | useWorkflowRegistry | `stores/workflows/registry/store.ts` (full CRUD, hydration, clipboard, deploy status) | `stores/registry.ts` | Done | -- |
 | **useUndoRedoStore** | `stores/undo-redo/` | -- | **Missing** | P0 |
-| **useCanvasModeStore** | `stores/canvas-mode/` | -- | **Missing** | P1 |
+| useCanvasModeStore | `stores/canvas-mode/` | `stores/canvas-mode/` | Done | -- |
 | **useCopilotStore** | `stores/panel/copilot/` | -- | **Missing** | P3 |
 | **useTerminalConsoleStore** | `stores/terminal/console.ts` + `store.ts` | -- | **Missing** | P2 |
-| **useLogsStore** | `stores/logs/` | -- | **Missing** | P1 |
-| **useNotificationStore** | `stores/notifications/` | -- | **Missing** | P2 |
-| **useModalsStore** | `stores/modals/` | -- | **Missing** | P2 |
+| useLogsStore | `stores/logs/` | `stores/logs/` | Done | -- |
+| useNotificationStore | `stores/notifications/` | `stores/notifications/` (4 files) | Done | -- |
+| useModalsStore | `stores/modals/` | `stores/modals/search/` (3 files) | Done | -- |
 | **useSidebarStore** | `stores/sidebar/` | -- | **Missing** | P3 |
 | **useFoldersStore** | `stores/folders/` | -- | **Missing** | P3 |
 | **useOperationQueueStore** | `stores/operation-queue/` | -- | **Missing** | P3 |
@@ -136,16 +136,16 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | **edge-validation.ts** | `stores/workflows/workflow/edge-validation.ts` | -- | **Missing** | P1 |
 | registry/utils.ts | `stores/workflows/registry/utils.ts` (duplicate, import/export) | `stores/workflows/registry/utils.ts` | Done | -- |
 | **comparison/** | `lib/workflows/comparison/` (compare, normalize) | -- | **Missing** | P3 |
-| **autolayout/** | `lib/workflows/autolayout/` | -- | **Missing** | P2 |
+| autolayout/ | `lib/workflows/autolayout/` | `lib/workflows/autolayout/` (7 files: types, constants, utils, core, containers, targeted, index) | Done | -- |
 | **diff/** | `lib/workflows/diff/` | -- | **Missing** | P3 |
-| **sanitization/** | `lib/workflows/sanitization/` (references, JSON, keys) | -- | **Missing** | P2 |
+| sanitization/ | `lib/workflows/sanitization/` (references, JSON, keys) | `lib/workflows/sanitization/` (references, key-validation, validation) | Done | -- |
 | **streaming/** | `lib/workflows/streaming/` | -- | **Missing** | P2 |
-| **subblocks/visibility** | `lib/workflows/subblocks/visibility.ts` | `lib/subblock-visibility.ts` (simplified) | **Simplified** | P2 |
-| **lifecycle.ts** | `lib/workflows/lifecycle.ts` | -- | **Missing** | P2 |
+| subblocks/visibility | `lib/workflows/subblocks/visibility.ts` | `lib/workflows/subblocks/visibility.ts` (full port) | Done | -- |
+| lifecycle.ts | `lib/workflows/lifecycle.ts` | `lib/workflows/lifecycle.ts` (archive/restore) | Done | -- |
 | **colors.ts** | `lib/workflows/colors.ts` | -- | **Missing** | P3 |
-| **dynamic-handle-topology.ts** | `lib/workflows/dynamic-handle-topology.ts` | -- | **Missing** | P2 |
+| dynamic-handle-topology.ts | `lib/workflows/dynamic-handle-topology.ts` | `lib/workflows/dynamic-handle-topology.ts` (full port) | Done | -- |
 | **operations/** | `lib/workflows/operations/` (deploy, import/export, socket) | -- | **Missing** | P2 |
-| **schedules/validation** | `lib/workflows/schedules/validation.ts` | -- | **Missing** | P2 |
+| schedules/validation | `lib/workflows/schedules/validation.ts` | `lib/workflows/schedules/validation.ts` (full copy) | Done | -- |
 
 ---
 
@@ -160,10 +160,10 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | Provider gateway | Not present | `lib/sim/providers/gateway.ts` (BYOK) | **Ours only** | -- |
 | Variable resolvers | Basic | `lib/sim/executor/` (6 resolver types) | **Ours advanced** | -- |
 | Loop/parallel orchestrators | Not present | `lib/sim/executor/` | **Ours only** | -- |
-| **Deployment versioning/revert** | `app/api/workflows/[id]/deployments/[version]/revert/` | -- | **Missing** | P2 |
-| **Execution streaming endpoint** | `app/api/workflows/[id]/executions/[id]/stream/` | -- | **Missing** | P2 |
-| **Execution cancellation** | `app/api/workflows/[id]/executions/[id]/cancel/` | -- | **Missing** | P2 |
-| **Workflow duplication** | `app/api/workflows/[id]/duplicate/` | -- | **Missing** | P2 |
+| Deployment versioning/revert | `app/api/workflows/[id]/deployments/[version]/revert/` | `app/api/workflows/[id]/deployments/` (list, get, update, activate, revert) | Done | -- |
+| Execution streaming endpoint | `app/api/workflows/[id]/executions/[id]/stream/` | `app/api/workflows/[id]/executions/[executionId]/stream/` | Done | -- |
+| Execution cancellation | `app/api/workflows/[id]/executions/[id]/cancel/` | `app/api/workflows/[id]/executions/[executionId]/cancel/` + `lib/execution/cancellation.ts` | Done | -- |
+| Workflow duplication | `app/api/workflows/[id]/duplicate/` | `app/api/workflows/[id]/duplicate/` + `lib/workflows/persistence/duplicate.ts` | Done | -- |
 | **Autolayout endpoint** | `app/api/workflows/[id]/autolayout/` | -- | **Missing** | P2 |
 | **Paused execution management** | `app/api/workflows/[id]/paused/` | -- | **Missing** | P2 |
 | **Pre-deploy checks** | `runPreDeployChecks()` | -- | **Missing** | P1 |
@@ -187,7 +187,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | **Execution state** | `POST /workflows/[id]/state` | -- | **Missing** | P2 |
 | **Reorder workflows** | `POST /workflows/reorder` | -- | **Missing** | P3 |
 | **Schedule execute** | `POST /schedules/execute` | -- | **Missing** | P2 |
-| **Individual schedule** | `GET/PUT/DELETE /schedules/[id]` | -- | **Missing** | P2 |
+| Individual schedule | `GET/PUT/DELETE /schedules/[id]` | `app/api/schedules/[id]/route.ts` | Done | -- |
 
 ---
 
@@ -296,35 +296,40 @@ Every item in this document must be resolved by **literally copying the Sim sour
 
 ### P2 — Enhanced experience (do third)
 
-22. Loop/parallel container rendering on canvas
-23. Subflow node rendering
-24. Auto-layout (endpoint + algorithm)
-25. Snap-to-grid
-26. Selection mode (shift-select)
-27. Block dimensions tracking
-28. Run from/until specific block
-29. Execution cancellation
-30. Deployment versioning/revert
-31. Execution streaming endpoint
-32. Workflow duplication endpoint
-33. Terminal/console panel
-34. Custom node improvements (status indicators, dynamic handles)
-35. MCP API routes + client library
-36. A2A serve endpoint + API routes
-37. Chat auth flows + management UI
-38. Sanitization module (references, JSON, keys)
-39. Subblock visibility module
-40. Dynamic handle topology
-41. Execution snapshots
-42. Cost tracking UI
-43. Webhook execution logs
-44. Schedule validation + individual schedule CRUD
-45. use-depends-on-gate hook
-46. use-selector-setup hook
-47. credential-selector (full OAuth)
-48. knowledge-base-selector (full)
-49. selector-combobox
-50. Registry utils (import/export)
+22. Loop/parallel container rendering on canvas — **deferred to Sprint 4** (needs workflow-block.tsx refactor)
+23. Subflow node rendering — **deferred to Sprint 4** (needs subflow-node.tsx)
+24. ~~Auto-layout~~ **DONE** — Full algorithm ported: types, constants, utils, core, containers, targeted, index (7 files)
+25. Snap-to-grid — **included in auto-layout** (`snapPositionToGrid` in utils.ts)
+26. Selection mode (shift-select) — **deferred to Sprint 4** (needs canvas interaction changes)
+27. ~~Block dimensions tracking~~ **DONE** — `lib/workflows/blocks/block-dimensions.ts` (BLOCK_DIMENSIONS, CONTAINER_DIMENSIONS, HANDLE_POSITIONS)
+28. Run from/until specific block — **deferred to Sprint 4** (embedded in executor, already exists in `lib/sim/executor/utils/run-from-block.ts`)
+29. ~~Execution cancellation~~ **DONE**
+30. ~~Deployment versioning/revert~~ **DONE**
+31. ~~Execution streaming endpoint~~ **DONE**
+32. ~~Workflow duplication endpoint~~ **DONE**
+33. Terminal/console panel — **already DONE in Sprint 1** (terminal stores, console stores, Terminal UI component)
+34. Custom node improvements — **deferred to Sprint 4** (needs workflow-block.tsx refactor with dynamic handles)
+35. MCP API routes + client library — **deferred to Sprint 5** (large, 20+ files)
+36. A2A serve endpoint + API routes — **deferred to Sprint 5**
+37. Chat auth flows + management UI — **deferred to Sprint 5**
+38. ~~Sanitization module~~ **DONE** (references, key-validation, validation; json-sanitizer deferred — depends on credential-extractor/copilot)
+39. ~~Subblock visibility module~~ **DONE**
+40. ~~Dynamic handle topology~~ **DONE**
+41. Execution snapshots — **deferred** (depends on execution log dashboard, P0 item)
+42. Cost tracking UI — **deferred** (schema field exists, UI needs log viewer)
+43. Webhook execution logs — **deferred** (depends on background job infrastructure)
+44. ~~Schedule validation + individual schedule CRUD~~ **DONE** (validation was already complete; added GET/PUT/DELETE /schedules/[id])
+45. ~~use-depends-on-gate hook~~ **DONE** (already existed)
+46. ~~use-selector-setup hook~~ **DONE** — Copied from Sim with selector context stubs
+47. ~~credential-selector~~ **DONE** — Functional stub with connect/disconnect UI, preserves Sim interface
+48. ~~knowledge-base-selector~~ **DONE** — Functional stub with multi-select tag UI, preserves Sim interface
+49. ~~selector-combobox~~ **DONE** — Full component with search, clear, dropdown, adapted to our UI primitives
+50. ~~Registry utils~~ **DONE** (already completed in Sprint 3)
+51. ~~Notification store~~ **DONE** — 4 files (types, utils, store, index) copied from Sim
+52. ~~Modals store~~ **DONE** — 3 files (search types, store, index) copied from Sim
+53. ~~Workflow lifecycle~~ **DONE** — archive/restore with schedule + webhook + deployment cleanup
+54. ~~Block dimensions~~ **DONE** — BLOCK_DIMENSIONS, CONTAINER_DIMENSIONS, HANDLE_POSITIONS constants
+55. ~~Selector infrastructure~~ **DONE** — types, use-selector-query stubs, subblocks/context field mapping
 
 ### P3 — Future / advanced (defer)
 

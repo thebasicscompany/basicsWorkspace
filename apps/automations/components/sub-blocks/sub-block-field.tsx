@@ -4,6 +4,7 @@ import { type JSX, memo, useMemo, useRef, useState, useCallback } from 'react'
 import { Warning, Copy, Check, ArrowsLeftRight } from '@phosphor-icons/react'
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
 import { useSubBlockValue } from './hooks/use-sub-block-value'
+import { useDependsOnGate } from './hooks/use-depends-on-gate'
 import { baseInputClass, baseStyle } from './shared'
 import { SubBlockInputController } from './sub-block-input-controller'
 
@@ -29,10 +30,12 @@ import { SkillInput } from './skill-input'
 import { FileUploadInput } from './file-upload'
 import { InputMapping } from './input-mapping'
 import { SelectorInput } from './selector-input'
-import { OAuthInput } from './oauth-input'
+import { CredentialSelector } from './credential-selector'
 import { WorkflowSelector } from './workflow-selector'
 import { McpServerSelector, McpToolSelector, McpDynamicArgs } from './mcp-inputs'
-import { KnowledgeBaseSelector, KnowledgeTagFilters, DocumentTagEntry } from './knowledge-inputs'
+import { KnowledgeTagFilters, DocumentTagEntry } from './knowledge-inputs'
+import { KnowledgeBaseSelector } from './knowledge-base-selector'
+import { ScheduleInfo } from './schedule-info'
 
 // ─── Component map ───────────────────────────────────────────────────────────
 // Use `any` for the component type since Sim components have varied prop interfaces
@@ -61,7 +64,7 @@ const INPUT_COMPONENTS: Partial<Record<string, React.ComponentType<any>>> = {
   'skill-input': SkillInput,
   'file-upload': FileUploadInput,
   'input-mapping': InputMapping,
-  'oauth-input': OAuthInput,
+  'oauth-input': CredentialSelector,
   'file-selector': SelectorInput,
   'sheet-selector': SelectorInput,
   'project-selector': SelectorInput,
@@ -77,6 +80,7 @@ const INPUT_COMPONENTS: Partial<Record<string, React.ComponentType<any>>> = {
   'knowledge-base-selector': KnowledgeBaseSelector,
   'knowledge-tag-filters': KnowledgeTagFilters,
   'document-tag-entry': DocumentTagEntry,
+  'schedule-info': ScheduleInfo,
 }
 
 // Text-based types that get the tag controller wrapper + overlay
@@ -251,6 +255,13 @@ export const SubBlockField = memo(function SubBlockField({
   const [value, setValue] = useSubBlockValue(blockId, config.id)
   const [isValidJson, setIsValidJson] = useState(true)
 
+  // Conditional visibility gating — disables field until dependencies are satisfied
+  const { blocked, finalDisabled } = useDependsOnGate(blockId, config, {
+    disabled,
+    isPreview,
+    previewContextValues: dependencyContext,
+  })
+
   // Derive preview value
   const previewValue = getPreviewValue(config, isPreview, subBlockValues)
 
@@ -264,7 +275,7 @@ export const SubBlockField = memo(function SubBlockField({
       onChange: setValue,
       isPreview,
       previewValue,
-      disabled,
+      disabled: finalDisabled,
       placeholder: config.placeholder,
       // Dropdown-specific
       options: (config as any).options,
@@ -279,19 +290,25 @@ export const SubBlockField = memo(function SubBlockField({
       max: (config as any).max,
       step: (config as any).step,
     }),
-    [blockId, config, value, setValue, isPreview, previewValue, disabled]
+    [blockId, config, value, setValue, isPreview, previewValue, finalDisabled]
   )
 
   return (
-    <div>
+    <div className={blocked ? 'opacity-50' : ''}>
       {renderLabel(config, isValidJson, subBlockValues, canonicalToggle, labelSuffix)}
+
+      {blocked && (
+        <div className="mb-1 text-[10px] text-[var(--color-text-tertiary)] italic">
+          Set required fields above first
+        </div>
+      )}
 
       {TAG_ENABLED_TYPES.has(config.type) ? (
         <TagEnabledInput
           blockId={blockId}
           config={config}
           isPreview={isPreview}
-          disabled={disabled}
+          disabled={finalDisabled}
         />
       ) : INPUT_COMPONENTS[config.type] ? (
         (() => {
@@ -303,7 +320,7 @@ export const SubBlockField = memo(function SubBlockField({
           blockId={blockId}
           config={{ ...config, type: 'short-input' as any }}
           isPreview={isPreview}
-          disabled={disabled}
+          disabled={finalDisabled}
         />
       )}
     </div>

@@ -1,104 +1,271 @@
-// Subblock visibility rules — controls when sub-block inputs are shown
+/**
+ * Subblock visibility rules — full port from Sim.
+ * Copied from Sim's lib/workflows/subblocks/visibility.ts
+ *
+ * Differences:
+ * - getEnv/isTruthy/isHosted stubbed (we don't have hosted mode or feature flags yet)
+ */
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
 
-export type CanonicalModeOverrides = Record<string, 'basic' | 'advanced'>
+// Stubs for config/feature-flag utilities we don't have yet
+function getEnv(key: string): string | undefined {
+  return process.env[key]
+}
+function isTruthy(value: string | undefined): boolean {
+  return value !== undefined && value !== '' && value !== '0' && value !== 'false'
+}
+const isHosted = false
 
-/** A condition that controls whether a subblock is visible */
-export type SubBlockCondition =
-  | {
-      field: string
-      value?: string | number | boolean | (string | number | boolean)[]
-      not?: boolean
-      and?: SubBlockCondition
-      op?: string
-    }
-  | ((values?: Record<string, unknown>) => { field: string; value?: unknown })
-  | { and?: SubBlockCondition[]; or?: SubBlockCondition[] }
-  | Record<string, unknown>
+export type CanonicalMode = 'basic' | 'advanced'
 
-/** A canonical pair groups a basic and one or more advanced sub-blocks */
 export interface CanonicalGroup {
   canonicalId: string
-  basicId: string
+  basicId?: string
   advancedIds: string[]
 }
 
-/** Index built from a block's subBlocks array for canonical pair resolution */
 export interface CanonicalIndex {
-  /** Maps canonicalId → CanonicalGroup */
   groupsById: Record<string, CanonicalGroup>
-  /** Maps any subblock id → its canonicalId */
   canonicalIdBySubBlockId: Record<string, string>
 }
 
-/** Type guard — returns true if group is a valid CanonicalGroup */
-export function isCanonicalPair(group: unknown): group is CanonicalGroup {
-  return (
-    typeof group === 'object' &&
-    group !== null &&
-    'basicId' in group &&
-    'advancedIds' in group
-  )
+export interface SubBlockCondition {
+  field: string
+  value: string | number | boolean | Array<string | number | boolean> | undefined
+  not?: boolean
+  and?: SubBlockCondition
+}
+
+export interface CanonicalModeOverrides {
+  [canonicalId: string]: CanonicalMode | undefined
+}
+
+export interface CanonicalValueSelection {
+  basicValue: unknown
+  advancedValue: unknown
+  advancedSourceId?: string
 }
 
 /**
- * Resolve whether the active mode for a canonical pair is 'basic' or 'advanced'.
- * Checks explicit overrides first, then falls back to 'basic'.
+ * Build a flat map of subblock values keyed by subblock id.
  */
-export function resolveCanonicalMode(
-  _group: CanonicalGroup,
-  _values: Record<string, unknown>,
-  overrides?: CanonicalModeOverrides
-): 'basic' | 'advanced' {
-  if (overrides && _group.canonicalId in overrides) {
-    return overrides[_group.canonicalId]
-  }
-  return 'basic'
-}
-
-/** Extract the basic and advanced values from a canonical group */
-export function getCanonicalValues(
-  group: CanonicalGroup,
-  values: Record<string, unknown>
-): { basicValue: unknown; advancedValue: unknown } {
-  const basicValue = values[group.basicId]
-  const advancedValue = group.advancedIds.length > 0 ? values[group.advancedIds[0]] : undefined
-  return { basicValue, advancedValue }
+export function buildSubBlockValues(
+  subBlocks: Record<string, { value?: unknown } | null | undefined>
+): Record<string, unknown> {
+  return Object.entries(subBlocks).reduce<Record<string, unknown>>((acc, [key, subBlock]) => {
+    acc[key] = subBlock?.value
+    return acc
+  }, {})
 }
 
 /**
- * Build a CanonicalIndex from a block's subBlocks array.
- * Looks for subBlocks that declare a `canonicalId` to group basic/advanced pairs.
+ * Build canonical group indices for a block's subblocks.
  */
-export function buildCanonicalIndex(
-  subBlocks: SubBlockConfig[],
-  _overrides?: CanonicalModeOverrides
-): CanonicalIndex {
+export function buildCanonicalIndex(subBlocks: SubBlockConfig[]): CanonicalIndex {
   const groupsById: Record<string, CanonicalGroup> = {}
   const canonicalIdBySubBlockId: Record<string, string> = {}
 
-  for (const sb of subBlocks) {
-    const sbAny = sb as unknown as Record<string, unknown>
-    const canonicalId = sbAny.canonicalId as string | undefined
-    if (!canonicalId) continue
-
-    const isAdvanced = sbAny.canonicalMode === 'advanced'
-
+  subBlocks.forEach((subBlock) => {
+    if (!subBlock.canonicalParamId) return
+    const canonicalId = subBlock.canonicalParamId
     if (!groupsById[canonicalId]) {
-      groupsById[canonicalId] = { canonicalId, basicId: '', advancedIds: [] }
+      groupsById[canonicalId] = { canonicalId, advancedIds: [] }
     }
-
     const group = groupsById[canonicalId]
-    if (isAdvanced) {
-      group.advancedIds.push(sb.id)
+    if (subBlock.mode === 'advanced') {
+      group.advancedIds.push(subBlock.id)
     } else {
-      group.basicId = sb.id
+      group.basicId = subBlock.id
     }
-
-    canonicalIdBySubBlockId[sb.id] = canonicalId
-  }
+    canonicalIdBySubBlockId[subBlock.id] = canonicalId
+  })
 
   return { groupsById, canonicalIdBySubBlockId }
+}
+
+/**
+ * Resolve if a canonical group is a swap pair (basic + advanced).
+ */
+export function isCanonicalPair(group?: CanonicalGroup): boolean {
+  return Boolean(group?.basicId && group?.advancedIds?.length)
+}
+
+/**
+ * Builds default canonical mode overrides for a block's subblocks.
+ * All canonical pairs default to `'basic'`.
+ */
+export function buildDefaultCanonicalModes(
+  subBlocks: SubBlockConfig[]
+): Record<string, 'basic' | 'advanced'> {
+  const index = buildCanonicalIndex(subBlocks)
+  const modes: Record<string, 'basic' | 'advanced'> = {}
+  for (const group of Object.values(index.groupsById)) {
+    if (isCanonicalPair(group)) {
+      modes[group.canonicalId] = 'basic'
+    }
+  }
+  return modes
+}
+
+/**
+ * Determine the active mode for a canonical group.
+ */
+export function resolveCanonicalMode(
+  group: CanonicalGroup,
+  values: Record<string, unknown>,
+  overrides?: CanonicalModeOverrides
+): CanonicalMode {
+  const override = overrides?.[group.canonicalId]
+  if (override === 'advanced' && group.advancedIds.length > 0) return 'advanced'
+  if (override === 'basic' && group.basicId) return 'basic'
+
+  const { basicValue, advancedValue } = getCanonicalValues(group, values)
+  const hasBasic = isNonEmptyValue(basicValue)
+  const hasAdvanced = isNonEmptyValue(advancedValue)
+
+  if (!group.basicId) return 'advanced'
+  if (!hasBasic && hasAdvanced) return 'advanced'
+  return 'basic'
+}
+
+/**
+ * Evaluate a subblock condition against a map of raw values.
+ */
+export function evaluateSubBlockCondition(
+  condition:
+    | SubBlockCondition
+    | ((values?: Record<string, unknown>) => SubBlockCondition)
+    | undefined,
+  values: Record<string, unknown>
+): boolean {
+  if (!condition) return true
+  const actual = typeof condition === 'function' ? condition(values) : condition
+  const fieldValue = values[actual.field]
+  const valueMatch = Array.isArray(actual.value)
+    ? fieldValue != null &&
+      (actual.not
+        ? !actual.value.includes(fieldValue as any)
+        : actual.value.includes(fieldValue as any))
+    : actual.not
+      ? fieldValue !== actual.value
+      : fieldValue === actual.value
+  const andMatch = !actual.and
+    ? true
+    : (() => {
+        const andFieldValue = values[actual.and!.field]
+        const andValueMatch = Array.isArray(actual.and!.value)
+          ? andFieldValue != null &&
+            (actual.and!.not
+              ? !actual.and!.value.includes(andFieldValue as any)
+              : actual.and!.value.includes(andFieldValue as any))
+          : actual.and!.not
+            ? andFieldValue !== actual.and!.value
+            : andFieldValue === actual.and!.value
+        return andValueMatch
+      })()
+
+  return valueMatch && andMatch
+}
+
+/**
+ * Check if a value is considered set for advanced visibility/selection.
+ */
+export function isNonEmptyValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
+/**
+ * Resolve basic and advanced values for a canonical group.
+ */
+export function getCanonicalValues(
+  group: CanonicalGroup,
+  values: Record<string, unknown>
+): CanonicalValueSelection {
+  const basicValue = group.basicId ? values[group.basicId] : undefined
+  let advancedValue: unknown
+  let advancedSourceId: string | undefined
+
+  group.advancedIds.forEach((advancedId) => {
+    if (advancedValue !== undefined) return
+    const candidate = values[advancedId]
+    if (isNonEmptyValue(candidate)) {
+      advancedValue = candidate
+      advancedSourceId = advancedId
+    }
+  })
+
+  return { basicValue, advancedValue, advancedSourceId }
+}
+
+/**
+ * Check if a block has any standalone advanced-only fields (not part of canonical pairs).
+ */
+export function hasStandaloneAdvancedFields(
+  subBlocks: SubBlockConfig[],
+  canonicalIndex: CanonicalIndex
+): boolean {
+  for (const subBlock of subBlocks) {
+    if (subBlock.mode !== 'advanced') continue
+    if (!canonicalIndex.canonicalIdBySubBlockId[subBlock.id]) return true
+  }
+  return false
+}
+
+/**
+ * Check if any advanced-only or canonical advanced values are present.
+ */
+export function hasAdvancedValues(
+  subBlocks: SubBlockConfig[],
+  values: Record<string, unknown>,
+  canonicalIndex: CanonicalIndex
+): boolean {
+  const checkedCanonical = new Set<string>()
+
+  for (const subBlock of subBlocks) {
+    const canonicalId = canonicalIndex.canonicalIdBySubBlockId[subBlock.id]
+    if (canonicalId) {
+      const group = canonicalIndex.groupsById[canonicalId]
+      if (group && isCanonicalPair(group) && !checkedCanonical.has(canonicalId)) {
+        checkedCanonical.add(canonicalId)
+        const { advancedValue } = getCanonicalValues(group, values)
+        if (isNonEmptyValue(advancedValue)) return true
+      }
+      continue
+    }
+
+    if (subBlock.mode === 'advanced' && isNonEmptyValue(values[subBlock.id])) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Determine whether a subblock is visible based on mode and canonical swaps.
+ */
+export function isSubBlockVisibleForMode(
+  subBlock: SubBlockConfig,
+  displayAdvancedOptions: boolean,
+  canonicalIndex: CanonicalIndex,
+  values: Record<string, unknown>,
+  overrides?: CanonicalModeOverrides
+): boolean {
+  const canonicalId = canonicalIndex.canonicalIdBySubBlockId[subBlock.id]
+  const group = canonicalId ? canonicalIndex.groupsById[canonicalId] : undefined
+
+  if (group && isCanonicalPair(group)) {
+    const mode = resolveCanonicalMode(group, values, overrides)
+    if (mode === 'advanced') return group.advancedIds.includes(subBlock.id)
+    return group.basicId === subBlock.id
+  }
+
+  if (subBlock.mode === 'basic' && displayAdvancedOptions) return false
+  if (subBlock.mode === 'advanced' && !displayAdvancedOptions) return false
+  return true
 }
 
 /**
@@ -127,48 +294,18 @@ export function resolveDependencyValue(
   return basicValue ?? advancedValue
 }
 
-/** Returns true if a sub-block should be visible given current values */
-export function isSubBlockVisible(
-  _blockType: string,
-  _subBlockId: string,
-  _currentValues: Record<string, unknown>
-): boolean {
-  return true
+/**
+ * Check if a subblock is gated by a feature flag.
+ */
+export function isSubBlockFeatureEnabled(subBlock: SubBlockConfig): boolean {
+  if (!subBlock.requiresFeature) return true
+  return isTruthy(getEnv(subBlock.requiresFeature))
 }
 
-/** Returns true if a sub-block should be hidden because it requires a hosted key */
-export function isSubBlockHiddenByHostedKey(
-  _subBlockIdOrConfig: unknown,
-  _isHostedEnv?: boolean
-): boolean {
-  return false
-}
-
-/** Evaluate a SubBlockCondition against current values */
-export function evaluateSubBlockCondition(
-  _condition: SubBlockCondition | undefined,
-  _values: Record<string, unknown>
-): boolean {
-  return true
-}
-
-/** Build a values record from subblock configs (Phase 4 stub) */
-export function buildSubBlockValues(
-  _subBlocks: SubBlockConfig[] | Record<string, unknown>,
-  _overrides?: Record<string, unknown>
-): Record<string, unknown> {
-  return {}
-}
-
-/** Check if a value is non-empty (not null/undefined/empty string) */
-export function isNonEmptyValue(value: unknown): boolean {
-  return value !== null && value !== undefined && value !== ''
-}
-
-/** Check if a subblock feature flag is enabled (Phase 4 stub — always true) */
-export function isSubBlockFeatureEnabled(
-  _subBlockIdOrConfig: unknown,
-  _featureFlag?: string
-): boolean {
-  return true
+/**
+ * Check if a subblock should be hidden because we're running on hosted mode.
+ */
+export function isSubBlockHiddenByHostedKey(subBlock: SubBlockConfig): boolean {
+  if (!subBlock.hideWhenHosted) return false
+  return isHosted
 }

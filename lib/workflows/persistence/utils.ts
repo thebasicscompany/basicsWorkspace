@@ -13,6 +13,7 @@ import type { Edge } from 'reactflow'
 import { v4 as uuidv4 } from 'uuid'
 import type { BlockState, Loop, Parallel, WorkflowState } from '@/apps/automations/stores/workflow-types'
 import { SUBFLOW_TYPES } from '@/apps/automations/stores/workflow-types'
+import { generateLoopBlocks, generateParallelBlocks } from '@/apps/automations/stores/workflows/workflow/utils'
 
 const logger = createLogger('WorkflowDBHelpers')
 
@@ -442,6 +443,179 @@ export async function activateWorkflowVersionById(params: {
       `Error activating deployment version ${deploymentVersionId} for workflow ${workflowId}:`,
       error
     )
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to activate version',
+    }
+  }
+}
+
+/**
+ * Save workflow state to normalized tables (blocks, edges, subflows).
+ * Used by the revert route to restore a deployed version's state.
+ * Copied from Sim's lib/workflows/persistence/utils.ts
+ */
+export async function saveWorkflowToNormalizedTables(
+  workflowId: string,
+  state: WorkflowState
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const blockRecords = state.blocks as Record<string, BlockState>
+    const canonicalLoops = generateLoopBlocks(blockRecords)
+    const canonicalParallels = generateParallelBlocks(blockRecords)
+
+    // Start a transaction
+    await db.transaction(async (tx) => {
+      await Promise.all([
+        tx.delete(workflowBlocks).where(eq(workflowBlocks.workflowId, workflowId)),
+        tx.delete(workflowEdges).where(eq(workflowEdges.workflowId, workflowId)),
+        tx.delete(workflowSubflows).where(eq(workflowSubflows.workflowId, workflowId)),
+      ])
+
+      // Insert blocks
+      if (Object.keys(state.blocks).length > 0) {
+        const blockInserts = Object.values(state.blocks).map((block) => ({
+          id: block.id,
+          workflowId: workflowId,
+          type: block.type,
+          name: block.name || '',
+          positionX: String(block.position?.x || 0),
+          positionY: String(block.position?.y || 0),
+          enabled: block.enabled ?? true,
+          horizontalHandles: block.horizontalHandles ?? true,
+          advancedMode: block.advancedMode ?? false,
+          triggerMode: block.triggerMode ?? false,
+          height: block.height || 0,
+          subBlocks: block.subBlocks || {},
+          outputs: block.outputs || {},
+          data: (block.data || {}) as Record<string, unknown>,
+          locked: block.locked ?? false,
+        }))
+
+        await tx.insert(workflowBlocks).values(blockInserts)
+      }
+
+      // Insert edges
+      if (state.edges.length > 0) {
+        const edgeInserts = state.edges.map((edge) => ({
+          id: edge.id,
+          workflowId: workflowId,
+          sourceBlockId: edge.source,
+          targetBlockId: edge.target,
+          sourceHandle: edge.sourceHandle || null,
+          targetHandle: edge.targetHandle || null,
+        }))
+
+        await tx.insert(workflowEdges).values(edgeInserts)
+      }
+
+      // Insert subflows (loops and parallels)
+      const subflowInserts: SubflowInsert[] = []
+
+      // Add loops
+      Object.values(canonicalLoops).forEach((loop) => {
+        subflowInserts.push({
+          id: loop.id,
+          workflowId: workflowId,
+          type: SUBFLOW_TYPES.LOOP,
+          config: loop as unknown as Record<string, unknown>,
+        })
+      })
+
+      // Add parallels
+      Object.values(canonicalParallels).forEach((parallel) => {
+        subflowInserts.push({
+          id: parallel.id,
+          workflowId: workflowId,
+          type: SUBFLOW_TYPES.PARALLEL,
+          config: parallel as unknown as Record<string, unknown>,
+        })
+      })
+
+      if (subflowInserts.length > 0) {
+        await tx.insert(workflowSubflows).values(subflowInserts)
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    logger.error(`Error saving workflow ${workflowId} to normalized tables:`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * Activate a specific deployment version by version number.
+ * Copied from Sim's lib/workflows/persistence/utils.ts
+ */
+export async function activateWorkflowVersion(params: {
+  workflowId: string
+  version: number
+}): Promise<{
+  success: boolean
+  deployedAt?: Date
+  state?: unknown
+  error?: string
+}> {
+  const { workflowId, version } = params
+
+  try {
+    const [versionData] = await db
+      .select({ id: workflowDeploymentVersion.id, state: workflowDeploymentVersion.state })
+      .from(workflowDeploymentVersion)
+      .where(
+        and(
+          eq(workflowDeploymentVersion.workflowId, workflowId),
+          eq(workflowDeploymentVersion.version, version)
+        )
+      )
+      .limit(1)
+
+    if (!versionData) {
+      return { success: false, error: 'Deployment version not found' }
+    }
+
+    const now = new Date()
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(workflowDeploymentVersion)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(workflowDeploymentVersion.workflowId, workflowId),
+            eq(workflowDeploymentVersion.isActive, true)
+          )
+        )
+
+      await tx
+        .update(workflowDeploymentVersion)
+        .set({ isActive: true })
+        .where(
+          and(
+            eq(workflowDeploymentVersion.workflowId, workflowId),
+            eq(workflowDeploymentVersion.version, version)
+          )
+        )
+
+      await tx
+        .update(workflows)
+        .set({ isDeployed: true, deployedAt: now })
+        .where(eq(workflows.id, workflowId))
+    })
+
+    logger.info(`Activated version ${version} for workflow ${workflowId}`)
+
+    return {
+      success: true,
+      deployedAt: now,
+      state: versionData.state,
+    }
+  } catch (error) {
+    logger.error(`Error activating version ${version} for workflow ${workflowId}:`, error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to activate version',

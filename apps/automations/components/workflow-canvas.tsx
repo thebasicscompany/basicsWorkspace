@@ -38,6 +38,7 @@ import { WorkflowEdge } from './workflow-edge'
 import { wouldCreateCycle } from '@/apps/automations/stores/workflows/edge-validation'
 import { BlockContextMenu } from './block-context-menu'
 import { runPreDeployChecks } from '@/apps/automations/lib/pre-deploy-checks'
+import { useVariablesStore } from '@/apps/automations/stores/variables'
 import { VariablesPanel } from './variables-panel'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -165,6 +166,9 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
           blocks: states as any,
           edges: apiEdges ? apiEdges.map(apiEdgeToReactFlowEdge) : [],
         })
+
+        // Load workflow variables
+        useVariablesStore.getState().loadForWorkflow(workflowId)
       })
   }, [workflowId, setNodes, setEdges])
 
@@ -268,7 +272,14 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   // Subscribe to subblock store changes so edits trigger auto-save
   const subBlockValues = useSubBlockStore((s) => s.workflowValues[workflowId])
 
-  // Debounced auto-save (blocks + edges + subblock edits)
+  // Subscribe to variables store changes so variable edits trigger auto-save
+  const allVariables = useVariablesStore((s) => s.variables)
+  const workflowVariables = useMemo(
+    () => Object.values(allVariables).filter((v) => v.workflowId === workflowId),
+    [allVariables, workflowId]
+  )
+
+  // Debounced auto-save (blocks + edges + subblock edits + variables)
   useEffect(() => {
     if (!workflow || (Object.keys(blockStates).length === 0 && nodes.length === 0))
       return
@@ -294,16 +305,28 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
       const edgesToSave = edges.map(reactFlowEdgeToApi)
 
+      // Save blocks + edges
       await fetch(`/api/workflows/${workflowId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ blocks: blocksToSave, edges: edgesToSave }),
       })
+
+      // Save variables (if any exist or were modified)
+      const variablesRecord: Record<string, unknown> = {}
+      for (const v of workflowVariables) {
+        variablesRecord[v.id] = v
+      }
+      await fetch(`/api/workflows/${workflowId}/variables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variables: variablesRecord }),
+      })
     }, 1500)
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
     }
-  }, [blockStates, edges, workflow, workflowId, subBlockValues])
+  }, [blockStates, edges, workflow, workflowId, subBlockValues, workflowVariables])
 
   async function runWorkflow() {
     if (isRunning) return
