@@ -31,6 +31,8 @@ import { useSubBlockStore } from '@/apps/automations/stores/subblock'
 import { useWorkflowRegistry } from '@/apps/automations/stores/registry'
 import { useWorkflowStore } from '@/apps/automations/stores/workflow'
 import { WorkflowBlockNode, type BlockNodeData } from './workflow-block-node'
+import { SubflowNodeComponent, type SubflowNodeData } from './subflow-node'
+import { CONTAINER_DIMENSIONS } from '@/lib/workflows/blocks/block-dimensions'
 import { BlockEditorPanel } from './block-editor-panel'
 import { Terminal } from './terminal/terminal'
 import { useTerminalConsoleStore } from '@/apps/automations/stores/terminal'
@@ -40,6 +42,7 @@ import { BlockContextMenu } from './block-context-menu'
 import { runPreDeployChecks } from '@/apps/automations/lib/pre-deploy-checks'
 import { useVariablesStore } from '@/apps/automations/stores/variables'
 import { VariablesPanel } from './variables-panel'
+import { ExecutionLogPanel, type ExecutionEvent } from './execution-log-panel'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -59,6 +62,7 @@ interface ApiEdge {
 
 const NODE_TYPES: NodeTypes = {
   workflowBlock: WorkflowBlockNode,
+  subflowNode: SubflowNodeComponent,
 }
 
 const EDGE_TYPES: EdgeTypes = {
@@ -67,16 +71,62 @@ const EDGE_TYPES: EdgeTypes = {
 
 // ─── Convert between BlockState and ReactFlow Nodes ──────────────────────────
 
-function blockStateToNode(block: BlockState): Node<BlockNodeData> {
+function blockStateToNode(block: BlockState, allBlocks?: Record<string, BlockState>): Node {
+  // Handle container nodes (loop/parallel) differently
+  if (block.type === 'loop' || block.type === 'parallel') {
+    // Compute nesting depth so children always render above parents
+    let depth = 0
+    let pid = block.data?.parentId as string | undefined
+    while (pid && depth < 100 && allBlocks) {
+      depth++
+      pid = allBlocks[pid]?.data?.parentId as string | undefined
+    }
+    return {
+      id: block.id,
+      type: 'subflowNode',
+      position: block.position,
+      parentId: block.data?.parentId as string | undefined,
+      extent: (block.data?.extent as 'parent' | undefined) || undefined,
+      dragHandle: '.workflow-drag-handle',
+      zIndex: depth,
+      data: {
+        ...block.data,
+        name: block.name,
+        width: (block.data?.width as number | undefined) || CONTAINER_DIMENSIONS.DEFAULT_WIDTH,
+        height: (block.data?.height as number | undefined) || CONTAINER_DIMENSIONS.DEFAULT_HEIGHT,
+        kind: block.type === 'loop' ? 'loop' : 'parallel',
+      } satisfies SubflowNodeData,
+    }
+  }
+
+  // Compute zIndex for blocks inside containers so they render above the
+  // parent subflow's interactive body area
+  const childZIndex = block.data?.parentId ? 1000 : undefined
+
+  // Clamp children to subflow body (exclude header)
+  let extent: Node['extent'] = undefined
+  const parentId = block.data?.parentId as string | undefined
+  if (parentId) {
+    const headerHeight = 42
+    const leftPadding = 16
+    extent = [
+      [leftPadding, headerHeight],
+      [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+    ] as [[number, number], [number, number]]
+  }
+
   return {
     id: block.id,
     type: 'workflowBlock',
     position: block.position,
+    parentId,
+    ...(childZIndex !== undefined && { zIndex: childZIndex }),
+    extent,
     data: {
       type: block.type,
       name: block.name,
       enabled: block.enabled,
-    },
+    } satisfies BlockNodeData,
   }
 }
 
@@ -119,6 +169,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [deployModalOpen, setDeployModalOpen] = useState(false)
   const [variablesPanelOpen, setVariablesPanelOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; blockId: string } | null>(null)
+  const [executionEvents, setExecutionEvents] = useState<ExecutionEvent[]>([])
+  const [execLogOpen, setExecLogOpen] = useState(false)
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Set active workflow in registry so stores work correctly
@@ -130,8 +182,12 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   // Load workflow + blocks + edges from API
   useEffect(() => {
     fetch(`/api/workflows/${workflowId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('Workflow not found')
+        return r.json()
+      })
       .then(({ workflow: wf, blocks: apiBlocks, edges: apiEdges }) => {
+        if (!wf) { router.push('/automations'); return }
         setWorkflow(wf)
         setDraftName(wf.name)
 
@@ -151,7 +207,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         }
 
         setBlockStates(states)
-        setNodes(Object.values(states).map(blockStateToNode))
+        setNodes(Object.values(states).map(b => blockStateToNode(b, states)))
 
         // Load edges
         if (apiEdges && Array.isArray(apiEdges)) {
@@ -170,6 +226,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         // Load workflow variables
         useVariablesStore.getState().loadForWorkflow(workflowId)
       })
+      .catch(() => { router.push('/automations') })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId, setNodes, setEdges])
 
   // Check deployment status
@@ -279,58 +337,67 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     [allVariables, workflowId]
   )
 
-  // Debounced auto-save (blocks + edges + subblock edits + variables)
-  useEffect(() => {
-    if (!workflow || (Object.keys(blockStates).length === 0 && nodes.length === 0))
-      return
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      const wfValues = subBlockValues ?? {}
+  // ── Save helpers ─────────────────────────────────────────────────────────
 
-      const blocksToSave = Object.values(blockStates).map((bs) => {
-        const mergedSubBlocks = { ...bs.subBlocks }
-        const blockValues = wfValues[bs.id]
-        if (blockValues) {
-          for (const [sbId, val] of Object.entries(blockValues)) {
-            if (mergedSubBlocks[sbId]) {
-              mergedSubBlocks[sbId] = { ...mergedSubBlocks[sbId], value: val }
-            } else {
-              // Include values not in block structure (orphaned/runtime values)
-              mergedSubBlocks[sbId] = { id: sbId, type: 'short-input' as any, value: val }
-            }
+  const saveNow = useCallback(async (
+    currentBlocks: Record<string, BlockState>,
+    currentEdges: Edge[],
+  ) => {
+    const wfValues = useSubBlockStore.getState().workflowValues[workflowId] ?? {}
+
+    const blocksToSave = Object.values(currentBlocks).map((bs) => {
+      const mergedSubBlocks = { ...bs.subBlocks }
+      const blockValues = wfValues[bs.id]
+      if (blockValues) {
+        for (const [sbId, val] of Object.entries(blockValues)) {
+          if (mergedSubBlocks[sbId]) {
+            mergedSubBlocks[sbId] = { ...mergedSubBlocks[sbId], value: val }
+          } else {
+            mergedSubBlocks[sbId] = { id: sbId, type: 'short-input' as any, value: val }
           }
         }
-        return blockStateToApiBlock({ ...bs, subBlocks: mergedSubBlocks })
-      })
-
-      const edgesToSave = edges.map(reactFlowEdgeToApi)
-
-      // Save blocks + edges
-      await fetch(`/api/workflows/${workflowId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blocks: blocksToSave, edges: edgesToSave }),
-      })
-
-      // Save variables (if any exist or were modified)
-      const variablesRecord: Record<string, unknown> = {}
-      for (const v of workflowVariables) {
-        variablesRecord[v.id] = v
       }
+      return blockStateToApiBlock({ ...bs, subBlocks: mergedSubBlocks })
+    })
+
+    const edgesToSave = currentEdges.map(reactFlowEdgeToApi)
+
+    await fetch(`/api/workflows/${workflowId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blocks: blocksToSave, edges: edgesToSave }),
+    })
+
+    const vars = Object.values(useVariablesStore.getState().variables)
+      .filter((v) => v.workflowId === workflowId)
+    if (vars.length > 0) {
+      const variablesRecord: Record<string, unknown> = {}
+      for (const v of vars) variablesRecord[v.id] = v
       await fetch(`/api/workflows/${workflowId}/variables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ variables: variablesRecord }),
       })
+    }
+  }, [workflowId])
+
+  // Debounced auto-save (subblock edits, position changes, variable edits)
+  useEffect(() => {
+    if (!workflow) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      saveNow(blockStates, edges)
     }, 1500)
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
     }
-  }, [blockStates, edges, workflow, workflowId, subBlockValues, workflowVariables])
+  }, [blockStates, edges, workflow, workflowId, subBlockValues, workflowVariables, saveNow])
 
   async function runWorkflow() {
     if (isRunning) return
     setIsRunning(true)
+    setExecutionEvents([])
+    setExecLogOpen(true)
 
     const executionId = crypto.randomUUID()
     const { addConsole, updateConsole, toggleConsole, isOpen } = useTerminalConsoleStore.getState()
@@ -361,7 +428,10 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const event = JSON.parse(line.slice(6))
+              const event = JSON.parse(line.slice(6)) as ExecutionEvent
+
+              // Feed execution log panel
+              setExecutionEvents((prev) => [...prev, event])
 
               if (event.type === 'block:complete') {
                 blockOrder++
@@ -418,6 +488,168 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     }
   }
 
+  /**
+   * Run workflow starting from a specific block.
+   * Passes runFromBlockId to the run endpoint.
+   */
+  async function runFromBlock(blockId: string) {
+    if (isRunning) return
+    setIsRunning(true)
+
+    const executionId = crypto.randomUUID()
+    const { addConsole, toggleConsole, isOpen } = useTerminalConsoleStore.getState()
+    if (!isOpen) toggleConsole()
+
+    let blockOrder = 0
+
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runFromBlockId: blockId }),
+      })
+      if (!res.body) return
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6))
+              if (event.type === 'block:complete') {
+                blockOrder++
+                addConsole({
+                  workflowId,
+                  blockId: event.blockId || 'unknown',
+                  blockName: event.blockName || event.blockType || 'Block',
+                  blockType: event.blockType || 'unknown',
+                  executionId,
+                  executionOrder: blockOrder,
+                  startedAt: event.startedAt || new Date().toISOString(),
+                  endedAt: event.endedAt || new Date().toISOString(),
+                  durationMs: event.durationMs,
+                  success: event.success !== false,
+                  output: event.output,
+                  error: event.error || null,
+                })
+              } else if (event.type === 'error') {
+                blockOrder++
+                addConsole({
+                  workflowId,
+                  blockId: event.blockId || 'error',
+                  blockName: event.blockName || 'Error',
+                  blockType: 'error',
+                  executionId,
+                  executionOrder: blockOrder,
+                  startedAt: new Date().toISOString(),
+                  success: false,
+                  error: event.error || 'Unknown error',
+                })
+              }
+            } catch {
+              // Ignore malformed events
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Run from block failed:', err)
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
+  /**
+   * Run workflow until (and including) a specific block.
+   * Passes runUntilBlockId to the run endpoint.
+   */
+  async function runUntilBlock(blockId: string) {
+    if (isRunning) return
+    setIsRunning(true)
+
+    const executionId = crypto.randomUUID()
+    const { addConsole, toggleConsole, isOpen } = useTerminalConsoleStore.getState()
+    if (!isOpen) toggleConsole()
+
+    let blockOrder = 0
+
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runUntilBlockId: blockId }),
+      })
+      if (!res.body) return
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6))
+              if (event.type === 'block:complete') {
+                blockOrder++
+                addConsole({
+                  workflowId,
+                  blockId: event.blockId || 'unknown',
+                  blockName: event.blockName || event.blockType || 'Block',
+                  blockType: event.blockType || 'unknown',
+                  executionId,
+                  executionOrder: blockOrder,
+                  startedAt: event.startedAt || new Date().toISOString(),
+                  endedAt: event.endedAt || new Date().toISOString(),
+                  durationMs: event.durationMs,
+                  success: event.success !== false,
+                  output: event.output,
+                  error: event.error || null,
+                })
+              } else if (event.type === 'error') {
+                blockOrder++
+                addConsole({
+                  workflowId,
+                  blockId: event.blockId || 'error',
+                  blockName: event.blockName || 'Error',
+                  blockType: 'error',
+                  executionId,
+                  executionOrder: blockOrder,
+                  startedAt: new Date().toISOString(),
+                  success: false,
+                  error: event.error || 'Unknown error',
+                })
+              }
+            } catch {
+              // Ignore malformed events
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Run until block failed:', err)
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
   // ─── Context menu handlers ──────────────────────────────────────────────────
 
   const onNodeContextMenu = useCallback(
@@ -430,13 +662,13 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
   const deleteBlock = useCallback(
     (blockId: string) => {
-      setBlockStates((prev) => {
-        const next = { ...prev }
-        delete next[blockId]
-        return next
-      })
+      const newBlocks = { ...blockStates }
+      delete newBlocks[blockId]
+      const newEdges = edges.filter((e) => e.source !== blockId && e.target !== blockId)
+
+      setBlockStates(newBlocks)
       setNodes((ns) => ns.filter((n) => n.id !== blockId))
-      setEdges((es) => es.filter((e) => e.source !== blockId && e.target !== blockId))
+      setEdges(newEdges)
 
       const subBlockStore = useSubBlockStore.getState()
       const existing = { ...subBlockStore.workflowValues[workflowId] }
@@ -444,8 +676,12 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
       subBlockStore.setWorkflowValues(workflowId, existing)
 
       if (selectedBlockId === blockId) setSelectedBlockId(null)
+
+      // Save immediately
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      saveNow(newBlocks, newEdges)
     },
-    [workflowId, selectedBlockId, setNodes, setEdges]
+    [workflowId, selectedBlockId, blockStates, edges, setNodes, setEdges, saveNow]
   )
 
   const duplicateBlock = useCallback(
@@ -463,7 +699,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         const next = { ...prev }
         for (const [id, block] of Object.entries(pasteData.blocks)) {
           next[id] = block
-          newNodes.push(blockStateToNode(block))
+          newNodes.push(blockStateToNode(block, next))
           if (pasteData.subBlockValues[id]) {
             existingSubBlocks[id] = pasteData.subBlockValues[id]
           } else {
@@ -508,21 +744,27 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
       // Delete / Backspace — remove selected blocks and edges
       if (event.key === 'Delete' || event.key === 'Backspace') {
-        const selectedNodes = reactFlow.getNodes().filter((n) => n.selected)
+        let selectedNodes = reactFlow.getNodes().filter((n) => n.selected)
+        // Fallback: if nothing selected in ReactFlow, use our local selectedBlockId
+        if (selectedNodes.length === 0 && selectedBlockId) {
+          const node = reactFlow.getNode(selectedBlockId)
+          if (node) selectedNodes = [node]
+        }
         if (selectedNodes.length === 0) return
 
         event.preventDefault()
         const idsToRemove = new Set(selectedNodes.map((n) => n.id))
 
-        setBlockStates((prev) => {
-          const next = { ...prev }
-          for (const id of idsToRemove) delete next[id]
-          return next
-        })
-        setNodes((ns) => ns.filter((n) => !idsToRemove.has(n.id)))
-        setEdges((es) =>
-          es.filter((e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target))
+        // Compute new state for immediate save
+        const newBlocks = { ...blockStates }
+        for (const id of idsToRemove) delete newBlocks[id]
+        const newEdges = edges.filter(
+          (e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target)
         )
+
+        setBlockStates(newBlocks)
+        setNodes((ns) => ns.filter((n) => !idsToRemove.has(n.id)))
+        setEdges(newEdges)
 
         // Clean subblock store
         const subBlockStore = useSubBlockStore.getState()
@@ -531,6 +773,10 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         subBlockStore.setWorkflowValues(workflowId, existing)
 
         setSelectedBlockId(null)
+
+        // Save immediately — don't wait for debounce
+        if (saveTimer.current) clearTimeout(saveTimer.current)
+        saveNow(newBlocks, newEdges)
         return
       }
 
@@ -574,7 +820,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
           const next = { ...prev }
           for (const [id, block] of Object.entries(pasteData.blocks)) {
             next[id] = block
-            newNodes.push(blockStateToNode(block))
+            newNodes.push(blockStateToNode(block, next))
             if (pasteData.subBlockValues[id]) {
               existingSubBlocks[id] = pasteData.subBlockValues[id]
             } else {
@@ -597,7 +843,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [reactFlow, workflowId, selectedBlockId, setNodes, setEdges])
+  }, [reactFlow, workflowId, selectedBlockId, blockStates, edges, setNodes, setEdges, saveNow])
 
   async function saveName() {
     if (!draftName.trim() || draftName === workflow?.name) {
@@ -625,8 +871,11 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     const id = crypto.randomUUID()
     const bs = prepareBlockState({ id, type, name, position })
 
-    setBlockStates((prev) => ({ ...prev, [id]: bs }))
-    setNodes((ns) => [...ns, blockStateToNode(bs)])
+    setBlockStates((prev) => {
+      const next = { ...prev, [id]: bs }
+      setNodes(Object.values(next).map(b => blockStateToNode(b, next)))
+      return next
+    })
 
     // Initialize subblock values in the store
     const initialValues: Record<string, any> = {}
@@ -792,8 +1041,13 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               onNodeClick={(_e, node) => { setSelectedBlockId(node.id); setContextMenu(null) }}
+              onSelectionChange={({ nodes: sel }) => {
+                if (sel.length === 1) setSelectedBlockId(sel[0].id)
+                else if (sel.length === 0) setSelectedBlockId(null)
+              }}
               onNodeContextMenu={onNodeContextMenu}
               onPaneClick={() => { setSelectedBlockId(null); setContextMenu(null) }}
+              elementsSelectable={true}
               onDrop={onDrop}
               onDragOver={onDragOver}
               nodeTypes={NODE_TYPES}
@@ -817,6 +1071,13 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
                 }}
               />
             </ReactFlow>
+            <ExecutionLogPanel
+              events={executionEvents}
+              isRunning={isRunning}
+              isOpen={execLogOpen}
+              onToggle={() => setExecLogOpen((o) => !o)}
+              onClose={() => { setExecLogOpen(false); setExecutionEvents([]) }}
+            />
           </div>
 
           <Terminal workflowId={workflowId} />
@@ -832,6 +1093,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
             onDelete={deleteBlock}
             onDuplicate={duplicateBlock}
             onCopy={copyBlock}
+            onRunFrom={runFromBlock}
+            onRunUntil={runUntilBlock}
           />
         )}
 

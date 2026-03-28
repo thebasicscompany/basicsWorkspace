@@ -1,7 +1,6 @@
-import { Storefront } from "@phosphor-icons/react/dist/ssr"
 import { PageTransition } from "@/components/page-transition"
 import { AppHeader } from "@/components/app-header"
-import { EmptyState } from "@/components/ui/empty-state"
+import { ConnectionsGrid } from "@/apps/shop/components/connections-grid"
 
 export default function ShopPage() {
   return (
@@ -11,11 +10,15 @@ export default function ShopPage() {
       />
       <PageTransition>
         <div className="flex-1 p-8" style={{ background: "var(--color-bg-base)" }}>
-          <EmptyState
-            icon={<Storefront size={40} className="text-zinc-300" />}
-            title="App Store coming soon"
-            description="Browse automations, apps, and connections to power your workspace."
-          />
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
+              Connections
+            </h2>
+            <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+              Connect your tools and services to use them in automations.
+            </p>
+          </div>
+          <ConnectionsGrid />
         </div>
       </PageTransition>
     </>

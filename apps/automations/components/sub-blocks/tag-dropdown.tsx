@@ -286,14 +286,17 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
 
   // ── Store subscriptions ─────────────────────────────────────────────────
 
+  const EMPTY_OBJ = useMemo(() => ({} as Record<string, any>), [])
   const { blocks, edges, loops, parallels } = useWorkflowStore(
     useShallow((state: any) => ({
       blocks: state.blocks,
       edges: state.edges,
-      loops: state.loops || {},
-      parallels: state.parallels || {},
+      loops: state.loops ?? null,
+      parallels: state.parallels ?? null,
     }))
   )
+  const stableLoops = loops ?? EMPTY_OBJ
+  const stableParallels = parallels ?? EMPTY_OBJ
 
   const workflowId = useWorkflowRegistry((state) => state.activeWorkflowId)
   const rawAccessiblePrefixes = useAccessibleReferencePrefixes(blockId)
@@ -303,9 +306,11 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
     return new Set<string>(rawAccessiblePrefixes)
   }, [rawAccessiblePrefixes])
 
-  const workflowSubBlockValues = useSubBlockStore((state: any) =>
-    workflowId ? (state.workflowValues[workflowId] ?? {}) : {}
-  )
+  const workflowSubBlockValues = useSubBlockStore(
+    useCallback((state: any) =>
+      workflowId ? (state.workflowValues[workflowId] ?? null) : null,
+    [workflowId])
+  ) ?? EMPTY_OBJ
 
   const getMergedSubBlocks = useCallback(
     (targetBlockId: string): Record<string, any> => {
@@ -320,15 +325,19 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
     [blocks, workflowSubBlockValues]
   )
 
+  const EMPTY_ARR = useMemo(() => [] as Variable[], [])
   const getVariablesByWorkflowId = useVariablesStore((state) => state.getVariablesByWorkflowId)
-  const workflowVariables = workflowId ? getVariablesByWorkflowId(workflowId) : []
+  const workflowVariables = useMemo(
+    () => workflowId ? getVariablesByWorkflowId(workflowId) : EMPTY_ARR,
+    [workflowId, getVariablesByWorkflowId, EMPTY_ARR]
+  )
 
   const searchTerm = useMemo(
     () => getTagSearchTerm(inputValue, cursorPosition),
     [inputValue, cursorPosition]
   )
 
-  const emptyVariableInfoMap: Record<string, { type: string; id: string }> = {}
+  const emptyVariableInfoMap = useMemo(() => ({} as Record<string, { type: string; id: string }>), [])
 
   // ── Tag computation (copied from Sim literally) ─────────────────────────
 
@@ -453,7 +462,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
     const findAncestorContainers = (targetId: string) => {
       if (visitedContainerIds.has(targetId)) return
       visitedContainerIds.add(targetId)
-      for (const [loopId, loop] of Object.entries(loops as Record<string, any>)) {
+      for (const [loopId, loop] of Object.entries(stableLoops as Record<string, any>)) {
         if (loop.nodes.includes(targetId) && !ancestorLoopIds.has(loopId)) {
           ancestorLoopIds.add(loopId)
           const loopBlock = blocks[loopId]
@@ -474,7 +483,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
           findAncestorContainers(loopId)
         }
       }
-      for (const [parallelId, parallel] of Object.entries(parallels as Record<string, any> || {})) {
+      for (const [parallelId, parallel] of Object.entries(stableParallels as Record<string, any>)) {
         if (parallel.nodes.includes(targetId)) {
           findAncestorContainers(parallelId)
         }
@@ -482,8 +491,8 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
     }
 
     const isLoopBlock = blocks[blockId]?.type === 'loop'
-    if (isLoopBlock && loops[blockId]) {
-      const loop = loops[blockId]
+    if (isLoopBlock && stableLoops[blockId]) {
+      const loop = stableLoops[blockId]
       ancestorLoopIds.add(blockId)
       const loopBlock = blocks[blockId]
       if (loopBlock) {
@@ -513,7 +522,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
     const findAncestorParallels = (targetId: string) => {
       if (visitedParallelTargets.has(targetId)) return
       visitedParallelTargets.add(targetId)
-      for (const [parallelId, parallel] of Object.entries(parallels as Record<string, any> || {})) {
+      for (const [parallelId, parallel] of Object.entries(stableParallels as Record<string, any>)) {
         if (parallel.nodes.includes(targetId) && !ancestorParallelIds.has(parallelId)) {
           ancestorParallelIds.add(parallelId)
           const parallelBlock = blocks[parallelId]
@@ -531,7 +540,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
               tags: contextualTags, distance: 0, isContextual: true,
             })
           }
-          for (const [loopId, loop] of Object.entries(loops as Record<string, any>)) {
+          for (const [loopId, loop] of Object.entries(stableLoops as Record<string, any>)) {
             if (loop.nodes.includes(parallelId)) {
               findAncestorParallels(loopId)
             }
@@ -634,7 +643,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
     return { tags, variableInfoMap, blockTagGroups: finalBlockTagGroups }
   }, [
     activeSourceBlockId, combinedAccessiblePrefixes, blockId,
-    blocks, edges, getMergedSubBlocks, loops, parallels,
+    blocks, edges, getMergedSubBlocks, stableLoops, stableParallels,
     workflowVariables, workflowId,
   ])
 
@@ -787,7 +796,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
 
   useEffect(() => {
     if (!visible) {
-      setNavigationStack([])
+      setNavigationStack((prev) => prev.length === 0 ? prev : [])
       return
     }
 
@@ -823,7 +832,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
   }, [visible, selectedIndex, flatTagList, handleTagSelect, onClose])
 
   useEffect(() => {
-    setSelectedIndex(0)
+    setSelectedIndex((prev) => prev === 0 ? prev : 0)
   }, [flatTagList.length])
 
   // ── Render ────────────────────────────────────────────────────────────────

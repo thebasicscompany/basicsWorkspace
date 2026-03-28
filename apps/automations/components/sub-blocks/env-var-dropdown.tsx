@@ -41,25 +41,45 @@ interface EnvVarGroup {
   variables: string[]
 }
 
-// ─── Stubbed env var hooks ──────────────────────────────────────────────────
-// We don't have env var storage yet. These return empty data.
-// Wire to real API when env var management is built.
+// ─── Env var hooks (wired to /api/environment) ─────────────────────────────
 
 function usePersonalEnvironment(): { data: Record<string, string> } {
-  return { data: {} }
+  const [data, setData] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/environment')
+      .then((r) => r.ok ? r.json() : { data: {} })
+      .then((json) => {
+        if (cancelled) return
+        const envData = json.data ?? {}
+        const flat: Record<string, string> = {}
+        for (const [key, val] of Object.entries(envData)) {
+          flat[key] = typeof val === 'object' && val !== null && 'value' in (val as any)
+            ? (val as any).value
+            : String(val)
+        }
+        setData(flat)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  return { data }
 }
 
 function useWorkspaceEnvironment(
   _workspaceId: string,
   _opts?: any
 ): { data: { workspace: Record<string, string>; personal: Record<string, string>; conflicts: string[] } | undefined } {
+  // No workspace-level env vars yet — personal only
   return { data: undefined }
 }
 
 function useSettingsNavigation() {
   return {
     navigateToSettings: (_opts: { section: string }) => {
-      // Stub: no settings navigation yet
+      window.location.href = '/settings'
     },
   }
 }

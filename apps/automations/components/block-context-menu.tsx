@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useCallback, useEffect, useRef } from 'react'
-import { Copy, Trash, CopySimple } from '@phosphor-icons/react'
+import { Copy, Trash, CopySimple, Play, FastForward } from '@phosphor-icons/react'
 
 interface BlockContextMenuProps {
   x: number
@@ -12,6 +12,8 @@ interface BlockContextMenuProps {
   onDelete: (blockId: string) => void
   onDuplicate: (blockId: string) => void
   onCopy: (blockId: string) => void
+  onRunFrom?: (blockId: string) => void
+  onRunUntil?: (blockId: string) => void
 }
 
 /**
@@ -27,6 +29,8 @@ export const BlockContextMenu = memo(function BlockContextMenu({
   onDelete,
   onDuplicate,
   onCopy,
+  onRunFrom,
+  onRunUntil,
 }: BlockContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -48,6 +52,16 @@ export const BlockContextMenu = memo(function BlockContextMenu({
   }, [onClose])
 
   const items = [
+    ...(onRunFrom ? [{
+      label: 'Run from here',
+      icon: Play,
+      action: () => { onRunFrom(blockId); onClose() },
+    }] : []),
+    ...(onRunUntil ? [{
+      label: 'Run until here',
+      icon: FastForward,
+      action: () => { onRunUntil(blockId); onClose() },
+    }] : []),
     {
       label: 'Copy',
       icon: Copy,

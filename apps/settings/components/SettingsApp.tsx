@@ -11,11 +11,14 @@ import {
   Check,
   CircleNotch,
   Buildings,
+  Key,
+  Plus,
+  Trash,
 } from "@phosphor-icons/react"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Section = "profile" | "automation" | "appearance" | "security" | "workspace"
+type Section = "profile" | "automation" | "appearance" | "security" | "workspace" | "secrets"
 
 interface SettingsData {
   profile: { name: string; email: string }
@@ -29,6 +32,7 @@ const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "profile",    label: "Profile",    icon: User      },
   { id: "workspace",  label: "Workspace",  icon: Buildings },
   { id: "automation", label: "Automation", icon: Robot     },
+  { id: "secrets",    label: "Secrets",    icon: Key       },
   { id: "appearance", label: "Appearance", icon: Palette   },
   { id: "security",   label: "Security",   icon: Lock      },
 ]
@@ -513,6 +517,115 @@ function SecuritySection() {
   )
 }
 
+// ─── Secrets (Environment Variables) ──────────────────────────────────────────
+
+function SecretsSection() {
+  const [vars, setVars] = useState<{ key: string; value: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/environment")
+      .then((r) => r.ok ? r.json() : { data: {} })
+      .then((json) => {
+        const data = json.data ?? {}
+        const entries = Object.entries(data).map(([key, val]: [string, any]) => ({
+          key,
+          value: typeof val === "object" && val !== null && "value" in val ? val.value : String(val),
+        }))
+        setVars(entries)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  function addVar() {
+    setVars((prev) => [...prev, { key: "", value: "" }])
+  }
+
+  function updateVar(index: number, field: "key" | "value", val: string) {
+    setVars((prev) => prev.map((v, i) => (i === index ? { ...v, [field]: val } : v)))
+  }
+
+  function removeVar(index: number) {
+    setVars((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const record: Record<string, string> = {}
+    for (const v of vars) {
+      if (v.key.trim()) record[v.key.trim()] = v.value
+    }
+    await fetch("/api/environment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variables: record }),
+    })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div className="space-y-4">
+      <SectionHeading
+        title="Secrets"
+        description="Environment variables available in your workflows via {{variable_name}} syntax."
+      />
+      <Card>
+        {loading ? (
+          <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
+            <CircleNotch size={14} className="animate-spin" /> Loading...
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {vars.map((v, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={v.key}
+                  onChange={(e) => updateVar(i, "key", e.target.value)}
+                  placeholder="VARIABLE_NAME"
+                  className="flex-1 px-3 py-2 text-[13px] rounded-[8px] border outline-none font-mono"
+                  style={{
+                    background: "var(--color-bg-surface)",
+                    borderColor: "var(--color-border)",
+                    color: "var(--color-text-primary)",
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = "var(--color-accent)" }}
+                  onBlur={(e) => { e.target.style.borderColor = "var(--color-border)" }}
+                />
+                <PasswordInput
+                  value={v.value}
+                  onChange={(val) => updateVar(i, "value", val)}
+                  placeholder="value"
+                />
+                <button
+                  onClick={() => removeVar(i)}
+                  className="p-2 rounded-[8px] transition-colors hover:bg-red-50"
+                  style={{ color: "var(--color-text-tertiary)" }}
+                >
+                  <Trash size={14} />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addVar}
+              className="flex items-center gap-1.5 text-[13px] font-medium transition-colors"
+              style={{ color: "var(--color-accent)" }}
+            >
+              <Plus size={13} weight="bold" />
+              Add variable
+            </button>
+          </div>
+        )}
+      </Card>
+      <SaveButton onClick={handleSave} loading={saving} saved={saved} disabled={vars.some((v) => !v.key.trim())} />
+    </div>
+  )
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export function SettingsApp() {
@@ -589,6 +702,7 @@ export function SettingsApp() {
           {activeSection === "profile"    && <ProfileSection    data={data} onSave={handleSave} />}
           {activeSection === "workspace"  && <WorkspaceSection  data={data} onSave={handleSave} />}
           {activeSection === "automation" && <AutomationSection data={data} onSave={handleSave} />}
+          {activeSection === "secrets"    && <SecretsSection />}
           {activeSection === "appearance" && <AppearanceSection />}
           {activeSection === "security"   && <SecuritySection   />}
         </div>

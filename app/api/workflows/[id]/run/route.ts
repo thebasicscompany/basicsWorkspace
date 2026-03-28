@@ -9,6 +9,11 @@ import { Serializer } from "@/lib/sim/serializer"
 import { Executor } from "@/lib/sim/executor"
 import type { Edge } from "reactflow"
 
+interface RunRequestBody {
+  runFromBlockId?: string
+  runUntilBlockId?: string
+}
+
 type Params = Promise<{ id: string }>
 
 export async function POST(req: Request, { params }: { params: Params }) {
@@ -16,6 +21,15 @@ export async function POST(req: Request, { params }: { params: Params }) {
   if (ctx instanceof Response) return ctx
   const { orgId } = ctx
   const { id } = await params
+
+  // Parse optional body for run-from/until params
+  let body: RunRequestBody = {}
+  try {
+    body = await req.json()
+  } catch {
+    // No body or invalid JSON — that's fine, run normally
+  }
+  const { runFromBlockId, runUntilBlockId } = body
 
   const [workflow] = await db
     .select()
@@ -65,7 +79,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
       const send = (data: unknown) =>
         controller.enqueue(enc.encode(`data: ${JSON.stringify(data)}\n\n`))
 
-      send({ type: "start", executionId, workflowId: id })
+      send({ type: "start", executionId, workflowId: id, runFromBlockId, runUntilBlockId })
 
       try {
         const envVarValues = await getEffectiveEnvVars(ctx.userId)
@@ -73,9 +87,15 @@ export async function POST(req: Request, { params }: { params: Params }) {
           workflow: serialized,
           envVarValues,
           workflowVariables: (workflow.variables as Record<string, unknown>) ?? {},
+          contextExtensions: {
+            ...(runUntilBlockId && { stopAfterBlockId: runUntilBlockId }),
+          },
         })
 
-        const result = await executor.execute(id)
+        // TODO: runFromBlockId requires a sourceSnapshot (previous execution state)
+        // to properly use executor.executeFromBlock(). For now, we execute normally
+        // and pass runFromBlockId as the trigger block so execution starts from there.
+        const result = await executor.execute(id, runFromBlockId || undefined)
 
         // Send block-level results from logs
         if (result.logs) {

@@ -1,8 +1,81 @@
 # Sim Reconciliation Gap Analysis
 
-**Generated:** 2025-03-27
+**Generated:** 2025-03-27 | **Last updated:** 2026-03-28
 **Sim base:** `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim\apps\sim\src\`
 **Our base:** `C:\Users\aravb\desktop\code\basics\basics-workspace\`
+
+---
+
+## Sprint 4 + 5A/5B Summary (2026-03-27 — 2026-03-28)
+
+### Completed
+
+**Sprint 4: Advanced Canvas**
+- Auto-layout API endpoint (`app/api/workflows/[id]/autolayout/route.ts`)
+- Loop/parallel container rendering (`subflow-node.tsx` + `blockStateToNode`)
+- Subflow node component registered in ReactFlow nodeTypes
+- Run from/until block (context menu + run endpoint params + executor `stopAfterBlockId`)
+- Custom node full port (`workflow-block-node.tsx` — dynamic handles, subblock rows, condition/router handles, execution status, connection validation)
+- Node selection highlight (ReactFlow `elementsSelectable` + `onSelectionChange`)
+- Node delete persistence (immediate `saveNow()` instead of debounced)
+- Tag dropdown infinite loop fix (stable refs for `useShallow` + `useState` bail-outs)
+- Automations list: delete + rename workflows from main page
+
+**Sprint 5A: Wire Plumbing**
+- Env var dropdown wired to real `/api/environment` endpoint
+- Secrets management UI in Settings page (CRUD key/value pairs)
+- Execution log panel wired to canvas Run button SSE events
+- Workflow not-found guard (redirect to `/automations` on 404)
+
+**Sprint 5B: OAuth / Shop**
+- 11 new OAuth providers added to gateway (Linear, Jira, Salesforce, Airtable, Asana, Dropbox, Microsoft, Trello, Shopify, Zoom + existing 5)
+- Connection proxy routes (`/api/connections/`, `/api/connections/[provider]/authorize`, `/api/connections/[provider]`)
+- Shop page with squircle tile grid + category filter tabs (15 providers)
+
+### Needs Testing
+
+**Automations canvas (critical):**
+- [ ] Add blocks from toolbar → verify they appear + save on reload
+- [ ] Connect two blocks with edges → verify edges persist on reload
+- [ ] Delete a block (select + Backspace) → verify deleted on reload
+- [ ] Right-click block → Copy, Duplicate, Delete, Run from here, Run until here
+- [ ] Run a workflow (Start → Agent) → verify execution log panel shows events
+- [ ] Run from here (right-click Agent → Run from here) → only Agent executes
+- [ ] Run until here (right-click Start → Run until here) → only Start executes
+- [ ] Deploy a workflow → verify deployed badge appears
+- [ ] Block editor panel → edit sub-block values → verify auto-save on reload
+- [ ] Tag dropdown (`<` in text input) → verify no infinite loop, shows block outputs
+
+**Settings:**
+- [ ] Settings → Secrets → add a variable → save → reload → variable persists
+- [ ] In automations, type `{{` in a text field → verify env var dropdown shows saved secrets
+
+**Shop:**
+- [ ] Navigate to Shop → verify squircle tiles render with provider icons
+- [ ] Category filter tabs → verify filtering works
+- [ ] Click Connect on a provider → verify redirects to gateway OAuth (requires gateway running)
+
+**Automations list:**
+- [ ] Three-dot menu → Rename → type new name → Enter → verify persists on reload
+- [ ] Three-dot menu → Delete → confirm → verify workflow removed
+
+### Remaining for Next Sprint
+
+**QOL (P2):**
+- Selection mode (shift-select multiple blocks)
+- Snap-to-grid
+- Change detection ("Update" button post-deploy)
+
+**Features (P2):**
+- OAuth credential selector wired to gateway connections (so blocks can use stored OAuth tokens)
+- Execution logs dashboard page (separate from in-canvas panel)
+- Execution snapshots (replay past runs)
+
+**Large (P3/Sprint 6):**
+- MCP infrastructure (server management, tool discovery, execution)
+- A2A serve endpoint
+- Chat API routes + auth flows
+- Copilot panel, collaborative editing, diff/version comparison
 
 ---
 
@@ -64,31 +137,31 @@ Every item in this document must be resolved by **literally copying the Sim sour
 
 | Area | Sim File | Our File | Status | Priority |
 |------|----------|----------|--------|----------|
-| **Copy/paste blocks** | `workflow.tsx` copyBlocks/preparePasteData | -- | **Missing** | P0 |
-| **Undo/redo** | `useUndoRedoStore` + WorkflowControls | -- | **Missing** | P0 |
-| **Keyboard shortcuts** | Command palette, Shift+A, K, L | -- | **Missing** | P1 |
-| **Canvas context menu** | `canvas-menu/canvas-menu.tsx` | -- | **Missing** | P1 |
-| **Block context menu** | `block-menu/block-menu.tsx` (delete, duplicate, copy) | -- | **Missing** | P1 |
-| **Custom edge rendering** | `workflow-edge/workflow-edge.tsx` (animated, labels) | Default ReactFlow edges | **Missing** | P1 |
-| **Custom node (full)** | `workflow-block/workflow-block.tsx` (dynamic handles, dims, status) | `workflow-block-node.tsx` (basic) | **Simplified** | P1 |
-| **Fit to view** | `fitViewToBounds` hook in WorkflowControls | -- | **Missing** | P1 |
-| **Floating action bar** | `WorkflowControls` (zoom, undo, redo, fit) | -- | **Missing** | P1 |
-| **Connection validation** | Cycle detection, handle validation | Basic addEdge only | **Simplified** | P1 |
+| Copy/paste blocks | `workflow.tsx` copyBlocks/preparePasteData | `stores/registry.ts` copyBlocks/preparePasteData + `workflow-canvas.tsx` Ctrl+C/V | Done | -- |
+| Undo/redo | `useUndoRedoStore` + WorkflowControls | `stores/undo-redo/` (store 362L, code-store 131L, types, constants, utils) | Done | -- |
+| Keyboard shortcuts | Command palette, Shift+A, K, L | `workflow-canvas.tsx` (Delete, Ctrl+C/V) | Done (core; no Shift+A palette) | -- |
+| Canvas context menu | `canvas-menu/canvas-menu.tsx` | `block-context-menu.tsx` (right-click blocks) | Done | -- |
+| Block context menu | `block-menu/block-menu.tsx` (delete, duplicate, copy) | `block-context-menu.tsx` (Copy, Duplicate, Delete, Run from/until) | Done | -- |
+| Custom edge rendering | `workflow-edge/workflow-edge.tsx` (animated, labels) | `workflow-edge.tsx` (114L, status colors, error edges, delete) | Done | -- |
+| Custom node (full) | `workflow-block/workflow-block.tsx` (dynamic handles, dims, status) | `workflow-block-node.tsx` (dynamic handles, subblock rows, condition/router handles, execution status, connection validation) | Done | -- |
+| Fit to view | `fitViewToBounds` hook in WorkflowControls | `workflow-canvas.tsx` ReactFlow Controls + fitView | Done | -- |
+| Floating action bar | `WorkflowControls` (zoom, undo, redo, fit) | `workflow-canvas.tsx` ReactFlow Controls (styled) | Done | -- |
+| Connection validation | Cycle detection, handle validation | `stores/workflows/edge-validation.ts` (138L, cycle detection + scope validation) | Done | -- |
 | **Selection mode** | `useShiftSelectionLock`, SelectionMode | -- | **Missing** | P2 |
 | **Snap-to-grid** | `useSnapToGridSize()` hook | -- | **Missing** | P2 |
-| **Loop containers** | `workflow-block.tsx` type=loop rendering | -- | **Missing** | P2 |
-| **Parallel containers** | `workflow-block.tsx` type=parallel rendering | -- | **Missing** | P2 |
-| **Subflow nodes** | `subflows/subflow-node.tsx` | -- | **Missing** | P2 |
+| Loop containers | `workflow-block.tsx` type=loop rendering | `subflow-node.tsx` + `workflow-canvas.tsx` blockStateToNode | Done | -- |
+| Parallel containers | `workflow-block.tsx` type=parallel rendering | `subflow-node.tsx` + `workflow-canvas.tsx` blockStateToNode | Done | -- |
+| Subflow nodes | `subflows/subflow-node.tsx` | `apps/automations/components/subflow-node.tsx` | Done | -- |
 | **Note blocks** | `note-block/note-block.tsx` | -- | **Missing** | P3 |
-| **Auto-layout** | `use-auto-layout.ts`, `lib/workflows/autolayout/` | -- | **Missing** | P2 |
+| Auto-layout | `use-auto-layout.ts`, `lib/workflows/autolayout/` | `lib/workflows/autolayout/` + `app/api/workflows/[id]/autolayout/route.ts` | Done | -- |
 | **Block locking** | `locked` property in block state | -- | **Missing** | P3 |
 | Block dimensions | `lib/workflows/blocks/block-dimensions.ts` | `lib/workflows/blocks/block-dimensions.ts` | Done | -- |
-| **Run from block** | Handler in Sim | -- | **Missing** | P2 |
-| **Run until block** | Handler in Sim | -- | **Missing** | P2 |
-| **Cancel execution** | Handler in Sim | -- | **Missing** | P2 |
+| Run from block | Handler in Sim | `block-context-menu.tsx` + `workflow-canvas.tsx` runFromBlock + run route `runFromBlockId` param | Done | -- |
+| Run until block | Handler in Sim | `block-context-menu.tsx` + `workflow-canvas.tsx` runUntilBlock + run route `runUntilBlockId` param | Done | -- |
+| Cancel execution | Handler in Sim | `app/api/workflows/[id]/executions/[executionId]/cancel/` + `lib/execution/cancellation.ts` | Done | -- |
 | **Copilot panel** | `panel/components/copilot/` (full AI chat) | -- | **Missing** | P3 |
 | Variables panel | `panel/components/variables.tsx` | `components/variables-panel.tsx` | Done | -- |
-| **Terminal/console panel** | `terminal.tsx` | -- | **Missing** | P2 |
+| Terminal/console panel | `terminal.tsx` | `components/terminal/terminal.tsx` + `stores/terminal/` (718L total) | Done | -- |
 | **Collaborative editing** | `useCollaborativeWorkflow`, socket cursors | -- | **Missing** | P3 |
 | **Diff/version comparison** | `DiffControls`, `useWorkflowDiffStore` (full) | `workflow-diff.ts` (stub) | **Stub** | P3 |
 
@@ -106,10 +179,10 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | useEnvironmentStore | `stores/settings/environment/` | `stores/settings.ts` | Done | -- |
 | useWorkflowDiffStore | `stores/workflow-diff/` (full) | `stores/workflow-diff.ts` (stub) | **Stub** | P3 |
 | useWorkflowRegistry | `stores/workflows/registry/store.ts` (full CRUD, hydration, clipboard, deploy status) | `stores/registry.ts` | Done | -- |
-| **useUndoRedoStore** | `stores/undo-redo/` | -- | **Missing** | P0 |
+| useUndoRedoStore | `stores/undo-redo/` | `stores/undo-redo/` (store 362L, code-store 131L, types, constants, utils) | Done | -- |
 | useCanvasModeStore | `stores/canvas-mode/` | `stores/canvas-mode/` | Done | -- |
 | **useCopilotStore** | `stores/panel/copilot/` | -- | **Missing** | P3 |
-| **useTerminalConsoleStore** | `stores/terminal/console.ts` + `store.ts` | -- | **Missing** | P2 |
+| useTerminalConsoleStore | `stores/terminal/console.ts` + `store.ts` | `stores/terminal/` (store 110L, console/store 530L, console/storage 78L) | Done | -- |
 | useLogsStore | `stores/logs/` | `stores/logs/` | Done | -- |
 | useNotificationStore | `stores/notifications/` | `stores/notifications/` (4 files) | Done | -- |
 | useModalsStore | `stores/modals/` | `stores/modals/search/` (3 files) | Done | -- |
@@ -133,7 +206,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | block-outputs.ts | `lib/workflows/blocks/block-outputs.ts` | `lib/block-outputs.ts` | Done | -- |
 | block-path-calculator.ts | `lib/workflows/blocks/block-path-calculator.ts` | `lib/block-path-calculator.ts` | Done | -- |
 | workflow/utils.ts | `stores/workflows/workflow/utils.ts` (findDescendants, generateLoopBlocks, generateParallelBlocks, wouldCreateCycle, isBlockProtected) | `stores/workflows/workflow/utils.ts` | Done | -- |
-| **edge-validation.ts** | `stores/workflows/workflow/edge-validation.ts` | -- | **Missing** | P1 |
+| edge-validation.ts | `stores/workflows/workflow/edge-validation.ts` | `stores/workflows/edge-validation.ts` (138L, cycle detection + scope validation) | Done | -- |
 | registry/utils.ts | `stores/workflows/registry/utils.ts` (duplicate, import/export) | `stores/workflows/registry/utils.ts` | Done | -- |
 | **comparison/** | `lib/workflows/comparison/` (compare, normalize) | -- | **Missing** | P3 |
 | autolayout/ | `lib/workflows/autolayout/` | `lib/workflows/autolayout/` (7 files: types, constants, utils, core, containers, targeted, index) | Done | -- |
@@ -164,9 +237,9 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | Execution streaming endpoint | `app/api/workflows/[id]/executions/[id]/stream/` | `app/api/workflows/[id]/executions/[executionId]/stream/` | Done | -- |
 | Execution cancellation | `app/api/workflows/[id]/executions/[id]/cancel/` | `app/api/workflows/[id]/executions/[executionId]/cancel/` + `lib/execution/cancellation.ts` | Done | -- |
 | Workflow duplication | `app/api/workflows/[id]/duplicate/` | `app/api/workflows/[id]/duplicate/` + `lib/workflows/persistence/duplicate.ts` | Done | -- |
-| **Autolayout endpoint** | `app/api/workflows/[id]/autolayout/` | -- | **Missing** | P2 |
+| Autolayout endpoint | `app/api/workflows/[id]/autolayout/` | `app/api/workflows/[id]/autolayout/route.ts` | Done | -- |
 | **Paused execution management** | `app/api/workflows/[id]/paused/` | -- | **Missing** | P2 |
-| **Pre-deploy checks** | `runPreDeployChecks()` | -- | **Missing** | P1 |
+| Pre-deploy checks | `runPreDeployChecks()` | `lib/pre-deploy-checks.ts` (83L, 3 checks: blocks, connectivity, required fields) | Done | -- |
 | **Change detection** | State hash comparison, "Update" button | -- | **Missing** | P1 |
 
 ---
@@ -223,8 +296,8 @@ Every item in this document must be resolved by **literally copying the Sim sour
 
 | Area | Sim File | Our File | Status | Priority |
 |------|----------|----------|--------|----------|
-| **Execution logs dashboard** | `logs/page.tsx` + 20+ components | -- | **Missing** | P0 |
-| **Execution log panel (in-canvas)** | `panel/components/execution-log/` | -- | **Missing** | P0 |
+| **Execution logs dashboard** | `logs/page.tsx` + 20+ components | -- | **Missing** | P2 |
+| Execution log panel (in-canvas) | `panel/components/execution-log/` | `execution-log-panel.tsx` wired to canvas Run SSE events | Done | -- |
 | **Execution snapshots** | `components/execution-snapshot/` | -- | **Missing** | P2 |
 | **Trace spans** | `components/trace-spans/` (OpenTelemetry) | -- | **Missing** | P3 |
 | **Cost tracking UI** | Displayed in log viewer | Schema field only | **Missing** | P2 |
@@ -238,10 +311,10 @@ Every item in this document must be resolved by **literally copying the Sim sour
 |------|----------|----------|--------|----------|
 | **Env var dropdown UI** | `sub-block/components/env-var-dropdown.tsx` | `sub-blocks/env-var-dropdown.tsx` | Done | -- |
 | **Env var resolver** | `executor/variables/resolvers/env.ts` | -- | **Missing** | P0 |
-| **Env var management UI** | Settings page for env vars | -- | **Missing** | P0 |
+| Env var management UI | Settings page for env vars | `apps/settings/components/SettingsApp.tsx` SecretsSection | Done | -- |
 | **Env var API** | CRUD routes for workspace env vars | -- | **Missing** | P0 |
 | **Env var storage** | Organization-level settings | `envVarValues: {}` hardcoded | **Missing** | P0 |
-| **Env var query hooks** | `hooks/queries/environment.ts`, `use-available-env-vars.ts` | -- | **Missing** | P1 |
+| Env var query hooks | `hooks/queries/environment.ts`, `use-available-env-vars.ts` | `env-var-dropdown.tsx` usePersonalEnvironment wired to /api/environment | Done | -- |
 
 ---
 
@@ -267,51 +340,51 @@ Every item in this document must be resolved by **literally copying the Sim sour
 
 ## Priority Summary
 
-### P0 — Must have for usable product (do first)
+### P0 — Must have for usable product
 
-1. **Execution logs panel** — Users cannot see run results; must inspect network tab
-2. **Environment variables** — Resolver + storage + API + management UI; executor calls are hardcoded empty
-3. **Copy/paste blocks** — Core canvas UX, users expect this
-4. **Undo/redo** — Core canvas UX, users expect this (needs useUndoRedoStore)
+1. ~~Execution logs panel~~ **DONE** — Sprint 4/5A: `execution-log-panel.tsx` wired to canvas Run SSE events
+2. ~~Environment variables~~ **DONE** — Sprint 5A: Settings Secrets UI + env-var-dropdown wired to `/api/environment` + executor resolves from DB
+3. ~~Copy/paste blocks~~ **DONE** — Already existed in `registry.ts` + Ctrl+C/V
+4. ~~Undo/redo~~ **DONE** — Already existed in `stores/undo-redo/`
 
-### P1 — Important for production quality (do second)
+### P1 — Important for production quality
 
-5. **Pre-deploy validation** — `runPreDeployChecks()` prevents broken deploys
+5. ~~Pre-deploy validation~~ **DONE** — Already existed
 6. **Change detection** — "Update" button when workflow changed since last deploy
-7. **Canvas context menus** — Right-click on canvas and blocks (delete, duplicate, copy)
-8. **Custom edge rendering** — Current default edges look unfinished
-9. **Keyboard shortcuts** — Delete, duplicate, select-all, zoom
-10. **Floating action bar** — Zoom controls, fit-to-view, undo/redo buttons
-11. **Workflow utilities** — `wouldCreateCycle`, `findDescendants`, `generateLoopBlocks` (needed for loops/parallels)
-12. **Edge validation** — Prevent invalid connections
-13. **Registry store completion** — Full CRUD, hydration, deployment status tracking
-14. **Variables panel** — Workflow variable management in editor
-15. **useLogsStore** — Store for execution log management
-16. **useCanvasModeStore** — Hand/selection mode toggle
-17. **Dropdown input (full)** — 109 lines vs Sim's 498; missing async fetch, dependency tracking
-18. **Tag dropdown (full)** — Missing keyboard navigation, nested folder support
-19. **Schedule-info component** — Display cron schedule status in trigger blocks
-20. **Sub-block orchestrator** — Our 196-line version vs Sim's 1,185-line version
-21. **Workflow variables API** — `POST /workflows/[id]/variables`
+7. ~~Canvas context menus~~ **DONE** — block-context-menu.tsx (Copy, Duplicate, Delete, Run from/until)
+8. ~~Custom edge rendering~~ **DONE** — workflow-edge.tsx
+9. ~~Keyboard shortcuts~~ **DONE** — Delete/Backspace, Ctrl+C/V
+10. ~~Floating action bar~~ **DONE** — ReactFlow Controls
+11. ~~Workflow utilities~~ **DONE** — edge-validation, findDescendants, etc.
+12. ~~Edge validation~~ **DONE** — cycle detection + scope validation
+13. ~~Registry store~~ **DONE** — Already existed
+14. ~~Variables panel~~ **DONE** — Already existed
+15. ~~useLogsStore~~ **DONE** — Already existed
+16. ~~useCanvasModeStore~~ **DONE** — Already existed
+17. ~~Dropdown input~~ **DONE** — Already file-copied
+18. ~~Tag dropdown~~ **DONE** — Fixed infinite loop bug (Sprint 4)
+19. ~~Schedule-info component~~ **DONE** — Already existed
+20. ~~Sub-block orchestrator~~ **DONE** — Already existed
+21. ~~Workflow variables API~~ **DONE** — Already existed
 
 ### P2 — Enhanced experience (do third)
 
-22. Loop/parallel container rendering on canvas — **deferred to Sprint 4** (needs workflow-block.tsx refactor)
-23. Subflow node rendering — **deferred to Sprint 4** (needs subflow-node.tsx)
-24. ~~Auto-layout~~ **DONE** — Full algorithm ported: types, constants, utils, core, containers, targeted, index (7 files)
+22. ~~Loop/parallel container rendering~~ **DONE** — Sprint 4: subflow-node.tsx + blockStateToNode container handling
+23. ~~Subflow node rendering~~ **DONE** — Sprint 4: SubflowNodeComponent registered in nodeTypes
+24. ~~Auto-layout~~ **DONE** — Full algorithm + API endpoint (Sprint 4)
 25. Snap-to-grid — **included in auto-layout** (`snapPositionToGrid` in utils.ts)
-26. Selection mode (shift-select) — **deferred to Sprint 4** (needs canvas interaction changes)
-27. ~~Block dimensions tracking~~ **DONE** — `lib/workflows/blocks/block-dimensions.ts` (BLOCK_DIMENSIONS, CONTAINER_DIMENSIONS, HANDLE_POSITIONS)
-28. Run from/until specific block — **deferred to Sprint 4** (embedded in executor, already exists in `lib/sim/executor/utils/run-from-block.ts`)
+26. Selection mode (shift-select) — QOL, deferred
+27. ~~Block dimensions tracking~~ **DONE**
+28. ~~Run from/until specific block~~ **DONE** — Sprint 4: context menu + run endpoint params + executor wired
 29. ~~Execution cancellation~~ **DONE**
 30. ~~Deployment versioning/revert~~ **DONE**
 31. ~~Execution streaming endpoint~~ **DONE**
 32. ~~Workflow duplication endpoint~~ **DONE**
-33. Terminal/console panel — **already DONE in Sprint 1** (terminal stores, console stores, Terminal UI component)
-34. Custom node improvements — **deferred to Sprint 4** (needs workflow-block.tsx refactor with dynamic handles)
-35. MCP API routes + client library — **deferred to Sprint 5** (large, 20+ files)
-36. A2A serve endpoint + API routes — **deferred to Sprint 5**
-37. Chat auth flows + management UI — **deferred to Sprint 5**
+33. ~~Terminal/console panel~~ **DONE**
+34. ~~Custom node (full)~~ **DONE** — Sprint 4: dynamic handles, subblock rows, condition/router handles, execution status, connection validation
+35. MCP API routes + client library — **deferred to Sprint 6**
+36. A2A serve endpoint + API routes — **deferred to Sprint 6**
+37. Chat auth flows + management UI — **deferred to Sprint 6**
 38. ~~Sanitization module~~ **DONE** (references, key-validation, validation; json-sanitizer deferred — depends on credential-extractor/copilot)
 39. ~~Subblock visibility module~~ **DONE**
 40. ~~Dynamic handle topology~~ **DONE**
