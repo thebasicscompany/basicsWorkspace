@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { environment } from "@/lib/db/schema"
+import { encryptRecord, decryptRecord, isEncryptionEnabled } from "@/lib/core/security/encryption"
 import type { EnvironmentVariable } from "@/apps/automations/stores/settings/environment/types"
 
 const EnvVarSchema = z.object({
@@ -22,19 +23,21 @@ export async function POST(req: NextRequest) {
     try {
       const { variables } = EnvVarSchema.parse(body)
 
-      // In production, encrypt values before storing. For now, store plaintext.
-      // TODO: Add encryption via lib/core/security/encryption.ts
+      const stored = isEncryptionEnabled()
+        ? encryptRecord(variables as Record<string, string>)
+        : (variables as Record<string, string>)
+
       await db
         .insert(environment)
         .values({
           userId: session.user.id,
-          variables: variables as Record<string, string>,
+          variables: stored,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: [environment.userId],
           set: {
-            variables: variables as Record<string, string>,
+            variables: stored,
             updatedAt: new Date(),
           },
         })
@@ -77,9 +80,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: {} }, { status: 200 })
     }
 
-    // In production, decrypt values before returning. For now, return plaintext.
-    // TODO: Add decryption via lib/core/security/encryption.ts
-    const storedVariables = result[0].variables as Record<string, string>
+    const raw = result[0].variables as Record<string, string>
+    const storedVariables = isEncryptionEnabled() ? decryptRecord(raw) : raw
     const data: Record<string, EnvironmentVariable> = {}
 
     for (const [key, value] of Object.entries(storedVariables)) {

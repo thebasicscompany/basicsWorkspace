@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { environment } from '@/lib/db/schema'
+import { decryptRecord, isEncryptionEnabled } from '@/lib/core/security/encryption'
 
 /**
  * Loads decrypted environment variables for a user from the database.
- * In production, values should be encrypted at rest — add decryption here.
  * Returns a flat Record<string, string> suitable for the executor.
  */
 export async function getEffectiveEnvVars(userId: string): Promise<Record<string, string>> {
@@ -19,8 +19,8 @@ export async function getEffectiveEnvVars(userId: string): Promise<Record<string
       return {}
     }
 
-    // TODO: In production, decrypt values here
-    return result[0].variables as Record<string, string>
+    const raw = result[0].variables as Record<string, string>
+    return isEncryptionEnabled() ? decryptRecord(raw) : raw
   } catch (error) {
     console.error('[EnvironmentUtils] Error loading environment variables:', error)
     return {}

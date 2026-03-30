@@ -52,10 +52,10 @@ export async function resolveHttpsUrlFromFileInput(
 }
 
 /** Convert raw file inputs to UserFile objects for executor consumption */
-export async function processFilesToUserFiles(
+export function processFilesToUserFiles(
   _files: unknown[],
   _orgIdOrRequestId?: string,
   _logOrOpts?: unknown
-): Promise<unknown[]> {
+): unknown[] {
   return []
 }
