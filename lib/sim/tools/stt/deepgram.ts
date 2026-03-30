@@ -73,7 +73,7 @@ export const deepgramSttTool: ToolConfig<SttParams, SttResponse> = {
     }),
     body: (
       params: SttParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'deepgram',
@@ -85,7 +85,7 @@ export const deepgramSttTool: ToolConfig<SttParams, SttResponse> = {
       language: params.language || 'auto',
       timestamps: params.timestamps || 'none',
       diarization: params.diarization || false,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),
@@ -153,7 +153,7 @@ export const deepgramSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
     ...deepgramSttTool.request,
     body: (
       params: SttV2Params & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'deepgram',
@@ -165,7 +165,7 @@ export const deepgramSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
       timestamps: params.timestamps || 'none',
       diarization: params.diarization || false,
       translateToEnglish: params.translateToEnglish || false,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

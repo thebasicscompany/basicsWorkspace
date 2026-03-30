@@ -5,7 +5,7 @@ export interface FileParserInput {
   filePath?: string | string[]
   file?: UserFile | UserFile[] | FileUploadInput | FileUploadInput[]
   fileType?: string
-  orgId?: string
+  workspaceId?: string
   workflowId?: string
   executionId?: string
 }

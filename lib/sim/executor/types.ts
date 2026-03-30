@@ -141,7 +141,7 @@ export interface BlockLog {
 export interface ExecutionMetadata {
   requestId?: string
   workflowId?: string
-  orgId?: string
+  workspaceId?: string
   startTime?: string
   endTime?: string
   duration: number
@@ -172,7 +172,7 @@ export interface BlockState {
 
 export interface ExecutionContext {
   workflowId: string
-  orgId?: string
+  workspaceId?: string
   executionId?: string
   userId?: string
   isDeployedContext?: boolean

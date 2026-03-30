@@ -43,9 +43,9 @@ export const memoryAddTool: ToolConfig<any, MemoryResponse> = {
       'Content-Type': 'application/json',
     }),
     body: (params) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
-        throw new Error('orgId is required in execution context')
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
+        throw new Error('workspaceId is required in execution context')
       }
 
       const conversationId = params.conversationId || params.id
@@ -56,7 +56,7 @@ export const memoryAddTool: ToolConfig<any, MemoryResponse> = {
 
       const body: Record<string, any> = {
         key,
-        orgId,
+        workspaceId,
         data: {
           role: params.role,
           content: params.content,

@@ -147,7 +147,7 @@ export class FileToolProcessor {
 
         return await uploadExecutionFile(
           {
-            orgId: context.orgId || '',
+            orgId: context.workspaceId || '',
             workflowId: context.workflowId,
             executionId: context.executionId || '',
           },
@@ -171,7 +171,7 @@ export class FileToolProcessor {
           mimeType: data.mimeType,
         },
         {
-          orgId: context.orgId || '',
+          orgId: context.workspaceId || '',
           workflowId: context.workflowId,
           executionId: context.executionId || '',
         },

@@ -20,7 +20,7 @@ export const listTrackersTool: ToolConfig<GongListTrackersParams, GongListTracke
       visibility: 'user-only',
       description: 'Gong API Access Key Secret',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -32,7 +32,7 @@ export const listTrackersTool: ToolConfig<GongListTrackersParams, GongListTracke
   request: {
     url: (params) => {
       const url = new URL('https://api.gong.io/v2/settings/trackers')
-      if (params.orgId) url.searchParams.set('orgId', params.orgId)
+      if (params.workspaceId) url.searchParams.set('workspaceId', params.workspaceId)
       return url.toString()
     },
     method: 'GET',
@@ -50,7 +50,7 @@ export const listTrackersTool: ToolConfig<GongListTrackersParams, GongListTracke
     const trackers = (data.keywordTrackers ?? []).map((t: Record<string, unknown>) => ({
       trackerId: t.trackerId ?? '',
       trackerName: t.trackerName ?? '',
-      orgId: t.orgId ?? null,
+      workspaceId: t.workspaceId ?? null,
       languageKeywords: ((t.languageKeywords as Record<string, unknown>[] | undefined) ?? []).map(
         (lk: Record<string, unknown>) => ({
           language: lk.language ?? null,
@@ -86,7 +86,7 @@ export const listTrackersTool: ToolConfig<GongListTrackersParams, GongListTracke
         properties: {
           trackerId: { type: 'string', description: 'Unique identifier for the tracker' },
           trackerName: { type: 'string', description: 'Display name of the tracker' },
-          orgId: {
+          workspaceId: {
             type: 'string',
             description: 'ID of the workspace containing the tracker',
           },

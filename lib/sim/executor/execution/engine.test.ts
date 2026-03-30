@@ -48,7 +48,7 @@ function createMockNode(id: string, blockType = 'test'): DAGNode {
 function createMockContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     workflowId: 'test-workflow',
-    orgId: 'test-workspace',
+    workspaceId: 'test-workspace',
     executionId: 'test-execution',
     userId: 'test-user',
     blockStates: new Map(),

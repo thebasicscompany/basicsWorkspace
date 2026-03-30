@@ -18,12 +18,12 @@ export const tableGetSchemaTool: ToolConfig<TableGetSchemaParams, TableGetSchema
 
   request: {
     url: (params: TableGetSchemaParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
-      return `/api/table/${params.tableId}?orgId=${encodeURIComponent(orgId)}`
+      return `/api/table/${params.tableId}?workspaceId=${encodeURIComponent(workspaceId)}`
     },
     method: 'GET',
     headers: () => ({

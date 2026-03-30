@@ -14,7 +14,7 @@ export interface ExecutionMetadata {
   requestId: string
   executionId: string
   workflowId: string
-  orgId: string
+  workspaceId: string
   userId: string
   sessionUserId?: string
   workflowUserId?: string
@@ -137,7 +137,7 @@ export interface ExecutionCallbacks {
 }
 
 export interface ContextExtensions {
-  orgId?: string
+  workspaceId?: string
   executionId?: string
   userId?: string
   stream?: boolean

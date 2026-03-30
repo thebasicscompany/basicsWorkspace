@@ -86,7 +86,7 @@ export const playhtTtsTool: ToolConfig<PlayHtTtsParams, TtsBlockResponse> = {
     }),
     body: (
       params: PlayHtTtsParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'playht',
@@ -101,7 +101,7 @@ export const playhtTtsTool: ToolConfig<PlayHtTtsParams, TtsBlockResponse> = {
       voiceGuidance: params.voiceGuidance,
       textGuidance: params.textGuidance,
       sampleRate: params.sampleRate,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

@@ -110,7 +110,7 @@ export const FileBlock: BlockConfig<FileParserOutput> = {
           return {
             filePath: fileUrl,
             fileType: params.fileType || 'auto',
-            orgId: params._context?.orgId,
+            workspaceId: params._context?.workspaceId,
           }
         }
 
@@ -209,7 +209,7 @@ export const FileV2Block: BlockConfig<FileParserOutput> = {
             return {
               filePath: filePaths.length === 1 ? filePaths[0] : filePaths,
               fileType: params.fileType || 'auto',
-              orgId: params._context?.orgId,
+              workspaceId: params._context?.workspaceId,
             }
           }
         }
@@ -219,7 +219,7 @@ export const FileV2Block: BlockConfig<FileParserOutput> = {
           return {
             filePath: fileInput.trim(),
             fileType: params.fileType || 'auto',
-            orgId: params._context?.orgId,
+            workspaceId: params._context?.workspaceId,
           }
         }
 
@@ -297,7 +297,7 @@ export const FileV3Block: BlockConfig<FileParserV3Output> = {
             return {
               filePath: filePaths.length === 1 ? filePaths[0] : filePaths,
               fileType: params.fileType || 'auto',
-              orgId: params._context?.orgId,
+              workspaceId: params._context?.workspaceId,
               workflowId: params._context?.workflowId,
               executionId: params._context?.executionId,
             }
@@ -309,7 +309,7 @@ export const FileV3Block: BlockConfig<FileParserV3Output> = {
           return {
             filePath: fileInput.trim(),
             fileType: params.fileType || 'auto',
-            orgId: params._context?.orgId,
+            workspaceId: params._context?.workspaceId,
             workflowId: params._context?.workflowId,
             executionId: params._context?.executionId,
           }

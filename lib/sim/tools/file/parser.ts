@@ -19,7 +19,7 @@ const logger = createLogger('FileParserTool')
 interface ToolBodyParams extends Partial<FileParserInput> {
   files?: FileUploadInput[]
   _context?: {
-    orgId?: string
+    workspaceId?: string
     workflowId?: string
     executionId?: string
   }
@@ -204,7 +204,7 @@ export const fileParserTool: ToolConfig<FileParserInput, FileParserOutput> = {
       return {
         filePath: determinedFilePath,
         fileType: determinedFileType,
-        orgId: params.orgId || params._context?.orgId,
+        workspaceId: params.workspaceId || params._context?.workspaceId,
         workflowId: params._context?.workflowId,
         executionId: params._context?.executionId,
       }

@@ -39,7 +39,7 @@ export const listCallsTool: ToolConfig<GongListCallsParams, GongListCallsRespons
       visibility: 'user-or-llm',
       description: 'Pagination cursor from a previous response',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -53,7 +53,7 @@ export const listCallsTool: ToolConfig<GongListCallsParams, GongListCallsRespons
       url.searchParams.set('fromDateTime', params.fromDateTime)
       if (params.toDateTime) url.searchParams.set('toDateTime', params.toDateTime)
       if (params.cursor) url.searchParams.set('cursor', params.cursor)
-      if (params.orgId) url.searchParams.set('orgId', params.orgId)
+      if (params.workspaceId) url.searchParams.set('workspaceId', params.workspaceId)
       return url.toString()
     },
     method: 'GET',
@@ -81,7 +81,7 @@ export const listCallsTool: ToolConfig<GongListCallsParams, GongListCallsRespons
       language: call.language ?? null,
       url: call.url ?? null,
       primaryUserId: call.primaryUserId ?? null,
-      orgId: call.orgId ?? null,
+      workspaceId: call.workspaceId ?? null,
       sdrDisposition: call.sdrDisposition ?? null,
       clientUniqueId: call.clientUniqueId ?? null,
       customData: call.customData ?? null,
@@ -122,7 +122,7 @@ export const listCallsTool: ToolConfig<GongListCallsParams, GongListCallsRespons
           language: { type: 'string', description: 'Language code in ISO-639-2B format' },
           url: { type: 'string', description: 'URL to the call in the Gong web app' },
           primaryUserId: { type: 'string', description: 'Host team member identifier' },
-          orgId: { type: 'string', description: 'Workspace identifier' },
+          workspaceId: { type: 'string', description: 'Workspace identifier' },
           sdrDisposition: { type: 'string', description: 'SDR disposition classification' },
           clientUniqueId: {
             type: 'string',

@@ -88,6 +88,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
           envVarValues,
           workflowVariables: (workflow.variables as Record<string, unknown>) ?? {},
           contextExtensions: {
+            workspaceId: orgId,
             ...(runUntilBlockId && { stopAfterBlockId: runUntilBlockId }),
           },
         })

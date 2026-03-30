@@ -36,7 +36,7 @@ export class MothershipBlockHandler implements BlockHandler {
 
     const body: Record<string, unknown> = {
       messages,
-      orgId: ctx.orgId || '',
+      workspaceId: ctx.workspaceId || '',
       userId: ctx.userId || '',
       chatId,
     }

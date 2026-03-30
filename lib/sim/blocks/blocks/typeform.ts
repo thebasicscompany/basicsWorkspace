@@ -172,7 +172,7 @@ Return ONLY the timestamp string - no explanations, no quotes, no extra text.`,
       condition: { field: 'operation', value: 'typeform_list_forms' },
     },
     {
-      id: 'orgId',
+      id: 'workspaceId',
       title: 'Workspace ID',
       type: 'short-input',
       placeholder: 'Filter by workspace ID',
@@ -212,7 +212,7 @@ Return ONLY the timestamp string - no explanations, no quotes, no extra text.`,
       condition: { field: 'operation', value: 'typeform_create_form' },
     },
     {
-      id: 'orgIdCreate',
+      id: 'workspaceIdCreate',
       title: 'Workspace ID',
       type: 'short-input',
       placeholder: 'Workspace to create form in',
@@ -354,7 +354,7 @@ Do not include any explanations, markdown formatting, or other text outside the 
         const {
           operation,
           listPageSize,
-          orgIdCreate,
+          workspaceIdCreate,
           fields,
           settings,
           operations,
@@ -375,12 +375,12 @@ Do not include any explanations, markdown formatting, or other text outside the 
 
         const pageSize = listPageSize !== undefined ? listPageSize : params.pageSize
 
-        const orgId = orgIdCreate || params.orgId
+        const workspaceId = workspaceIdCreate || params.workspaceId
 
         return {
           ...rest,
           ...(pageSize && { pageSize }),
-          ...(orgId && { orgId }),
+          ...(workspaceId && { workspaceId }),
           ...(parsedFields && { fields: parsedFields }),
           ...(parsedSettings && { settings: parsedSettings }),
           ...(parsedOperations && { operations: parsedOperations }),
@@ -406,13 +406,13 @@ Do not include any explanations, markdown formatting, or other text outside the 
     inline: { type: 'boolean', description: 'Inline display option' },
     // List forms operation params
     search: { type: 'string', description: 'Search query for form titles' },
-    orgId: { type: 'string', description: 'Workspace ID filter' },
+    workspaceId: { type: 'string', description: 'Workspace ID filter' },
     page: { type: 'number', description: 'Page number' },
     listPageSize: { type: 'number', description: 'Forms per page' },
     // Create form operation params
     title: { type: 'string', description: 'Form title' },
     type: { type: 'string', description: 'Form type (form or quiz)' },
-    orgIdCreate: { type: 'string', description: 'Workspace ID for creation' },
+    workspaceIdCreate: { type: 'string', description: 'Workspace ID for creation' },
     fields: { type: 'json', description: 'Form fields array' },
     settings: { type: 'json', description: 'Form settings object' },
     themeId: { type: 'string', description: 'Theme ID' },

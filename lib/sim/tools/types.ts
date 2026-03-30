@@ -23,7 +23,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD'
  * This is a subset of the full ExecutionContext from executor/types.ts.
  */
 export type WorkflowToolExecutionContext = {
-  orgId?: string
+  workspaceId?: string
   workflowId?: string
   executionId?: string
   userId?: string

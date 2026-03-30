@@ -53,8 +53,8 @@ export const tableUpdateRowsByFilterTool: ToolConfig<
       'Content-Type': 'application/json',
     }),
     body: (params: TableUpdateByFilterParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
@@ -62,7 +62,7 @@ export const tableUpdateRowsByFilterTool: ToolConfig<
         filter: params.filter,
         data: params.data,
         limit: params.limit,
-        orgId,
+        workspaceId,
       }
     },
   },

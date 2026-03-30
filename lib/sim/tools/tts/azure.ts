@@ -79,7 +79,7 @@ export const azureTtsTool: ToolConfig<AzureTtsParams, TtsBlockResponse> = {
     }),
     body: (
       params: AzureTtsParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'azure',
@@ -93,7 +93,7 @@ export const azureTtsTool: ToolConfig<AzureTtsParams, TtsBlockResponse> = {
       style: params.style,
       styleDegree: params.styleDegree,
       role: params.role,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

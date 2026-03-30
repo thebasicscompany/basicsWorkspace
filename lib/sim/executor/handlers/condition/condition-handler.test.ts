@@ -115,7 +115,7 @@ describe('ConditionBlockHandler', () => {
 
     mockContext = {
       workflowId: 'test-workflow-id',
-      orgId: 'test-workspace-id',
+      workspaceId: 'test-workspace-id',
       blockStates: new Map<string, BlockState>([
         [
           mockSourceBlock.id,
@@ -196,7 +196,7 @@ describe('ConditionBlockHandler', () => {
         blockNameMapping: { sourceblock: 'source-block-1' },
         _context: {
           workflowId: 'test-workflow-id',
-          orgId: 'test-workspace-id',
+          workspaceId: 'test-workspace-id',
         },
       }),
       false,
@@ -780,7 +780,7 @@ describe('ConditionBlockHandler', () => {
 
       const parallelContext: ExecutionContext = {
         workflowId: 'test-workflow-id',
-        orgId: 'test-workspace-id',
+        workspaceId: 'test-workspace-id',
         workflow: parallelWorkflow,
         blockStates: parallelBlockStates,
         blockLogs: [],
@@ -861,7 +861,7 @@ describe('ConditionBlockHandler', () => {
 
       const parallelContext: ExecutionContext = {
         workflowId: 'test-workflow-id',
-        orgId: 'test-workspace-id',
+        workspaceId: 'test-workspace-id',
         workflow: parallelWorkflow,
         blockStates: parallelBlockStates,
         blockLogs: [],
@@ -940,7 +940,7 @@ describe('ConditionBlockHandler', () => {
 
       const parallelContext: ExecutionContext = {
         workflowId: 'test-workflow-id',
-        orgId: 'test-workspace-id',
+        workspaceId: 'test-workspace-id',
         workflow: parallelWorkflow,
         blockStates: parallelBlockStates,
         blockLogs: [],

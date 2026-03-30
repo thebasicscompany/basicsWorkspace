@@ -112,7 +112,7 @@ export interface TypeformListFormsParams {
   search?: string
   page?: number
   pageSize?: number
-  orgId?: string
+  workspaceId?: string
 }
 
 export interface TypeformListFormsResponse extends ToolResponse {
@@ -185,7 +185,7 @@ export interface TypeformCreateFormParams {
   apiKey: string
   title: string
   type?: string
-  orgId?: string
+  workspaceId?: string
   fields?: Array<Record<string, any>>
   settings?: Record<string, any>
   themeId?: string

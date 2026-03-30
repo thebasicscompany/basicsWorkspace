@@ -41,7 +41,7 @@ export const getCallTranscriptTool: ToolConfig<
       visibility: 'user-or-llm',
       description: 'End date/time filter in ISO-8601 format',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -69,7 +69,7 @@ export const getCallTranscriptTool: ToolConfig<
       }
       if (params.fromDateTime) filter.fromDateTime = params.fromDateTime
       if (params.toDateTime) filter.toDateTime = params.toDateTime
-      if (params.orgId) filter.orgId = params.orgId
+      if (params.workspaceId) filter.workspaceId = params.workspaceId
       const body: Record<string, unknown> = { filter }
       if (params.cursor) body.cursor = params.cursor
       return body

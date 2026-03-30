@@ -68,7 +68,7 @@ export const elevenLabsTtsUnifiedTool: ToolConfig<ElevenLabsTtsUnifiedParams, Tt
     }),
     body: (
       params: ElevenLabsTtsUnifiedParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'elevenlabs',
@@ -80,7 +80,7 @@ export const elevenLabsTtsUnifiedTool: ToolConfig<ElevenLabsTtsUnifiedParams, Tt
       similarityBoost: params.similarityBoost ?? 0.8,
       style: params.style,
       useSpeakerBoost: params.useSpeakerBoost ?? true,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

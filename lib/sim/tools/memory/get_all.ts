@@ -11,12 +11,12 @@ export const memoryGetAllTool: ToolConfig<any, MemoryResponse> = {
 
   request: {
     url: (params) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
-        throw new Error('orgId is required in execution context')
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
+        throw new Error('workspaceId is required in execution context')
       }
 
-      return `/api/memory?orgId=${encodeURIComponent(orgId)}`
+      return `/api/memory?workspaceId=${encodeURIComponent(workspaceId)}`
     },
     method: 'GET',
     headers: () => ({

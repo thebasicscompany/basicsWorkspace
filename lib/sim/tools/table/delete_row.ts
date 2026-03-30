@@ -29,13 +29,13 @@ export const tableDeleteRowTool: ToolConfig<TableRowDeleteParams, TableDeleteRes
       'Content-Type': 'application/json',
     }),
     body: (params: TableRowDeleteParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
       return {
-        orgId,
+        workspaceId,
       }
     },
   },

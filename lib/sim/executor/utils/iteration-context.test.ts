@@ -15,7 +15,7 @@ function makeCtx(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     workflowId: 'wf-1',
     executionId: 'exec-1',
-    orgId: 'ws-1',
+    workspaceId: 'ws-1',
     userId: 'user-1',
     blockStates: {},
     blockLogs: [],

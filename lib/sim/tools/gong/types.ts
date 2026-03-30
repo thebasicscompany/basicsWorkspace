@@ -11,7 +11,7 @@ export interface GongListCallsParams extends GongBaseParams {
   fromDateTime: string
   toDateTime?: string
   cursor?: string
-  orgId?: string
+  workspaceId?: string
 }
 
 export interface GongCallBasic {
@@ -27,7 +27,7 @@ export interface GongCallBasic {
   language: string | null
   url: string | null
   primaryUserId: string | null
-  orgId: string | null
+  workspaceId: string | null
   sdrDisposition: string | null
   clientUniqueId: string | null
   customData: string | null
@@ -72,7 +72,7 @@ export interface GongGetCallTranscriptParams extends GongBaseParams {
   callIds?: string
   fromDateTime?: string
   toDateTime?: string
-  orgId?: string
+  workspaceId?: string
   cursor?: string
 }
 
@@ -105,7 +105,7 @@ export interface GongGetExtensiveCallsParams extends GongBaseParams {
   callIds?: string
   fromDateTime?: string
   toDateTime?: string
-  orgId?: string
+  workspaceId?: string
   primaryUserIds?: string
   cursor?: string
 }
@@ -311,7 +311,7 @@ export interface GongAnsweredScorecardsResponse extends ToolResponse {
 
 /** List Library Folders */
 export interface GongListLibraryFoldersParams extends GongBaseParams {
-  orgId?: string
+  workspaceId?: string
 }
 
 export interface GongLibraryFolder {
@@ -374,7 +374,7 @@ export interface GongScorecardQuestion {
 export interface GongScorecard {
   scorecardId: string
   scorecardName: string
-  orgId: string | null
+  workspaceId: string | null
   enabled: boolean
   updaterUserId: string | null
   created: string | null
@@ -390,7 +390,7 @@ export interface GongListScorecardsResponse extends ToolResponse {
 
 /** List Trackers */
 export interface GongListTrackersParams extends GongBaseParams {
-  orgId?: string
+  workspaceId?: string
 }
 
 export interface GongTrackerLanguageKeyword {
@@ -402,7 +402,7 @@ export interface GongTrackerLanguageKeyword {
 export interface GongTracker {
   trackerId: string
   trackerName: string
-  orgId: string | null
+  workspaceId: string | null
   languageKeywords: GongTrackerLanguageKeyword[]
   affiliation: string | null
   partOfQuestion: boolean | null
@@ -442,7 +442,7 @@ export interface GongListWorkspacesResponse extends ToolResponse {
 /** List Flows */
 export interface GongListFlowsParams extends GongBaseParams {
   flowOwnerEmail: string
-  orgId?: string
+  workspaceId?: string
   cursor?: string
 }
 
@@ -470,7 +470,7 @@ export interface GongListFlowsResponse extends ToolResponse {
 /** Get Coaching */
 export interface GongGetCoachingParams extends GongBaseParams {
   managerId: string
-  orgId: string
+  workspaceId: string
   fromDate: string
   toDate: string
 }

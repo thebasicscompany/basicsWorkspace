@@ -26,9 +26,9 @@ export const memoryGetTool: ToolConfig<any, MemoryResponse> = {
 
   request: {
     url: (params) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
-        throw new Error('orgId is required in execution context')
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
+        throw new Error('workspaceId is required in execution context')
       }
 
       const conversationId = params.conversationId || params.id
@@ -38,7 +38,7 @@ export const memoryGetTool: ToolConfig<any, MemoryResponse> = {
       const query = conversationId
 
       const url = new URL('/api/memory', 'http://dummy')
-      url.searchParams.set('orgId', orgId)
+      url.searchParams.set('workspaceId', workspaceId)
       url.searchParams.set('query', query)
       url.searchParams.set('limit', '1000')
 

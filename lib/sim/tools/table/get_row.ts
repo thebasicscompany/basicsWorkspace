@@ -24,12 +24,12 @@ export const tableGetRowTool: ToolConfig<TableRowGetParams, TableRowResponse> = 
 
   request: {
     url: (params: TableRowGetParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
-      return `/api/table/${params.tableId}/rows/${params.rowId}?orgId=${encodeURIComponent(orgId)}`
+      return `/api/table/${params.tableId}/rows/${params.rowId}?workspaceId=${encodeURIComponent(workspaceId)}`
     },
     method: 'GET',
     headers: () => ({

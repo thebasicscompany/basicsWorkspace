@@ -101,7 +101,7 @@ export const assemblyaiSttTool: ToolConfig<SttParams, SttResponse> = {
     }),
     body: (
       params: SttParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'assemblyai',
@@ -117,7 +117,7 @@ export const assemblyaiSttTool: ToolConfig<SttParams, SttResponse> = {
       entityDetection: (params as any).entityDetection || false,
       piiRedaction: (params as any).piiRedaction || false,
       summarization: (params as any).summarization || false,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),
@@ -208,7 +208,7 @@ export const assemblyaiSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
     ...assemblyaiSttTool.request,
     body: (
       params: SttV2Params & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'assemblyai',
@@ -223,7 +223,7 @@ export const assemblyaiSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
       entityDetection: params.entityDetection || false,
       piiRedaction: params.piiRedaction || false,
       summarization: params.summarization || false,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

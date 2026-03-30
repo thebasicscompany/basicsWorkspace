@@ -257,7 +257,7 @@ export class DAGExecutor {
 
     const context: ExecutionContext = {
       workflowId,
-      orgId: this.contextExtensions.orgId,
+      workspaceId: this.contextExtensions.workspaceId,
       executionId: this.contextExtensions.executionId,
       userId: this.contextExtensions.userId,
       isDeployedContext: this.contextExtensions.isDeployedContext,

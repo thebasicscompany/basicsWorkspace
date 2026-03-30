@@ -87,7 +87,7 @@ export const googleTtsTool: ToolConfig<GoogleTtsParams, TtsBlockResponse> = {
     }),
     body: (
       params: GoogleTtsParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'google',
@@ -102,7 +102,7 @@ export const googleTtsTool: ToolConfig<GoogleTtsParams, TtsBlockResponse> = {
       volumeGainDb: params.volumeGainDb,
       sampleRateHertz: params.sampleRateHertz,
       effectsProfileId: params.effectsProfileId,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

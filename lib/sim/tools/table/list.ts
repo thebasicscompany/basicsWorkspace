@@ -11,11 +11,11 @@ export const tableListTool: ToolConfig<TableListParams, TableListResponse> = {
 
   request: {
     url: (params: TableListParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
-      return `/api/table?orgId=${encodeURIComponent(orgId)}`
+      return `/api/table?workspaceId=${encodeURIComponent(workspaceId)}`
     },
     method: 'GET',
     headers: () => ({

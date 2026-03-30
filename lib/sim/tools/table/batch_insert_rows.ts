@@ -40,14 +40,14 @@ export const tableBatchInsertRowsTool: ToolConfig<
       'Content-Type': 'application/json',
     }),
     body: (params: TableBatchInsertParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
       return {
         rows: params.rows,
-        orgId,
+        workspaceId,
       }
     },
   },

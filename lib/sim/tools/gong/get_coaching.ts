@@ -32,7 +32,7 @@ export const getCoachingTool: ToolConfig<GongGetCoachingParams, GongGetCoachingR
       visibility: 'user-or-llm',
       description: 'Gong user ID of the manager',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: true,
       visibility: 'user-or-llm',
@@ -56,7 +56,7 @@ export const getCoachingTool: ToolConfig<GongGetCoachingParams, GongGetCoachingR
     url: (params) => {
       const url = new URL('https://api.gong.io/v2/coaching')
       url.searchParams.set('manager-id', params.managerId)
-      url.searchParams.set('workspace-id', params.orgId)
+      url.searchParams.set('workspace-id', params.workspaceId)
       url.searchParams.set('from', params.fromDate)
       url.searchParams.set('to', params.toDate)
       return url.toString()

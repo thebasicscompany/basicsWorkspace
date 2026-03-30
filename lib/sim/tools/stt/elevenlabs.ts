@@ -66,7 +66,7 @@ export const elevenLabsSttTool: ToolConfig<SttParams, SttResponse> = {
     }),
     body: (
       params: SttParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'elevenlabs',
@@ -77,7 +77,7 @@ export const elevenLabsSttTool: ToolConfig<SttParams, SttResponse> = {
       audioUrl: params.audioUrl,
       language: params.language || 'auto',
       timestamps: params.timestamps || 'none',
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),
@@ -136,7 +136,7 @@ export const elevenLabsSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
     ...elevenLabsSttTool.request,
     body: (
       params: SttV2Params & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'elevenlabs',
@@ -146,7 +146,7 @@ export const elevenLabsSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
       audioFileReference: params.audioFileReference,
       language: params.language || 'auto',
       timestamps: params.timestamps || 'none',
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

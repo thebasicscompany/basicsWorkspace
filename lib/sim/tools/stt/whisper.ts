@@ -94,7 +94,7 @@ export const whisperSttTool: ToolConfig<SttParams, SttResponse> = {
     }),
     body: (
       params: SttParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'whisper',
@@ -109,7 +109,7 @@ export const whisperSttTool: ToolConfig<SttParams, SttResponse> = {
       prompt: (params as any).prompt,
       temperature: (params as any).temperature,
       responseFormat: (params as any).responseFormat,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),
@@ -177,7 +177,7 @@ export const whisperSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
     ...whisperSttTool.request,
     body: (
       params: SttV2Params & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'whisper',
@@ -191,7 +191,7 @@ export const whisperSttV2Tool: ToolConfig<SttV2Params, SttResponse> = {
       prompt: (params as any).prompt,
       temperature: (params as any).temperature,
       responseFormat: (params as any).responseFormat,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

@@ -335,7 +335,7 @@ Return ONLY the date string in YYYY-MM-DD format - no explanations, no quotes, n
 
     // Workspace ID (shared by multiple operations)
     {
-      id: 'orgId',
+      id: 'workspaceId',
       title: 'Workspace ID',
       type: 'short-input',
       placeholder: 'Gong workspace ID (optional)',
@@ -517,7 +517,7 @@ Return ONLY the timestamp string in ISO 8601 format - no explanations, no quotes
         if (params.callToDate) result.callToDate = params.callToDate
         if (params.reviewFromDate) result.reviewFromDate = params.reviewFromDate
         if (params.reviewToDate) result.reviewToDate = params.reviewToDate
-        if (params.coachingWorkspaceId) result.orgId = params.coachingWorkspaceId
+        if (params.coachingWorkspaceId) result.workspaceId = params.coachingWorkspaceId
         if (params.coachingFromDate) result.fromDate = params.coachingFromDate
         if (params.coachingToDate) result.toDate = params.coachingToDate
         return result
@@ -550,7 +550,7 @@ Return ONLY the timestamp string in ISO 8601 format - no explanations, no quotes
       description: 'Comma-separated primary user IDs (extensive calls)',
     },
     folderId: { type: 'string', description: 'Library folder ID' },
-    orgId: { type: 'string', description: 'Gong workspace ID' },
+    workspaceId: { type: 'string', description: 'Gong workspace ID' },
     managerId: { type: 'string', description: 'Manager user ID for coaching' },
     flowOwnerEmail: {
       type: 'string',

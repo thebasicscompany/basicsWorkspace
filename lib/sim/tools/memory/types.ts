@@ -20,7 +20,7 @@ export interface MemoryRecord {
   createdAt: string
   updatedAt: string
   workflowId?: string
-  orgId?: string
+  workspaceId?: string
 }
 
 export interface MemoryError {

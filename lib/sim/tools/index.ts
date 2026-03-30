@@ -60,14 +60,14 @@ async function injectHostedKeyIfNeeded(
 
   // Derive workspace/user/workflow IDs from executionContext or params._context
   const ctx = params._context as Record<string, unknown> | undefined
-  const orgId = executionContext?.orgId || (ctx?.orgId as string | undefined)
+  const workspaceId = executionContext?.workspaceId || (ctx?.workspaceId as string | undefined)
   const userId = executionContext?.userId || (ctx?.userId as string | undefined)
   const workflowId = executionContext?.workflowId || (ctx?.workflowId as string | undefined)
 
   // Check BYOK workspace key first
-  if (byokProviderId && orgId) {
+  if (byokProviderId && workspaceId) {
     try {
-      const byokResult = await getBYOKKey(orgId, byokProviderId as BYOKProviderId)
+      const byokResult = await getBYOKKey(workspaceId, byokProviderId as BYOKProviderId)
       if (byokResult) {
         params[apiKeyParam] = byokResult.apiKey
         logger.info(`[${requestId}] Using BYOK key for ${tool.id}`)
@@ -81,7 +81,7 @@ async function injectHostedKeyIfNeeded(
 
   const rateLimiter = getHostedKeyRateLimiter()
   const provider = byokProviderId || tool.id
-  const billingActorId = orgId
+  const billingActorId = workspaceId
 
   if (!billingActorId) {
     logger.error(`[${requestId}] No workspace ID available for hosted key rate limiting`)
@@ -107,7 +107,7 @@ async function injectHostedKeyIfNeeded(
       provider,
       retryAfterMs: acquireResult.retryAfterMs ?? 0,
       userId,
-      orgId,
+      workspaceId,
       workflowId,
     })
 
@@ -190,7 +190,7 @@ async function executeWithRetry<T>(
             toolId,
             reason: 'upstream_retries_exhausted',
             userId: executionContext?.userId,
-            orgId: executionContext?.orgId,
+            workspaceId: executionContext?.workspaceId,
             workflowId: executionContext?.workflowId,
           })
         }
@@ -207,7 +207,7 @@ async function executeWithRetry<T>(
         maxRetries,
         delayMs,
         userId: executionContext?.userId,
-        orgId: executionContext?.orgId,
+        workspaceId: executionContext?.workspaceId,
         workflowId: executionContext?.workflowId,
       })
 
@@ -280,7 +280,7 @@ async function processHostedKeyCost(
 
   const ctx = params._context as Record<string, unknown> | undefined
   const userId = executionContext?.userId || (ctx?.userId as string | undefined)
-  const wsId = executionContext?.orgId || (ctx?.orgId as string | undefined)
+  const wsId = executionContext?.workspaceId || (ctx?.workspaceId as string | undefined)
   const wfId = executionContext?.workflowId || (ctx?.workflowId as string | undefined)
 
   if (!userId) return { cost, metadata }
@@ -328,7 +328,7 @@ async function reportCustomDimensionUsage(
 ): Promise<void> {
   if (tool.hosting?.rateLimit.mode !== 'custom') return
   const ctx = params._context as Record<string, unknown> | undefined
-  const billingActorId = executionContext?.orgId || (ctx?.orgId as string | undefined)
+  const billingActorId = executionContext?.workspaceId || (ctx?.workspaceId as string | undefined)
   if (!billingActorId) return
 
   const rateLimiter = getHostedKeyRateLimiter()
@@ -631,15 +631,15 @@ export async function executeTool(
     // Handle load_skill tool for agent skills progressive disclosure
     if (normalizedToolId === 'load_skill') {
       const skillName = params.skill_name
-      const orgId = params._context?.orgId
-      if (!skillName || !orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!skillName || !workspaceId) {
         return {
           success: false,
           output: { error: 'Missing skill_name or workspace context' },
           error: 'Missing skill_name or workspace context',
         }
       }
-      const content = await resolveSkillContent(skillName, orgId)
+      const content = await resolveSkillContent(skillName, workspaceId)
       if (!content) {
         return {
           success: false,
@@ -1584,7 +1584,7 @@ async function executeMcpTool(
       )
     }
 
-    const orgId = params._context?.orgId || executionContext?.orgId
+    const workspaceId = params._context?.workspaceId || executionContext?.workspaceId
     const workflowId = params._context?.workflowId || executionContext?.workflowId
     const userId = params._context?.userId || executionContext?.userId
     const callChain =
@@ -1594,11 +1594,11 @@ async function executeMcpTool(
       headers[SIM_VIA_HEADER] = serializeCallChain(callChain)
     }
 
-    if (!orgId) {
+    if (!workspaceId) {
       return {
         success: false,
         output: {},
-        error: `Missing orgId in execution context for MCP tool ${toolName}`,
+        error: `Missing workspaceId in execution context for MCP tool ${toolName}`,
         timing: {
           startTime: actualStartTime,
           endTime: new Date().toISOString(),
@@ -1615,7 +1615,7 @@ async function executeMcpTool(
       toolName,
       arguments: toolArguments,
       workflowId, // Pass workflow context for user resolution
-      orgId, // Pass workspace context for scoping
+      workspaceId, // Pass workspace context for scoping
     }
 
     // Include schema to skip discovery on execution
@@ -1629,7 +1629,7 @@ async function executeMcpTool(
     validateRequestBodySize(body, actualRequestId, `mcp:${toolId}`)
 
     logger.info(`[${actualRequestId}] Making MCP tool request to ${toolName} on ${serverId}`, {
-      hasWorkspaceId: !!orgId,
+      hasWorkspaceId: !!workspaceId,
       hasWorkflowId: !!workflowId,
       hasToolSchema: !!toolSchema,
     })

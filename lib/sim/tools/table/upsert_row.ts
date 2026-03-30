@@ -37,14 +37,14 @@ export const tableUpsertRowTool: ToolConfig<TableRowInsertParams, TableUpsertRes
       'Content-Type': 'application/json',
     }),
     body: (params: TableRowInsertParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
       return {
         data: params.data,
-        orgId,
+        workspaceId,
       }
     },
   },

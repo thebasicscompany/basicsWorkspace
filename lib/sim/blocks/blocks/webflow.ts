@@ -237,7 +237,7 @@ export const WebflowBlock: BlockConfig<WebflowResponse> = {
     metadata: { type: 'json', description: 'Operation metadata' },
     // Trigger outputs
     siteId: { type: 'string', description: 'Site ID where event occurred' },
-    orgId: { type: 'string', description: 'Workspace ID where event occurred' },
+    workspaceId: { type: 'string', description: 'Workspace ID where event occurred' },
     collectionId: { type: 'string', description: 'Collection ID (for collection events)' },
     payload: { type: 'json', description: 'Event payload data (item data for collection events)' },
     name: { type: 'string', description: 'Form name (for form submissions)' },

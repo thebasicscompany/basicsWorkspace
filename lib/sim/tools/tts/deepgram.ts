@@ -68,7 +68,7 @@ export const deepgramTtsTool: ToolConfig<DeepgramTtsParams, TtsBlockResponse> = 
     }),
     body: (
       params: DeepgramTtsParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'deepgram',
@@ -79,7 +79,7 @@ export const deepgramTtsTool: ToolConfig<DeepgramTtsParams, TtsBlockResponse> = 
       sampleRate: params.sampleRate,
       bitRate: params.bitRate,
       container: params.container || 'none',
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

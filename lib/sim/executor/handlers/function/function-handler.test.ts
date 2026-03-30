@@ -79,7 +79,7 @@ describe('FunctionBlockHandler', () => {
       blockOutputSchemas: {},
       _context: {
         workflowId: mockContext.workflowId,
-        orgId: mockContext.orgId,
+        workspaceId: mockContext.workspaceId,
         isDeployedContext: mockContext.isDeployedContext,
       },
     }
@@ -116,7 +116,7 @@ describe('FunctionBlockHandler', () => {
       blockOutputSchemas: {},
       _context: {
         workflowId: mockContext.workflowId,
-        orgId: mockContext.orgId,
+        workspaceId: mockContext.workspaceId,
         isDeployedContext: mockContext.isDeployedContext,
       },
     }
@@ -146,7 +146,7 @@ describe('FunctionBlockHandler', () => {
       blockOutputSchemas: {},
       _context: {
         workflowId: mockContext.workflowId,
-        orgId: mockContext.orgId,
+        workspaceId: mockContext.workspaceId,
         isDeployedContext: mockContext.isDeployedContext,
       },
     }

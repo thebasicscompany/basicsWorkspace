@@ -105,7 +105,7 @@ vi.mock('@sim/db', () => ({
 vi.mock('@sim/db/schema', () => ({
   mcpServers: {
     id: 'id',
-    orgId: 'orgId',
+    workspaceId: 'workspaceId',
     connectionStatus: 'connectionStatus',
     deletedAt: 'deletedAt',
   },
@@ -1360,7 +1360,7 @@ describe('AgentBlockHandler', () => {
 
       const mcpContext = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
       }
 
       mockGetProviderFromModel.mockReturnValue('openai')
@@ -1432,7 +1432,7 @@ describe('AgentBlockHandler', () => {
 
       const mcpContext = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
       }
 
       mockGetProviderFromModel.mockReturnValue('openai')
@@ -1505,7 +1505,7 @@ describe('AgentBlockHandler', () => {
       expect((result as any).model).toBe('gpt-4o')
     })
 
-    it('should provide orgId context for MCP tool execution', async () => {
+    it('should provide workspaceId context for MCP tool execution', async () => {
       let capturedContext: any
       mockExecuteTool.mockImplementation((toolId, params, skipPostProcess, context) => {
         capturedContext = context
@@ -1548,14 +1548,14 @@ describe('AgentBlockHandler', () => {
 
       const contextWithWorkspace = {
         ...mockContext,
-        orgId: 'test-workspace-456',
+        workspaceId: 'test-workspace-456',
       }
 
       mockGetProviderFromModel.mockReturnValue('openai')
 
       await handler.execute(contextWithWorkspace, mockBlock, inputs)
 
-      expect(contextWithWorkspace.orgId).toBe('test-workspace-456')
+      expect(contextWithWorkspace.workspaceId).toBe('test-workspace-456')
     })
 
     it('should use cached schema for MCP tools (no discovery needed)', async () => {
@@ -1622,7 +1622,7 @@ describe('AgentBlockHandler', () => {
 
       const contextWithWorkspace = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
         workflowId: 'test-workflow-456',
       }
 
@@ -1697,7 +1697,7 @@ describe('AgentBlockHandler', () => {
 
       const contextWithWorkspace = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
         workflowId: 'test-workflow-456',
       }
 
@@ -1744,7 +1744,7 @@ describe('AgentBlockHandler', () => {
 
       const contextWithCallChain = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
         workflowId: 'test-workflow-456',
         callChain: ['wf-parent', 'test-workflow-456'],
       }
@@ -1827,7 +1827,7 @@ describe('AgentBlockHandler', () => {
 
       const contextWithWorkspace = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
         workflowId: 'test-workflow-456',
       }
 
@@ -1909,7 +1909,7 @@ describe('AgentBlockHandler', () => {
 
       const contextWithWorkspace = {
         ...mockContext,
-        orgId: 'test-workspace-123',
+        workspaceId: 'test-workspace-123',
         workflowId: 'test-workflow-456',
       }
 

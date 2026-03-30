@@ -55,7 +55,7 @@ export const minimaxVideoTool: ToolConfig<VideoParams, VideoResponse> = {
     }),
     body: (
       params: VideoParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'minimax',
@@ -64,7 +64,7 @@ export const minimaxVideoTool: ToolConfig<VideoParams, VideoResponse> = {
       prompt: params.prompt,
       duration: params.duration || 6,
       promptOptimizer: params.promptOptimizer !== false, // Default true
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

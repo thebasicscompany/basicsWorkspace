@@ -41,7 +41,7 @@ export const getExtensiveCallsTool: ToolConfig<
       visibility: 'user-or-llm',
       description: 'End date/time filter in ISO-8601 format',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -75,7 +75,7 @@ export const getExtensiveCallsTool: ToolConfig<
       }
       if (params.fromDateTime) filter.fromDateTime = params.fromDateTime
       if (params.toDateTime) filter.toDateTime = params.toDateTime
-      if (params.orgId) filter.orgId = params.orgId
+      if (params.workspaceId) filter.workspaceId = params.workspaceId
       if (params.primaryUserIds) {
         filter.primaryUserIds = params.primaryUserIds.split(',').map((id) => id.trim())
       }
@@ -147,7 +147,7 @@ export const getExtensiveCallsTool: ToolConfig<
               language: { type: 'string', description: 'Language code (ISO-639-2B)' },
               url: { type: 'string', description: 'Gong web app URL' },
               primaryUserId: { type: 'string', description: 'Host user ID' },
-              orgId: { type: 'string', description: 'Workspace ID' },
+              workspaceId: { type: 'string', description: 'Workspace ID' },
               sdrDisposition: { type: 'string', description: 'SDR disposition' },
               clientUniqueId: { type: 'string', description: 'Origin system call ID' },
               customData: { type: 'string', description: 'Custom metadata' },

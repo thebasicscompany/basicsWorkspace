@@ -35,8 +35,8 @@ export const tableCreateTool: ToolConfig<TableCreateParams, TableCreateResponse>
       'Content-Type': 'application/json',
     }),
     body: (params) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
@@ -44,7 +44,7 @@ export const tableCreateTool: ToolConfig<TableCreateParams, TableCreateResponse>
         name: params.name,
         description: params.description,
         schema: params.schema,
-        orgId,
+        workspaceId,
       }
     },
   },

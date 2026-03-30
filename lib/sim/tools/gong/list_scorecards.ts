@@ -40,7 +40,7 @@ export const listScorecardsTool: ToolConfig<GongListScorecardsParams, GongListSc
       const scorecards = (data.scorecards ?? []).map((sc: Record<string, unknown>) => ({
         scorecardId: sc.scorecardId ?? '',
         scorecardName: sc.scorecardName ?? '',
-        orgId: sc.orgId ?? null,
+        workspaceId: sc.workspaceId ?? null,
         enabled: sc.enabled ?? false,
         updaterUserId: sc.updaterUserId ?? null,
         created: sc.created ?? null,
@@ -72,7 +72,7 @@ export const listScorecardsTool: ToolConfig<GongListScorecardsParams, GongListSc
           properties: {
             scorecardId: { type: 'string', description: 'Unique identifier for the scorecard' },
             scorecardName: { type: 'string', description: 'Display name of the scorecard' },
-            orgId: {
+            workspaceId: {
               type: 'string',
               description: 'Workspace identifier associated with this scorecard',
             },

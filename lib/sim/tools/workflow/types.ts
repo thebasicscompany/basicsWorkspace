@@ -7,7 +7,7 @@ export interface WorkflowExecutorParams {
   /** Execution context passed by handlers */
   _context?: {
     workflowId?: string
-    orgId?: string
+    workspaceId?: string
     executionId?: string
     isDeployedContext?: boolean
   }

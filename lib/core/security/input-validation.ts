@@ -25,3 +25,20 @@ export function validateEnum<T extends string>(
   }
   return { isValid: true }
 }
+
+export function validateAlphanumericId(
+  value: string | null | undefined,
+  paramName = 'ID',
+  maxLength = 100
+): { isValid: boolean; error?: string } {
+  if (!value || value.trim() === '') {
+    return { isValid: false, error: `${paramName} is required` }
+  }
+  if (value.length > maxLength) {
+    return { isValid: false, error: `${paramName} exceeds maximum length of ${maxLength}` }
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+    return { isValid: false, error: `${paramName} contains invalid characters` }
+  }
+  return { isValid: true }
+}

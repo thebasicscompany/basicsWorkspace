@@ -248,7 +248,7 @@ function setupFetchMock(config: MockFetchResponse = {}) {
 }
 
 /**
- * Creates a mock execution context with orgId for tool tests.
+ * Creates a mock execution context with workspaceId for tool tests.
  */
 function createToolExecutionContext(overrides?: Partial<ExecutionContext>): ExecutionContext {
   const ctx = createExecutionContext({
@@ -261,7 +261,7 @@ function createToolExecutionContext(overrides?: Partial<ExecutionContext>): Exec
   })
   return {
     ...ctx,
-    orgId: 'workspace-456',
+    workspaceId: 'workspace-456',
     ...overrides,
   } as ExecutionContext
 }
@@ -945,7 +945,7 @@ describe('MCP Tool Execution', () => {
         expect(body.serverId).toBe('mcp-123')
         expect(body.toolName).toBe('list_files')
         expect(body.arguments).toEqual({ path: '/test' })
-        expect(body.orgId).toBe('workspace-456')
+        expect(body.workspaceId).toBe('workspace-456')
 
         return {
           ok: true,
@@ -1061,7 +1061,7 @@ describe('MCP Tool Execution', () => {
         // These should be filtered out as system parameters
         server: 'mcp-123',
         tool: 'search',
-        orgId: 'workspace-456',
+        workspaceId: 'workspace-456',
         requestId: 'req-123',
       },
       false,
@@ -1098,11 +1098,11 @@ describe('MCP Tool Execution', () => {
     expect(result.timing).toBeDefined()
   })
 
-  it('should require orgId for MCP tools', async () => {
+  it('should require workspaceId for MCP tools', async () => {
     const result = await executeTool('mcp-123-test_tool', { param: 'value' })
 
     expect(result.success).toBe(false)
-    expect(result.error).toContain('Missing orgId in execution context for MCP tool')
+    expect(result.error).toContain('Missing workspaceId in execution context for MCP tool')
   })
 
   it('should handle invalid MCP tool ID format', async () => {

@@ -64,7 +64,7 @@ export class GenericBlockHandler implements BlockHandler {
           ...finalInputs,
           _context: {
             workflowId: ctx.workflowId,
-            orgId: ctx.orgId,
+            workspaceId: ctx.workspaceId,
             executionId: ctx.executionId,
             userId: ctx.userId,
             isDeployedContext: ctx.isDeployedContext,

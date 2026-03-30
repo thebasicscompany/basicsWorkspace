@@ -58,7 +58,7 @@ export const getCallTool: ToolConfig<GongGetCallParams, GongGetCallResponse> = {
         media: call.media ?? null,
         language: call.language ?? null,
         primaryUserId: call.primaryUserId ?? null,
-        orgId: call.orgId ?? null,
+        workspaceId: call.workspaceId ?? null,
         sdrDisposition: call.sdrDisposition ?? null,
         clientUniqueId: call.clientUniqueId ?? null,
         customData: call.customData ?? null,
@@ -107,7 +107,7 @@ export const getCallTool: ToolConfig<GongGetCallParams, GongGetCallResponse> = {
       description: 'Host team member identifier',
       optional: true,
     },
-    orgId: { type: 'string', description: 'Workspace identifier', optional: true },
+    workspaceId: { type: 'string', description: 'Workspace identifier', optional: true },
     sdrDisposition: {
       type: 'string',
       description: 'SDR disposition classification',

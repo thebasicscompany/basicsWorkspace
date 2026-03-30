@@ -56,7 +56,7 @@ export const openaiTtsTool: ToolConfig<OpenAiTtsParams, TtsBlockResponse> = {
     }),
     body: (
       params: OpenAiTtsParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'openai',
@@ -66,7 +66,7 @@ export const openaiTtsTool: ToolConfig<OpenAiTtsParams, TtsBlockResponse> = {
       voice: params.voice || 'alloy',
       responseFormat: params.responseFormat || 'mp3',
       speed: params.speed || 1.0,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

@@ -38,7 +38,7 @@ export class FunctionBlockHandler implements BlockHandler {
         blockOutputSchemas,
         _context: {
           workflowId: ctx.workflowId,
-          orgId: ctx.orgId,
+          workspaceId: ctx.workspaceId,
           userId: ctx.userId,
           isDeployedContext: ctx.isDeployedContext,
           enforceCredentialAccess: ctx.enforceCredentialAccess,

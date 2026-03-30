@@ -84,7 +84,7 @@ export interface MinimaxParams extends Omit<VideoParams, 'provider'> {
 }
 
 export interface VideoRequestBody extends VideoParams {
-  orgId?: string
+  workspaceId?: string
   workflowId?: string
   executionId?: string
   userId?: string

@@ -1,0 +1,77 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+export const dynamic = 'force-dynamic'
+
+const SlackRemoveReactionSchema = z.object({
+  accessToken: z.string().min(1, 'Access token is required'),
+  channel: z.string().min(1, 'Channel is required'),
+  timestamp: z.string().min(1, 'Message timestamp is required'),
+  name: z.string().min(1, 'Emoji name is required'),
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    // Internal tool routes are called server-side by the executor.
+    // Auth is handled at the executor level.
+
+    const body = await request.json()
+    const validatedData = SlackRemoveReactionSchema.parse(body)
+
+    const slackResponse = await fetch('https://slack.com/api/reactions.remove', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${validatedData.accessToken}`,
+      },
+      body: JSON.stringify({
+        channel: validatedData.channel,
+        timestamp: validatedData.timestamp,
+        name: validatedData.name,
+      }),
+    })
+
+    const data = await slackResponse.json()
+
+    if (!data.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: data.error || 'Failed to remove reaction',
+        },
+        { status: slackResponse.status }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      output: {
+        content: `Successfully removed :${validatedData.name}: reaction`,
+        metadata: {
+          channel: validatedData.channel,
+          timestamp: validatedData.timestamp,
+          reaction: validatedData.name,
+        },
+      },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid request data',
+          details: error.issues,
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      },
+      { status: 500 }
+    )
+  }
+}

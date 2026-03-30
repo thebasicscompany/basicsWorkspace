@@ -102,7 +102,7 @@ export class RouterBlockHandler implements BlockHandler {
         bedrockSecretKey: routerConfig.bedrockSecretKey,
         bedrockRegion: routerConfig.bedrockRegion,
         workflowId: ctx.workflowId,
-        orgId: ctx.orgId,
+        workspaceId: ctx.workspaceId,
       }
 
       const response = await fetch(url.toString(), {
@@ -232,7 +232,7 @@ export class RouterBlockHandler implements BlockHandler {
         bedrockSecretKey: routerConfig.bedrockSecretKey,
         bedrockRegion: routerConfig.bedrockRegion,
         workflowId: ctx.workflowId,
-        orgId: ctx.orgId,
+        workspaceId: ctx.workspaceId,
         responseFormat: {
           name: 'router_response',
           schema: {

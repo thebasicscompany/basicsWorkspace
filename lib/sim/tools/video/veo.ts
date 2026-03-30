@@ -61,7 +61,7 @@ export const veoVideoTool: ToolConfig<VideoParams, VideoResponse> = {
     }),
     body: (
       params: VideoParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'veo',
@@ -71,7 +71,7 @@ export const veoVideoTool: ToolConfig<VideoParams, VideoResponse> = {
       duration: params.duration || 8, // Default 8 seconds (valid: 4, 6, or 8)
       aspectRatio: params.aspectRatio || '16:9',
       resolution: params.resolution || '1080p',
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

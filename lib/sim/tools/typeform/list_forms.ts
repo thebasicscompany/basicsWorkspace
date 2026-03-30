@@ -32,7 +32,7 @@ export const listFormsTool: ToolConfig<TypeformListFormsParams, TypeformListForm
       visibility: 'user-or-llm',
       description: 'Number of forms per page (e.g., 10, 25, 50, max: 200)',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -57,8 +57,8 @@ export const listFormsTool: ToolConfig<TypeformListFormsParams, TypeformListForm
         queryParams.push(`page_size=${Number(params.pageSize)}`)
       }
 
-      if (params.orgId) {
-        queryParams.push(`workspace_id=${encodeURIComponent(params.orgId)}`)
+      if (params.workspaceId) {
+        queryParams.push(`workspace_id=${encodeURIComponent(params.workspaceId)}`)
       }
 
       return queryParams.length > 0 ? `${url}?${queryParams.join('&')}` : url

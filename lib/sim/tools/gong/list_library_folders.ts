@@ -26,7 +26,7 @@ export const listLibraryFoldersTool: ToolConfig<
       visibility: 'user-only',
       description: 'Gong API Access Key Secret',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -37,7 +37,7 @@ export const listLibraryFoldersTool: ToolConfig<
   request: {
     url: (params) => {
       const url = new URL('https://api.gong.io/v2/library/folders')
-      if (params.orgId) url.searchParams.set('orgId', params.orgId)
+      if (params.workspaceId) url.searchParams.set('workspaceId', params.workspaceId)
       return url.toString()
     },
     method: 'GET',

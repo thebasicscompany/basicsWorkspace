@@ -70,9 +70,9 @@ export class AgentBlockHandler implements BlockHandler {
 
     const skillInputs = filteredInputs.skills ?? []
     let skillMetadata: Array<{ name: string; description: string }> = []
-    if (skillInputs.length > 0 && ctx.orgId) {
+    if (skillInputs.length > 0 && ctx.workspaceId) {
       await validateSkillsAllowed(ctx.userId, ctx)
-      skillMetadata = await resolveSkillMetadata(skillInputs, ctx.orgId)
+      skillMetadata = await resolveSkillMetadata(skillInputs, ctx.workspaceId)
       if (skillMetadata.length > 0) {
         const skillNames = skillMetadata.map((s) => s.name)
         formattedTools.push(buildLoadSkillTool(skillNames))
@@ -141,14 +141,14 @@ export class AgentBlockHandler implements BlockHandler {
     if (serverIds.length === 0) return tools
 
     const availableServerIds = new Set<string>()
-    if (ctx.orgId && serverIds.length > 0) {
+    if (ctx.workspaceId && serverIds.length > 0) {
       try {
         const servers = await db
           .select({ id: mcpServers.id, connectionStatus: mcpServers.connectionStatus })
           .from(mcpServers)
           .where(
             and(
-              eq(mcpServers.orgId, ctx.orgId),
+              eq(mcpServers.orgId, ctx.workspaceId),
               inArray(mcpServers.id, serverIds),
               isNull(mcpServers.deletedAt)
             )
@@ -275,7 +275,7 @@ export class AgentBlockHandler implements BlockHandler {
     if (typeof window !== 'undefined') {
       try {
         const { getCustomTool } = await import('@/hooks/queries/custom-tools')
-        const tool = getCustomTool(customToolId, ctx.orgId)
+        const tool = getCustomTool(customToolId, ctx.workspaceId)
         if (tool) {
           return {
             schema: tool.schema,
@@ -292,8 +292,8 @@ export class AgentBlockHandler implements BlockHandler {
       const headers = await buildAuthHeaders()
       const params: Record<string, string> = {}
 
-      if (ctx.orgId) {
-        params.orgId = ctx.orgId
+      if (ctx.workspaceId) {
+        params.workspaceId = ctx.workspaceId
       }
       if (ctx.workflowId) {
         params.workflowId = ctx.workflowId
@@ -460,8 +460,8 @@ export class AgentBlockHandler implements BlockHandler {
    * Discover tools from a single MCP server with retry logic.
    */
   private async discoverMcpToolsForServer(ctx: ExecutionContext, serverId: string): Promise<any[]> {
-    if (!ctx.orgId) {
-      throw new Error('orgId is required for MCP tool discovery')
+    if (!ctx.workspaceId) {
+      throw new Error('workspaceId is required for MCP tool discovery')
     }
     if (!ctx.workflowId) {
       throw new Error('workflowId is required for internal JWT authentication')
@@ -470,7 +470,7 @@ export class AgentBlockHandler implements BlockHandler {
     const headers = await buildAuthHeaders()
     const url = buildAPIUrl('/api/mcp/tools/discover', {
       serverId,
-      orgId: ctx.orgId,
+      workspaceId: ctx.workspaceId,
       workflowId: ctx.workflowId,
       ...(ctx.userId ? { userId: ctx.userId } : {}),
     })
@@ -613,7 +613,7 @@ export class AgentBlockHandler implements BlockHandler {
     const conversationMessages = inputMessages.filter((m) => m.role !== 'system')
 
     // 2. Handle native memory: seed on first run, then fetch and append new user input
-    if (memoryEnabled && ctx.orgId) {
+    if (memoryEnabled && ctx.workspaceId) {
       const memoryMessages = await memoryService.fetchMemoryMessages(ctx, inputs)
       const hasExisting = memoryMessages.length > 0
 
@@ -848,7 +848,7 @@ export class AgentBlockHandler implements BlockHandler {
       bedrockRegion: inputs.bedrockRegion,
       responseFormat,
       workflowId: ctx.workflowId,
-      orgId: ctx.orgId,
+      workspaceId: ctx.workspaceId,
       userId: ctx.userId,
       stream: streaming,
       messages: messages?.map(({ executionId, ...msg }) => msg),
@@ -918,7 +918,7 @@ export class AgentBlockHandler implements BlockHandler {
         bedrockRegion: providerRequest.bedrockRegion,
         responseFormat: providerRequest.responseFormat,
         workflowId: providerRequest.workflowId,
-        orgId: ctx.orgId,
+        workspaceId: ctx.workspaceId,
         userId: ctx.userId,
         stream: providerRequest.stream,
         messages: 'messages' in providerRequest ? providerRequest.messages : undefined,

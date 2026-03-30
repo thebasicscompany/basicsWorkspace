@@ -59,3 +59,12 @@ export function processFilesToUserFiles(
 ): unknown[] {
   return []
 }
+
+/** Convert a single raw file input to a UserFile object for executor consumption */
+export function processSingleFileToUserFile(
+  _file: unknown,
+  _requestId?: string,
+  _logger?: unknown
+): { name: string; type: string; size: number; key?: string } {
+  throw new Error('Single file processing not yet implemented (Phase 4)')
+}

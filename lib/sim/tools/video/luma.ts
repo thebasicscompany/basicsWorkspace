@@ -67,7 +67,7 @@ export const lumaVideoTool: ToolConfig<VideoParams, VideoResponse> = {
     }),
     body: (
       params: VideoParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'luma',
@@ -78,7 +78,7 @@ export const lumaVideoTool: ToolConfig<VideoParams, VideoResponse> = {
       aspectRatio: params.aspectRatio || '16:9',
       resolution: params.resolution || '1080p',
       cameraControl: params.cameraControl,
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

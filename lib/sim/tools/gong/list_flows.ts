@@ -27,7 +27,7 @@ export const listFlowsTool: ToolConfig<GongListFlowsParams, GongListFlowsRespons
       description:
         "Email of a Gong user. The API will return 'PERSONAL' flows belonging to this user in addition to 'COMPANY' flows.",
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -46,7 +46,7 @@ export const listFlowsTool: ToolConfig<GongListFlowsParams, GongListFlowsRespons
     url: (params) => {
       const url = new URL('https://api.gong.io/v2/flows')
       url.searchParams.set('flowOwnerEmail', params.flowOwnerEmail)
-      if (params.orgId) url.searchParams.set('orgId', params.orgId)
+      if (params.workspaceId) url.searchParams.set('workspaceId', params.workspaceId)
       if (params.cursor) url.searchParams.set('cursor', params.cursor)
       return url.toString()
     },

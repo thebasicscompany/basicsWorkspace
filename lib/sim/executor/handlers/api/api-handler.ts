@@ -70,7 +70,7 @@ export class ApiBlockHandler implements BlockHandler {
           ...processedInputs,
           _context: {
             workflowId: ctx.workflowId,
-            orgId: ctx.orgId,
+            workspaceId: ctx.workspaceId,
             executionId: ctx.executionId,
             userId: ctx.userId,
             isDeployedContext: ctx.isDeployedContext,

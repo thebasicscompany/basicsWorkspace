@@ -68,7 +68,7 @@ export const falaiVideoTool: ToolConfig<VideoParams, VideoResponse> = {
     }),
     body: (
       params: VideoParams & {
-        _context?: { orgId?: string; workflowId?: string; executionId?: string }
+        _context?: { workspaceId?: string; workflowId?: string; executionId?: string }
       }
     ) => ({
       provider: 'falai',
@@ -79,7 +79,7 @@ export const falaiVideoTool: ToolConfig<VideoParams, VideoResponse> = {
       aspectRatio: params.aspectRatio,
       resolution: params.resolution,
       promptOptimizer: params.promptOptimizer !== false, // Default true for MiniMax
-      orgId: params._context?.orgId,
+      workspaceId: params._context?.workspaceId,
       workflowId: params._context?.workflowId,
       executionId: params._context?.executionId,
     }),

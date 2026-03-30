@@ -25,9 +25,9 @@ interface SkillMetadata {
  */
 export async function resolveSkillMetadata(
   skillInputs: SkillInput[],
-  orgId: string
+  workspaceId: string
 ): Promise<SkillMetadata[]> {
-  if (!skillInputs.length || !orgId) return []
+  if (!skillInputs.length || !workspaceId) return []
 
   const skillIds = skillInputs.map((s) => s.skillId)
 
@@ -35,11 +35,11 @@ export async function resolveSkillMetadata(
     const rows = await db
       .select({ name: skill.name, description: skill.description })
       .from(skill)
-      .where(and(eq(skill.orgId, orgId), inArray(skill.id, skillIds)))
+      .where(and(eq(skill.orgId, workspaceId), inArray(skill.id, skillIds)))
 
     return rows
   } catch (error) {
-    logger.error('Failed to resolve skill metadata', { error, skillIds, orgId })
+    logger.error('Failed to resolve skill metadata', { error, skillIds, workspaceId })
     return []
   }
 }
@@ -50,25 +50,25 @@ export async function resolveSkillMetadata(
  */
 export async function resolveSkillContent(
   skillName: string,
-  orgId: string
+  workspaceId: string
 ): Promise<string | null> {
-  if (!skillName || !orgId) return null
+  if (!skillName || !workspaceId) return null
 
   try {
     const rows = await db
       .select({ content: skill.content, name: skill.name })
       .from(skill)
-      .where(and(eq(skill.orgId, orgId), eq(skill.name, skillName)))
+      .where(and(eq(skill.orgId, workspaceId), eq(skill.name, skillName)))
       .limit(1)
 
     if (rows.length === 0) {
-      logger.warn('Skill not found', { skillName, orgId })
+      logger.warn('Skill not found', { skillName, workspaceId })
       return null
     }
 
     return rows[0].content
   } catch (error) {
-    logger.error('Failed to resolve skill content', { error, skillName, orgId })
+    logger.error('Failed to resolve skill content', { error, skillName, workspaceId })
     return null
   }
 }

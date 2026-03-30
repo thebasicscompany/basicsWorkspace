@@ -296,7 +296,7 @@ export function getTool(toolId: string): ToolConfig | undefined {
     // Only try to use the sync version on the client
     const identifier = toolId.slice(AGENT.CUSTOM_TOOL_PREFIX.length)
 
-    // Try to find the tool from query cache (extracts orgId from URL)
+    // Try to find the tool from query cache (extracts workspaceId from URL)
     const customTool = getCustomTool(identifier)
 
     if (customTool) {

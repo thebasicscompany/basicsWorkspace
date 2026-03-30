@@ -153,7 +153,7 @@ export interface ProviderRequest {
   }
   local_execution?: boolean
   workflowId?: string
-  orgId?: string
+  workspaceId?: string
   chatId?: string
   userId?: string
   stream?: boolean

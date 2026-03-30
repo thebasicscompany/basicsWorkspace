@@ -129,7 +129,7 @@ export class EvaluatorBlockHandler implements BlockHandler {
         bedrockSecretKey: evaluatorConfig.bedrockSecretKey,
         bedrockRegion: evaluatorConfig.bedrockRegion,
         workflowId: ctx.workflowId,
-        orgId: ctx.orgId,
+        workspaceId: ctx.workspaceId,
       }
 
       const response = await fetch(url.toString(), {

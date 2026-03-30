@@ -47,15 +47,15 @@ export const tableDeleteRowsByFilterTool: ToolConfig<
       'Content-Type': 'application/json',
     }),
     body: (params: TableDeleteByFilterParams) => {
-      const orgId = params._context?.orgId
-      if (!orgId) {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
         throw new Error('Workspace ID is required in execution context')
       }
 
       return {
         filter: params.filter,
         limit: params.limit,
-        orgId,
+        workspaceId,
       }
     },
   },

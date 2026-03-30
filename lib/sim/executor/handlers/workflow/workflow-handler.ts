@@ -177,7 +177,7 @@ export class WorkflowBlockHandler implements BlockHandler {
           isChildExecution: true,
           isDeployedContext: ctx.isDeployedContext === true,
           enforceCredentialAccess: ctx.enforceCredentialAccess,
-          orgId: ctx.orgId,
+          workspaceId: ctx.workspaceId,
           userId: ctx.userId,
           executionId: ctx.executionId,
           abortSignal: ctx.abortSignal,

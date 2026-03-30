@@ -26,7 +26,7 @@ export const createFormTool: ToolConfig<TypeformCreateFormParams, TypeformCreate
       visibility: 'user-only',
       description: 'Form type (default: "form"). Options: "form", "quiz"',
     },
-    orgId: {
+    workspaceId: {
       type: 'string',
       required: false,
       visibility: 'user-or-llm',
@@ -69,9 +69,9 @@ export const createFormTool: ToolConfig<TypeformCreateFormParams, TypeformCreate
         body.type = params.type
       }
 
-      if (params.orgId) {
+      if (params.workspaceId) {
         body.workspace = {
-          href: `https://api.typeform.com/workspaces/${params.orgId}`,
+          href: `https://api.typeform.com/workspaces/${params.workspaceId}`,
         }
       }
 

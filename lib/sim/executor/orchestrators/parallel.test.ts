@@ -47,7 +47,7 @@ function createState(): BlockStateWriter {
 function createContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     workflowId: 'workflow-1',
-    orgId: 'workspace-1',
+    workspaceId: 'workspace-1',
     executionId: 'execution-1',
     userId: 'user-1',
     blockStates: new Map(),

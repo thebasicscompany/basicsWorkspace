@@ -17,10 +17,10 @@ export class Memory {
       return []
     }
 
-    const orgId = this.requireWorkspaceId(ctx)
+    const workspaceId = this.requireWorkspaceId(ctx)
     this.validateConversationId(inputs.conversationId)
 
-    const messages = await this.fetchMemory(orgId, inputs.conversationId!)
+    const messages = await this.fetchMemory(workspaceId, inputs.conversationId!)
 
     switch (inputs.memoryType) {
       case 'conversation':
@@ -56,16 +56,16 @@ export class Memory {
       return
     }
 
-    const orgId = this.requireWorkspaceId(ctx)
+    const workspaceId = this.requireWorkspaceId(ctx)
     this.validateConversationId(inputs.conversationId)
     this.validateContent(message.content)
 
     const key = inputs.conversationId!
 
-    await this.appendMessage(orgId, key, message)
+    await this.appendMessage(workspaceId, key, message)
 
     logger.debug('Appended message to memory', {
-      orgId,
+      workspaceId,
       key,
       role: message.role,
     })
@@ -76,7 +76,7 @@ export class Memory {
       return
     }
 
-    const orgId = this.requireWorkspaceId(ctx)
+    const workspaceId = this.requireWorkspaceId(ctx)
 
     const conversationMessages = messages.filter((m) => m.role !== 'system')
     if (conversationMessages.length === 0) {
@@ -102,10 +102,10 @@ export class Memory {
       messagesToStore = this.applyTokenWindow(conversationMessages, maxTokens, inputs.model)
     }
 
-    await this.seedMemoryRecord(orgId, key, messagesToStore)
+    await this.seedMemoryRecord(workspaceId, key, messagesToStore)
 
     logger.debug('Seeded memory', {
-      orgId,
+      workspaceId,
       key,
       count: messagesToStore.length,
     })
@@ -141,10 +141,10 @@ export class Memory {
   }
 
   private requireWorkspaceId(ctx: ExecutionContext): string {
-    if (!ctx.orgId) {
-      throw new Error('orgId is required for memory operations')
+    if (!ctx.workspaceId) {
+      throw new Error('workspaceId is required for memory operations')
     }
-    return ctx.orgId
+    return ctx.workspaceId
   }
 
   private applyWindow(messages: Message[], limit: number): Message[] {
@@ -194,11 +194,11 @@ export class Memory {
     return messages
   }
 
-  private async fetchMemory(orgId: string, key: string): Promise<Message[]> {
+  private async fetchMemory(workspaceId: string, key: string): Promise<Message[]> {
     const result = await db
       .select({ data: memory.data })
       .from(memory)
-      .where(and(eq(memory.orgId, orgId), eq(memory.key, key)))
+      .where(and(eq(memory.orgId, workspaceId), eq(memory.key, key)))
       .limit(1)
 
     if (result.length === 0) return []
@@ -213,7 +213,7 @@ export class Memory {
   }
 
   private async seedMemoryRecord(
-    orgId: string,
+    workspaceId: string,
     key: string,
     messages: Message[]
   ): Promise<void> {
@@ -223,7 +223,7 @@ export class Memory {
       .insert(memory)
       .values({
         id: randomUUID(),
-        orgId,
+        orgId: workspaceId,
         key,
         data: messages,
         createdAt: now,
@@ -232,14 +232,14 @@ export class Memory {
       .onConflictDoNothing()
   }
 
-  private async appendMessage(orgId: string, key: string, message: Message): Promise<void> {
+  private async appendMessage(workspaceId: string, key: string, message: Message): Promise<void> {
     const now = new Date()
 
     await db
       .insert(memory)
       .values({
         id: randomUUID(),
-        orgId,
+        orgId: workspaceId,
         key,
         data: [message],
         createdAt: now,
