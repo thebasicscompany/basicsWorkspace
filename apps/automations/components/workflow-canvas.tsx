@@ -166,6 +166,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [isDeployed, setIsDeployed] = useState(false)
   const [isDeploying, setIsDeploying] = useState(false)
   const [deployedAt, setDeployedAt] = useState<string | null>(null)
+  const [needsRedeployment, setNeedsRedeployment] = useState(false)
   const [deployModalOpen, setDeployModalOpen] = useState(false)
   const [variablesPanelOpen, setVariablesPanelOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; blockId: string } | null>(null)
@@ -231,18 +232,24 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   }, [workflowId, setNodes, setEdges])
 
   // Check deployment status
-  useEffect(() => {
+  const checkDeployStatus = useCallback(() => {
     fetch(`/api/workflows/${workflowId}/deploy`)
       .then((r) => r.json())
       .then((data) => {
         setIsDeployed(!!data.isDeployed)
         setDeployedAt(data.deployedAt ?? null)
+        setNeedsRedeployment(!!data.needsRedeployment)
       })
       .catch(() => {})
   }, [workflowId])
 
+  useEffect(() => {
+    checkDeployStatus()
+  }, [checkDeployStatus])
+
   const handleDeployClick = useCallback(async () => {
-    if (isDeployed) {
+    // If deployed and no changes, just open the modal
+    if (isDeployed && !needsRedeployment) {
       setDeployModalOpen(true)
       return
     }
@@ -265,6 +272,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
       if (!res.ok) throw new Error(data.error || 'Failed to deploy')
       setIsDeployed(true)
       setDeployedAt(data.deployedAt ?? new Date().toISOString())
+      setNeedsRedeployment(false)
       setDeployModalOpen(true)
     } catch (err: any) {
       console.error('Deploy error:', err)
@@ -272,7 +280,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     } finally {
       setIsDeploying(false)
     }
-  }, [workflowId, isDeployed, blockStates, edges])
+  }, [workflowId, isDeployed, needsRedeployment, blockStates, edges])
 
   const handleUndeploy = useCallback(async () => {
     const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'DELETE' })
@@ -280,6 +288,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     if (!res.ok) throw new Error(data.error || 'Failed to undeploy')
     setIsDeployed(false)
     setDeployedAt(null)
+    setNeedsRedeployment(false)
   }, [workflowId])
 
   const handleDeploy = useCallback(async () => {
@@ -288,6 +297,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     if (!res.ok) throw new Error(data.error || 'Failed to deploy')
     setIsDeployed(true)
     setDeployedAt(data.deployedAt ?? new Date().toISOString())
+    setNeedsRedeployment(false)
   }, [workflowId])
 
   const onConnect = useCallback(
@@ -379,7 +389,10 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         body: JSON.stringify({ variables: variablesRecord }),
       })
     }
-  }, [workflowId])
+
+    // Re-check deploy status after save to detect drift from deployed version
+    if (isDeployed) checkDeployStatus()
+  }, [workflowId, isDeployed, checkDeployStatus])
 
   // Debounced auto-save (subblock edits, position changes, variable edits)
   useEffect(() => {
@@ -1012,13 +1025,31 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
             disabled={isDeploying}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-50"
             style={{
-              background: isDeployed ? '#dcfce7' : 'var(--color-text-primary)',
-              color: isDeployed ? '#166534' : '#fff',
-              border: isDeployed ? '1px solid #bbf7d0' : 'none',
+              background: needsRedeployment
+                ? '#fef3c7'
+                : isDeployed
+                  ? '#dcfce7'
+                  : 'var(--color-text-primary)',
+              color: needsRedeployment
+                ? '#92400e'
+                : isDeployed
+                  ? '#166534'
+                  : '#fff',
+              border: needsRedeployment
+                ? '1px solid #fcd34d'
+                : isDeployed
+                  ? '1px solid #bbf7d0'
+                  : 'none',
             }}
           >
             <Rocket size={12} weight="fill" />
-            {isDeploying ? 'Deploying\u2026' : isDeployed ? 'Live' : 'Deploy'}
+            {isDeploying
+              ? 'Deploying\u2026'
+              : needsRedeployment
+                ? 'Update'
+                : isDeployed
+                  ? 'Live'
+                  : 'Deploy'}
           </button>
         </div>
       </div>

@@ -32,6 +32,14 @@
 - Connection proxy routes (`/api/connections/`, `/api/connections/[provider]/authorize`, `/api/connections/[provider]`)
 - Shop page with squircle tile grid + category filter tabs (15 providers)
 
+**Sprint 5B/6: Credential Selector + Execution Logs Dashboard + Change Detection**
+- Credential selector wired to gateway connections (`credential-selector.tsx` — fetches from `/api/connections`, filters by `serviceId`, dropdown of matching accounts, OAuth redirect flow, auto-select single connection, visibility-change re-fetch)
+- Authorize route updated to accept custom `redirect_after` query param (returns to canvas after OAuth)
+- Org-wide execution logs API (`GET /api/executions` — join with workflows, status filter, pagination, total count)
+- Execution logs dashboard page (`/automations/logs`) with stats cards, status filter tabs, paginated table, row expand for block-level detail, duration/trigger badges
+- Navigation: "Logs" button added to automations list page header
+- Change detection: `computeNeedsRedeployment` in deploy GET endpoint (deep-sorted fingerprint comparison of current vs deployed state), amber "Update" button in canvas toolbar, re-checks after each auto-save, resets on deploy/undeploy
+
 ### Needs Testing
 
 **Automations canvas (critical):**
@@ -67,8 +75,8 @@
 - Change detection ("Update" button post-deploy)
 
 **Features (P2):**
-- OAuth credential selector wired to gateway connections (so blocks can use stored OAuth tokens)
-- Execution logs dashboard page (separate from in-canvas panel)
+- ~~OAuth credential selector wired to gateway connections~~ **DONE** — fetches from /api/connections, filters by serviceId, OAuth redirect via gateway
+- ~~Execution logs dashboard page~~ **DONE** — /automations/logs with stats, filters, pagination, block detail expansion
 - Execution snapshots (replay past runs)
 
 **Large (P3/Sprint 6):**
@@ -119,7 +127,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | use-sub-block-input | `sub-block/hooks/use-sub-block-input.ts` (596) | `sub-blocks/hooks/use-sub-block-input.ts` (596) | Done | -- |
 | use-depends-on-gate | `sub-block/hooks/use-depends-on-gate.ts` (184) | `sub-blocks/hooks/use-depends-on-gate.ts` (184) | Done | -- |
 | use-selector-setup | `sub-block/hooks/use-selector-setup.ts` (88) | `sub-blocks/hooks/use-selector-setup.ts` (88) | Done | -- |
-| credential-selector | `sub-block/components/credential-selector/` (419) | `sub-blocks/credential-selector.tsx` (131, functional stub) | Done | -- |
+| credential-selector | `sub-block/components/credential-selector/` (419) | `sub-blocks/credential-selector.tsx` (270, wired to gateway) | Done | -- |
 | knowledge-base-selector | `sub-block/components/knowledge-base-selector/` (200) | `sub-blocks/knowledge-base-selector.tsx` (173) | Done | -- |
 | schedule-info | `sub-block/components/schedule-info/` (120+) | `sub-blocks/schedule-info.tsx` | Done | -- |
 | selector-combobox | `sub-block/components/selector-combobox/` (184) | `sub-blocks/selector-combobox.tsx` (196) | Done | -- |
@@ -240,7 +248,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 | Autolayout endpoint | `app/api/workflows/[id]/autolayout/` | `app/api/workflows/[id]/autolayout/route.ts` | Done | -- |
 | **Paused execution management** | `app/api/workflows/[id]/paused/` | -- | **Missing** | P2 |
 | Pre-deploy checks | `runPreDeployChecks()` | `lib/pre-deploy-checks.ts` (83L, 3 checks: blocks, connectivity, required fields) | Done | -- |
-| **Change detection** | State hash comparison, "Update" button | -- | **Missing** | P1 |
+| Change detection | State hash comparison, "Update" button | `deploy/route.ts` computeNeedsRedeployment + canvas "Update" button (amber) | Done | -- |
 
 ---
 
@@ -296,7 +304,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 
 | Area | Sim File | Our File | Status | Priority |
 |------|----------|----------|--------|----------|
-| **Execution logs dashboard** | `logs/page.tsx` + 20+ components | -- | **Missing** | P2 |
+| Execution logs dashboard | `logs/page.tsx` + 20+ components | `app/(workspace)/automations/logs/page.tsx` + `execution-logs-dashboard.tsx` + `app/api/executions/route.ts` | Done (core table + stats + pagination) | -- |
 | Execution log panel (in-canvas) | `panel/components/execution-log/` | `execution-log-panel.tsx` wired to canvas Run SSE events | Done | -- |
 | **Execution snapshots** | `components/execution-snapshot/` | -- | **Missing** | P2 |
 | **Trace spans** | `components/trace-spans/` (OpenTelemetry) | -- | **Missing** | P3 |
@@ -350,7 +358,7 @@ Every item in this document must be resolved by **literally copying the Sim sour
 ### P1 — Important for production quality
 
 5. ~~Pre-deploy validation~~ **DONE** — Already existed
-6. **Change detection** — "Update" button when workflow changed since last deploy
+6. ~~**Change detection**~~ **DONE** — `computeNeedsRedeployment` compares current vs deployed state fingerprint; amber "Update" button in canvas; re-checks after each auto-save
 7. ~~Canvas context menus~~ **DONE** — block-context-menu.tsx (Copy, Duplicate, Delete, Run from/until)
 8. ~~Custom edge rendering~~ **DONE** — workflow-edge.tsx
 9. ~~Keyboard shortcuts~~ **DONE** — Delete/Backspace, Ctrl+C/V

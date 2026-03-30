@@ -3,7 +3,7 @@ export * from './oauth/utils'
 
 export type OAuthProvider = string
 
-export function getProviderIdFromServiceId(_serviceId: string): string { return '' }
+export function getProviderIdFromServiceId(serviceId: string): string { return serviceId }
 
 /** Identifies a supported OAuth service provider */
 export type OAuthService =

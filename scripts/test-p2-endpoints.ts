@@ -561,7 +561,7 @@ async function testDynamicHandleTopology() {
       horizontalHandles: true,
       height: 0,
     } as any)
-    assert(sig?.startsWith('condition:'), `Signature: ${sig}`)
+    assert(sig?.startsWith('condition:') ?? false, `Signature: ${sig}`)
 
     // Test change detection
     const prev = new Map([['b1', 'condition:c1|c2']])

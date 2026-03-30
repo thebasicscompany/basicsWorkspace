@@ -2,7 +2,7 @@
  * Workflow deploy/undeploy API route — adapted from Sim's app/api/workflows/[id]/deploy/route.ts
  * Simplified: no audit logging, no MCP sync, no public API toggle, no version rollback.
  */
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { workflows, workflowDeploymentVersion } from '@/lib/db/schema'
 import { requireOrg } from '@/lib/auth-helpers'
@@ -21,6 +21,69 @@ import {
   cleanupDeploymentVersion,
 } from '@/lib/workflows/schedules/deploy'
 import { validateWorkflowSchedules } from '@/lib/workflows/schedules/validation'
+
+/**
+ * Build a stable, deterministic JSON string from workflow state for comparison.
+ * Deep-sorts all object keys so field ordering differences don't cause false positives.
+ * Strips volatile fields (timestamps, lastSaved).
+ */
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) return 'null'
+  if (typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']'
+  const obj = value as Record<string, unknown>
+  const keys = Object.keys(obj).filter(k => k !== 'lastSaved').sort()
+  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify(obj[k])).join(',') + '}'
+}
+
+function buildStateFingerprint(state: Record<string, unknown>): string {
+  const { lastSaved, ...rest } = state
+  return stableStringify(rest)
+}
+
+async function computeNeedsRedeployment(workflowId: string): Promise<boolean> {
+  try {
+    // Load current workflow state from normalized tables
+    const currentData = await loadWorkflowFromNormalizedTables(workflowId)
+    if (!currentData) return false
+
+    // Load the active deployment version's state snapshot
+    const [activeVersion] = await db
+      .select({ state: workflowDeploymentVersion.state })
+      .from(workflowDeploymentVersion)
+      .where(
+        and(
+          eq(workflowDeploymentVersion.workflowId, workflowId),
+          eq(workflowDeploymentVersion.isActive, true)
+        )
+      )
+      .orderBy(desc(workflowDeploymentVersion.createdAt))
+      .limit(1)
+
+    if (!activeVersion?.state) return false
+
+    const deployedState = activeVersion.state as Record<string, unknown>
+
+    // Build comparable representations
+    const currentComparable = buildStateFingerprint({
+      blocks: currentData.blocks,
+      edges: currentData.edges,
+      loops: currentData.loops,
+      parallels: currentData.parallels,
+    })
+
+    const deployedComparable = buildStateFingerprint({
+      blocks: deployedState.blocks,
+      edges: deployedState.edges,
+      loops: (deployedState as any).loops || {},
+      parallels: (deployedState as any).parallels || {},
+    })
+
+    return currentComparable !== deployedComparable
+  } catch {
+    return false
+  }
+}
 
 const logger = createLogger('WorkflowDeployAPI')
 
@@ -53,12 +116,14 @@ export async function GET(req: Request, { params }: { params: Params }) {
       })
     }
 
-    logger.info(`[${requestId}] Successfully retrieved deployment info: ${id}`)
+    const needsRedeployment = await computeNeedsRedeployment(id)
+
+    logger.info(`[${requestId}] Deployment info for ${id}: needsRedeployment=${needsRedeployment}`)
 
     return Response.json({
       isDeployed: workflowData.isDeployed,
       deployedAt: workflowData.deployedAt,
-      needsRedeployment: false,
+      needsRedeployment,
     })
   } catch (error: any) {
     logger.error(`[${requestId}] Error fetching deployment info: ${id}`, error)

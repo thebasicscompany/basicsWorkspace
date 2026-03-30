@@ -44,6 +44,7 @@ export interface Position {
 }
 
 export interface BlockData {
+  [key: string]: unknown
   // Parent-child relationships for container nodes
   parentId?: string
   extent?: 'parent'

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lightning, Plus, Play, Clock, DotsThree, Trash, PencilSimple } from '@phosphor-icons/react'
+import { Lightning, Plus, Play, Clock, DotsThree, Trash, PencilSimple, ClockCounterClockwise } from '@phosphor-icons/react'
 import { EmptyState } from '@/components/ui/empty-state'
 
 interface Workflow {
@@ -108,15 +108,25 @@ export function WorkflowList() {
         <h2 className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
           {workflows.length} workflow{workflows.length !== 1 ? 's' : ''}
         </h2>
-        <button
-          onClick={createWorkflow}
-          disabled={creating}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ background: 'var(--color-accent)' }}
-        >
-          <Plus size={14} weight="bold" />
-          New Workflow
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/automations/logs')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
+            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+          >
+            <ClockCounterClockwise size={14} />
+            Logs
+          </button>
+          <button
+            onClick={createWorkflow}
+            disabled={creating}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
+            style={{ background: 'var(--color-accent)' }}
+          >
+            <Plus size={14} weight="bold" />
+            New Workflow
+          </button>
+        </div>
       </div>
 
       {workflows.length === 0 ? (

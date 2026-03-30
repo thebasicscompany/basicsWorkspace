@@ -48,18 +48,20 @@ export class VariableResolver {
     const resolved: Record<string, any> = {}
 
     const isConditionBlock = block?.metadata?.id === BlockType.CONDITION
-    if (isConditionBlock && typeof params.conditions === 'string') {
-      try {
-        const parsed = JSON.parse(params.conditions)
-        if (Array.isArray(parsed)) {
-          resolved.conditions = parsed.map((cond: any) => ({
-            ...cond,
-            value:
-              typeof cond.value === 'string'
-                ? this.resolveTemplateWithoutConditionFormatting(ctx, currentNodeId, cond.value)
-                : cond.value,
-          }))
-        } else {
+    if (isConditionBlock && params.conditions != null) {
+      // conditions may arrive as a JSON string (from UI store) or already-parsed array (from API)
+      let conditionsArray: any[] | null = null
+      if (typeof params.conditions === 'string') {
+        try {
+          const parsed = JSON.parse(params.conditions)
+          if (Array.isArray(parsed)) {
+            conditionsArray = parsed
+          }
+        } catch (parseError) {
+          logger.warn('Failed to parse conditions JSON, falling back to normal resolution', {
+            error: parseError,
+            conditions: params.conditions,
+          })
           resolved.conditions = this.resolveValue(
             ctx,
             currentNodeId,
@@ -68,11 +70,19 @@ export class VariableResolver {
             block
           )
         }
-      } catch (parseError) {
-        logger.warn('Failed to parse conditions JSON, falling back to normal resolution', {
-          error: parseError,
-          conditions: params.conditions,
-        })
+      } else if (Array.isArray(params.conditions)) {
+        conditionsArray = params.conditions
+      }
+
+      if (conditionsArray) {
+        resolved.conditions = conditionsArray.map((cond: any) => ({
+          ...cond,
+          value:
+            typeof cond.value === 'string'
+              ? this.resolveTemplateWithoutConditionFormatting(ctx, currentNodeId, cond.value)
+              : cond.value,
+        }))
+      } else if (!resolved.conditions) {
         resolved.conditions = this.resolveValue(
           ctx,
           currentNodeId,

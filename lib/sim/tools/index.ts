@@ -1255,8 +1255,12 @@ async function executeToolRequest(
             timeout: requestParams.timeout,
           })
 
-          // @ts-ignore — toRecord() is available in Node.js fetch Headers
-          const responseHeaders = new Headers(secureResponse.headers.toRecord())
+          // Convert headers to a plain object — toRecord() is undici-specific and may not exist
+          const headerEntries: Record<string, string> = {}
+          secureResponse.headers.forEach((value: string, key: string) => {
+            headerEntries[key] = value
+          })
+          const responseHeaders = new Headers(headerEntries)
           const nullBodyStatuses = new Set([101, 204, 205, 304])
 
           if (nullBodyStatuses.has(secureResponse.status)) {

@@ -15,7 +15,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-  const redirectAfter = `${appUrl}/shop?connected=${provider}`
+  const url = new URL(req.url)
+  const clientRedirect = url.searchParams.get("redirect_after")
+  const redirectAfter = clientRedirect || `${appUrl}/shop?connected=${provider}`
 
   const res = await fetch(
     `${gatewayUrl}/v1/connections/${provider}/authorize?redirect_after=${encodeURIComponent(redirectAfter)}`,
