@@ -88,7 +88,8 @@ export async function createSchedulesForDeploy(
           blockId,
           cronExpression,
           timezone,
-          enabled: true,
+          status: 'active',
+          nextRunAt: nextRunAt,
           createdAt: now,
           updatedAt: now,
         })

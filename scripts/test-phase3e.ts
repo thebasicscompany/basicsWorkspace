@@ -119,7 +119,7 @@ async function test() {
         blockId: 'test-block',
         cronExpression: '*/5 * * * *',
         timezone: 'America/New_York',
-        enabled: true,
+        status: 'active',
       })
       const [row] = await db.select().from(workflowSchedule).where(eq(workflowSchedule.id, testScheduleId))
       if (row && row.cronExpression === '*/5 * * * *' && row.timezone === 'America/New_York') {
@@ -209,7 +209,7 @@ async function test() {
     const validBlock = {
       type: 'schedule',
       id: 'sched1',
-      enabled: true,
+      status: 'active',
       subBlocks: {
         scheduleType: { value: 'daily' },
         dailyTime: { value: '09:00' },
@@ -234,7 +234,7 @@ async function test() {
     const missingType = validateScheduleBlock({
       type: 'schedule',
       id: 'sched2',
-      enabled: true,
+      status: 'active',
       subBlocks: { scheduleType: { value: '' } },
     } as any)
     if (!missingType.isValid) {

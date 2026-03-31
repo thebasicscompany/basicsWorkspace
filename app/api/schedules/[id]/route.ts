@@ -5,7 +5,7 @@
  * Simplifications:
  * - No workspace permission checks (uses org-scoped auth)
  * - No audit logging
- * - Uses `enabled` boolean instead of `status` string
+ * - Uses `status` field ('active'/'disabled'/'completed')
  * - No standalone job schedules (sourceType/lifecycle/maxRuns)
  */
 import { and, eq } from 'drizzle-orm'
@@ -111,13 +111,13 @@ export async function PUT(req: Request, { params }: { params: Params }) {
     const { action } = validation.data
 
     if (action === 'disable') {
-      if (!schedule.enabled) {
+      if (schedule.status !== 'active') {
         return Response.json({ message: 'Schedule is already disabled' })
       }
 
       await db
         .update(workflowSchedule)
-        .set({ enabled: false, updatedAt: new Date() })
+        .set({ status: 'disabled', updatedAt: new Date() })
         .where(eq(workflowSchedule.id, scheduleId))
 
       logger.info(`[${requestId}] Disabled schedule: ${scheduleId}`)
@@ -125,7 +125,7 @@ export async function PUT(req: Request, { params }: { params: Params }) {
     }
 
     if (action === 'enable') {
-      if (schedule.enabled) {
+      if (schedule.status === 'active') {
         return Response.json({ message: 'Schedule is already enabled' })
       }
 
@@ -143,7 +143,7 @@ export async function PUT(req: Request, { params }: { params: Params }) {
 
       await db
         .update(workflowSchedule)
-        .set({ enabled: true, updatedAt: new Date() })
+        .set({ status: 'active', updatedAt: new Date() })
         .where(eq(workflowSchedule.id, scheduleId))
 
       logger.info(`[${requestId}] Enabled schedule: ${scheduleId}`)

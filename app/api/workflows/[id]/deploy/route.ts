@@ -18,6 +18,7 @@ import {
 } from '@/lib/workflows/persistence/utils'
 import {
   createSchedulesForDeploy,
+  deleteSchedulesForWorkflow,
   cleanupDeploymentVersion,
 } from '@/lib/workflows/schedules/deploy'
 import { validateWorkflowSchedules } from '@/lib/workflows/schedules/validation'
@@ -310,6 +311,7 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
     }
 
     await cleanupWebhooksForWorkflow(id, requestId)
+    await deleteSchedulesForWorkflow(id)
 
     logger.info(`[${requestId}] Workflow undeployed successfully: ${id}`)
 

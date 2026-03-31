@@ -50,7 +50,7 @@ export async function archiveWorkflow(
     // Disable schedules
     await tx
       .update(workflowSchedule)
-      .set({ enabled: false, updatedAt: now })
+      .set({ status: 'disabled', updatedAt: now })
       .where(eq(workflowSchedule.workflowId, workflowId))
 
     // Deactivate webhooks

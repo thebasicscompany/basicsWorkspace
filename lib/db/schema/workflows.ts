@@ -154,7 +154,15 @@ export const workflowSchedule = pgTable("workflow_schedule", {
   blockId: text("block_id").notNull(),
   cronExpression: text("cron_expression").notNull(),
   timezone: text("timezone").notNull().default("UTC"),
-  enabled: boolean("enabled").notNull().default(true),
+  // Execution tracking (matches Sim's approach)
+  nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+  lastRanAt: timestamp("last_ran_at", { withTimezone: true }),
+  lastQueuedAt: timestamp("last_queued_at", { withTimezone: true }),
+  lastFailedAt: timestamp("last_failed_at", { withTimezone: true }),
+  // Status: 'active', 'disabled', 'completed'
+  status: text("status").notNull().default("active"),
+  failedCount: integer("failed_count").notNull().default(0),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 })
