@@ -1,0 +1,114 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { validateAlphanumericId, validateJiraCloudId } from '@/lib/core/security/input-validation'
+import { getConfluenceCloudId } from '@/lib/tools/confluence/utils'
+
+const logger = { info: (...args: any[]) => console.log('[ConfluenceUploadAttachmentAPI]', ...args), warn: (...args: any[]) => console.warn('[ConfluenceUploadAttachmentAPI]', ...args), error: (...args: any[]) => console.error('[ConfluenceUploadAttachmentAPI]', ...args) }
+
+export const dynamic = 'force-dynamic'
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { domain, accessToken, cloudId: providedCloudId, pageId, file, fileName, comment } = body
+
+    if (!domain) {
+      return NextResponse.json({ error: 'Domain is required' }, { status: 400 })
+    }
+
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Access token is required' }, { status: 400 })
+    }
+
+    if (!pageId) {
+      return NextResponse.json({ error: 'Page ID is required' }, { status: 400 })
+    }
+
+    if (!file) {
+      return NextResponse.json({ error: 'File is required' }, { status: 400 })
+    }
+
+    const pageIdValidation = validateAlphanumericId(pageId, 'pageId', 255)
+    if (!pageIdValidation.isValid) {
+      return NextResponse.json({ error: pageIdValidation.error }, { status: 400 })
+    }
+
+    const cloudId = providedCloudId || (await getConfluenceCloudId(domain, accessToken))
+
+    const cloudIdValidation = validateJiraCloudId(cloudId, 'cloudId')
+    if (!cloudIdValidation.isValid) {
+      return NextResponse.json({ error: cloudIdValidation.error }, { status: 400 })
+    }
+
+    // Accept file as { name, type, data (base64) } or array of such
+    let fileToProcess = file
+    if (Array.isArray(file)) {
+      if (file.length === 0) {
+        return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      }
+      fileToProcess = file[0]
+    }
+
+    const fileBuffer = Buffer.from(fileToProcess.data || '', 'base64')
+    const uploadFileName = fileName || fileToProcess.name || 'attachment'
+    const mimeType = fileToProcess.type || 'application/octet-stream'
+
+    const url = `https://api.atlassian.com/ex/confluence/${cloudId}/wiki/rest/api/content/${pageId}/child/attachment`
+
+    const formData = new FormData()
+    const blob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType })
+    formData.append('file', blob, uploadFileName)
+
+    if (comment) {
+      formData.append('comment', comment)
+    }
+
+    // Add minorEdit field as required by Confluence API
+    formData.append('minorEdit', 'false')
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'X-Atlassian-Token': 'nocheck',
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      logger.error('Confluence API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: JSON.stringify(errorData, null, 2),
+      })
+
+      let errorMessage = `Failed to upload attachment to Confluence (${response.status})`
+      if (errorData?.message) {
+        errorMessage = errorData.message
+      } else if (errorData?.errorMessage) {
+        errorMessage = errorData.errorMessage
+      }
+
+      return NextResponse.json({ error: errorMessage }, { status: response.status })
+    }
+
+    const data = await response.json()
+
+    const attachment = data.results?.[0] || data
+
+    return NextResponse.json({
+      attachmentId: attachment.id,
+      title: attachment.title,
+      fileSize: attachment.extensions?.fileSize || 0,
+      mediaType: attachment.extensions?.mediaType || mimeType,
+      downloadUrl: attachment._links?.download || '',
+      pageId: pageId,
+    })
+  } catch (error) {
+    logger.error('Error uploading Confluence attachment:', error)
+    return NextResponse.json(
+      { error: (error as Error).message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

@@ -65,6 +65,23 @@
 
 ---
 
+## OAuth Status
+
+**Code complete, not yet end-to-end tested.** Blocked on Slack redirect URI mismatch with ngrok.
+
+| Component | Status |
+|-----------|--------|
+| Gateway `/v1/connections/:provider/token` | Built, returns decrypted token |
+| Workspace `/api/auth/oauth/token` | Built, proxies to gateway |
+| `lib/oauth/utils.ts` | Wired to gateway (was stubs) |
+| Env var encryption (AES-256-GCM) | Built + wired |
+| Gateway pool crash fix | Done |
+| **Slack OAuth flow** | **Blocked** — need stable HTTPS URL (Railway deploy) |
+
+**Next step:** Deploy gateway to Railway → set stable redirect URI in Slack app → test full flow.
+
+---
+
 ## What Needs UI Testing (for your engineers)
 
 ### Canvas interactions (critical path)

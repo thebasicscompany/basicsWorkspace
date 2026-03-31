@@ -65,6 +65,40 @@ export function processSingleFileToUserFile(
   _file: unknown,
   _requestId?: string,
   _logger?: unknown
-): { name: string; type: string; size: number; key?: string } {
+): { name: string; type: string; size: number; key?: string; base64?: string; url?: string } {
   throw new Error('Single file processing not yet implemented (Phase 4)')
+}
+
+/** Get file extension from a MIME type string */
+export function getExtensionFromMimeType(mimeType: string): string | null {
+  const map: Record<string, string> = {
+    'application/pdf': 'pdf',
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'text/plain': 'txt',
+    'text/csv': 'csv',
+    'text/html': 'html',
+    'application/json': 'json',
+    'application/xml': 'xml',
+    'application/zip': 'zip',
+    'application/gzip': 'gz',
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+    'audio/ogg': 'ogg',
+    'audio/webm': 'webm',
+    'audio/mp4': 'm4a',
+    'video/mp4': 'mp4',
+    'video/webm': 'webm',
+    'video/quicktime': 'mov',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/msword': 'doc',
+    'application/vnd.ms-excel': 'xls',
+    'application/octet-stream': 'bin',
+  }
+  return map[mimeType] ?? null
 }

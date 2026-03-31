@@ -1,0 +1,53 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { generateRequestId } from '@/lib/core/utils/request'
+import type { ThinkingToolParams, ThinkingToolResponse } from '@/lib/sim/tools/thinking/types'
+
+const logger = { info: (...args: any[]) => console.log('[thinking]', ...args), warn: (...args: any[]) => console.warn('[thinking]', ...args), error: (...args: any[]) => console.error('[thinking]', ...args) }
+
+export const dynamic = 'force-dynamic'
+
+/**
+ * POST - Process a thinking tool request
+ * Simply acknowledges the thought by returning it in the output
+ */
+export async function POST(request: NextRequest) {
+  const requestId = generateRequestId()
+
+  try {
+    const body: ThinkingToolParams = await request.json()
+
+    logger.info(`[${requestId}] Processing thinking tool request`)
+
+    // Validate the required parameter
+    if (!body.thought || typeof body.thought !== 'string') {
+      logger.warn(`[${requestId}] Missing or invalid 'thought' parameter`)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'The thought parameter is required and must be a string',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Simply acknowledge the thought by returning it in the output
+    const response: ThinkingToolResponse = {
+      success: true,
+      output: {
+        acknowledgedThought: body.thought,
+      },
+    }
+
+    logger.info(`[${requestId}] Thinking tool processed successfully`)
+    return NextResponse.json(response)
+  } catch (error) {
+    logger.error(`[${requestId}] Error processing thinking tool:`, error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to process thinking tool request',
+      },
+      { status: 500 }
+    )
+  }
+}

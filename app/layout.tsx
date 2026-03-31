@@ -1,10 +1,16 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Cabin, Fraunces } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({
+const cabin = Cabin({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-cabin",
+  display: "swap",
+})
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
   display: "swap",
 })
 
@@ -19,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+    <html lang="en" className={`${cabin.variable} ${fraunces.variable}`}>
+      <body className="paper-grain">{children}</body>
     </html>
   )
 }

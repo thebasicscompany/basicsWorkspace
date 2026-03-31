@@ -74,7 +74,7 @@ export async function uploadFilesToSlack(
   requestId: string,
   logger: { info: (...args: any[]) => void; error: (...args: any[]) => void; warn: (...args: any[]) => void }
 ): Promise<{ fileIds: string[]; files: ToolFileData[] }> {
-  const userFiles = processFilesToUserFiles(files, requestId, logger) as Array<{ name: string; type?: string }>
+  const userFiles = processFilesToUserFiles(files, requestId, logger) as Array<{ name: string; type?: string; size: number }>
   const uploadedFileIds: string[] = []
   const uploadedFiles: ToolFileData[] = []
 

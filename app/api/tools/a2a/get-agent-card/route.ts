@@ -1,0 +1,70 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { createA2AClient } from '@/lib/a2a/utils'
+import { generateRequestId } from '@/lib/core/utils/request'
+
+export const dynamic = 'force-dynamic'
+
+const logger = { info: (...args: any[]) => console.log('[a2a-get-agent-card]', ...args), warn: (...args: any[]) => console.warn('[a2a-get-agent-card]', ...args), error: (...args: any[]) => console.error('[a2a-get-agent-card]', ...args) }
+
+const A2AGetAgentCardSchema = z.object({
+  agentUrl: z.string().min(1, 'Agent URL is required'),
+  apiKey: z.string().optional(),
+})
+
+export async function POST(request: NextRequest) {
+  const requestId = generateRequestId()
+
+  try {
+    const body = await request.json()
+    const validatedData = A2AGetAgentCardSchema.parse(body)
+
+    logger.info(`[${requestId}] Fetching Agent Card`, {
+      agentUrl: validatedData.agentUrl,
+    })
+
+    const client = await createA2AClient(validatedData.agentUrl, validatedData.apiKey)
+
+    const agentCard = await client.getAgentCard()
+
+    logger.info(`[${requestId}] Agent Card fetched successfully`, {
+      agentName: agentCard.name,
+    })
+
+    return NextResponse.json({
+      success: true,
+      output: {
+        name: agentCard.name,
+        description: agentCard.description,
+        url: agentCard.url,
+        version: agentCard.protocolVersion,
+        capabilities: agentCard.capabilities,
+        skills: agentCard.skills,
+        defaultInputModes: agentCard.defaultInputModes,
+        defaultOutputModes: agentCard.defaultOutputModes,
+      },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      logger.warn(`[${requestId}] Invalid request data`, { errors: error.issues })
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid request data',
+          details: error.issues,
+        },
+        { status: 400 }
+      )
+    }
+
+    logger.error(`[${requestId}] Error fetching Agent Card:`, error)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch Agent Card',
+      },
+      { status: 500 }
+    )
+  }
+}

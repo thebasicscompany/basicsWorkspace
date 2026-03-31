@@ -1,0 +1,76 @@
+import type { Task } from '@a2a-js/sdk'
+import { type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { createA2AClient } from '@/lib/a2a/utils'
+import { generateRequestId } from '@/lib/core/utils/request'
+
+export const dynamic = 'force-dynamic'
+
+const logger = { info: (...args: any[]) => console.log('[a2a-get-task]', ...args), warn: (...args: any[]) => console.warn('[a2a-get-task]', ...args), error: (...args: any[]) => console.error('[a2a-get-task]', ...args) }
+
+const A2AGetTaskSchema = z.object({
+  agentUrl: z.string().min(1, 'Agent URL is required'),
+  taskId: z.string().min(1, 'Task ID is required'),
+  apiKey: z.string().optional(),
+  historyLength: z.number().optional(),
+})
+
+export async function POST(request: NextRequest) {
+  const requestId = generateRequestId()
+
+  try {
+    const body = await request.json()
+    const validatedData = A2AGetTaskSchema.parse(body)
+
+    logger.info(`[${requestId}] Getting A2A task`, {
+      agentUrl: validatedData.agentUrl,
+      taskId: validatedData.taskId,
+      historyLength: validatedData.historyLength,
+    })
+
+    const client = await createA2AClient(validatedData.agentUrl, validatedData.apiKey)
+
+    const task = (await client.getTask({
+      id: validatedData.taskId,
+      historyLength: validatedData.historyLength,
+    })) as Task
+
+    logger.info(`[${requestId}] Successfully retrieved A2A task`, {
+      taskId: task.id,
+      state: task.status.state,
+    })
+
+    return NextResponse.json({
+      success: true,
+      output: {
+        taskId: task.id,
+        contextId: task.contextId,
+        state: task.status.state,
+        artifacts: task.artifacts,
+        history: task.history,
+      },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      logger.warn(`[${requestId}] Invalid request data`, { errors: error.issues })
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid request data',
+          details: error.issues,
+        },
+        { status: 400 }
+      )
+    }
+
+    logger.error(`[${requestId}] Error getting A2A task:`, error)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to get task',
+      },
+      { status: 500 }
+    )
+  }
+}

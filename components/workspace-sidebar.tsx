@@ -46,16 +46,12 @@ function SidebarItem({
           className={cn(
             "flex items-center justify-center w-10 h-10 rounded-[10px] transition-all duration-200",
             active
-              ? "shadow-sm"
+              ? ""
               : "text-zinc-400 hover:text-zinc-600 hover:bg-[--color-bg-base]"
           )}
           style={
             active
-              ? {
-                  background: "#E6F4ED",
-                  color: "#2D8653",
-                  boxShadow: "var(--shadow-squircle-green-sm)"
-                }
+              ? { color: "#2D8653" }
               : undefined
           }
           aria-label={label}
@@ -67,7 +63,8 @@ function SidebarItem({
         <Tooltip.Content
           side="right"
           sideOffset={8}
-          className="z-50 rounded-[8px] bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-[0_4px_14px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] border border-black/[0.04]"
+          className="z-50 rounded-[8px] bg-white px-2.5 py-1.5 text-xs font-display text-zinc-700 shadow-[0_4px_14px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] border border-black/[0.04]"
+          style={{ fontWeight: 450 }}
         >
           {label}
           <Tooltip.Arrow className="fill-white" />

@@ -29,14 +29,13 @@ export function AppTile({
 }: AppTileProps) {
   const box = (
     <motion.div
-      whileHover={{ scale: dashed ? 1.02 : 1.05, boxShadow: dashed ? "none" : "var(--shadow-md)" }}
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.96 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
       className={cn(
-        "w-[80px] h-[80px] rounded-[20px] cursor-pointer group",
-        "flex items-center justify-center shrink-0 transition-all",
-        dashed 
-          ? "border-[2.5px] border-dashed border-zinc-400/70 bg-transparent hover:border-zinc-500 hover:bg-black/[0.03]"
+        "w-[80px] h-[80px] rounded-[20px] cursor-pointer group tile-hover",
+        "flex items-center justify-center shrink-0",
+        dashed
+          ? "border-[2px] border-dashed border-zinc-300/70 bg-transparent hover:border-zinc-400 hover:bg-black/[0.02]"
           : (iconBg || "bg-white border"),
         className
       )}
@@ -67,15 +66,15 @@ export function AppTile({
         <button onClick={onClick}>{box}</button>
       )}
       <p
-        className="text-center leading-tight font-medium w-full truncate"
-        style={{ fontSize: "13px", color: "var(--color-text-primary)" }}
+        className="text-center leading-tight w-full truncate"
+        style={{ fontSize: "12px", color: "var(--color-text-primary)", fontWeight: 500 }}
       >
         {name}
       </p>
       {subtitle && (
         <p
           className="text-center leading-tight -mt-1 truncate w-full"
-        style={{ fontSize: "11px", color: "var(--color-text-tertiary)" }}
+          style={{ fontSize: "10px", color: "var(--color-text-tertiary)", fontWeight: 400 }}
         >
           {subtitle}
         </p>

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       const rawAttachments = validatedData.attachments
       logger.info(`[${requestId}] Processing ${rawAttachments.length} attachment(s)`)
 
-      const attachments = processFilesToUserFiles(rawAttachments, requestId, logger) as Array<{ name: string; type?: string; size: number }>
+      const attachments = processFilesToUserFiles(rawAttachments, requestId, logger) as Array<{ name: string; type?: string; size: number }> as Array<{ name: string; type?: string; size: number }>
 
       if (attachments.length === 0) {
         logger.warn(`[${requestId}] No valid attachments found after processing`)

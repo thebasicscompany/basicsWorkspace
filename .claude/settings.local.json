@@ -106,7 +106,8 @@
       "Bash(/tmp/count_more.sh)",
       "Bash(/tmp/final_summary.sh:*)",
       "Bash(chmod +x /tmp/final_summary.sh)",
-      "Bash(/tmp/final_summary.sh)"
+      "Bash(/tmp/final_summary.sh)",
+      "Bash(npx --yes wait-on http://localhost:3000 --timeout 30000)"
     ]
   }
 }

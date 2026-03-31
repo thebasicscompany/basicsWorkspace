@@ -32,7 +32,7 @@ export async function resolveVertexCredential(
     throw new Error(`Vertex AI credential not found: ${credentialId}`)
   }
 
-  const { accessToken } = await refreshTokenIfNeeded(requestId, credential, resolved.accountId)
+  const accessToken = await refreshTokenIfNeeded(credentialId, credential, resolved.accountId)
 
   if (!accessToken) {
     throw new Error('Failed to get Vertex AI access token')

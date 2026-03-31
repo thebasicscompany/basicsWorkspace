@@ -29,3 +29,14 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL!,
 })
+
+/** Get the current session from request headers (server-side) */
+export async function getSession(headers?: Headers): Promise<{ user: { id: string; email: string; name?: string } } | null> {
+  try {
+    const h = headers ?? (await import('next/headers').then(m => m.headers()))
+    const session = await auth.api.getSession({ headers: h as HeadersInit })
+    return session
+  } catch {
+    return null
+  }
+}

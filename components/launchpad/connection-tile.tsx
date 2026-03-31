@@ -18,13 +18,12 @@ export function ConnectionTile({ name, icon, connected = false, onClick, iconBg,
     <div className="flex flex-col items-center gap-2 w-[80px]">
       <motion.button
         onClick={onClick}
-        whileHover={{ scale: dashed ? 1.02 : 1.05, boxShadow: dashed ? "none" : "var(--shadow-lg)" }}
-        whileTap={{ scale: 0.95 }}
+        whileTap={{ scale: 0.96 }}
         transition={{ duration: 0.12, ease: "easeOut" }}
         className={cn(
-          "relative w-[80px] h-[80px] rounded-[20px] cursor-pointer flex items-center justify-center group shrink-0 transition-all",
-          dashed 
-            ? "border-[2.5px] border-dashed border-zinc-400/70 bg-transparent hover:border-zinc-500 hover:bg-black/[0.03]"
+          "relative w-[80px] h-[80px] rounded-[20px] cursor-pointer flex items-center justify-center group shrink-0 tile-hover",
+          dashed
+            ? "border-[2px] border-dashed border-zinc-300/70 bg-transparent hover:border-zinc-400 hover:bg-black/[0.02]"
             : (iconBg || "bg-white border")
         )}
         style={dashed ? undefined : {
@@ -45,8 +44,8 @@ export function ConnectionTile({ name, icon, connected = false, onClick, iconBg,
         )}
       </motion.button>
       <p
-        className="text-center leading-tight font-medium w-full truncate"
-        style={{ fontSize: "13px", color: "var(--color-text-primary)" }}
+        className="text-center leading-tight w-full truncate"
+        style={{ fontSize: "12px", color: "var(--color-text-primary)", fontWeight: 500 }}
       >
         {name}
       </p>

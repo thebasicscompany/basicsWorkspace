@@ -5,7 +5,7 @@
 
 export async function resolveOAuthAccountId(
   _credentialId: string
-): Promise<{ accountId: string } | null> {
+): Promise<{ accountId: string; workspaceId?: string } | null> {
   return null
 }
 
@@ -14,6 +14,9 @@ export async function refreshTokenIfNeeded(
   _credentialId: string,
   _credentialOrOrgId?: unknown,
   _accountId?: string
-): Promise<{ accessToken: string; expiresAt?: number }> {
-  return { accessToken: '' }
+): Promise<string> {
+  return ''
 }
+
+/** Alias used by tool routes — refreshes OAuth access token via gateway */
+export const refreshAccessTokenIfNeeded = refreshTokenIfNeeded

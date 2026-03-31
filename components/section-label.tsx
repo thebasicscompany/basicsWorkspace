@@ -8,8 +8,8 @@ interface SectionLabelProps {
 export function SectionLabel({ children, className }: SectionLabelProps) {
   return (
     <p
-      className={cn("font-medium tracking-wider uppercase", className)}
-      style={{ fontSize: "10px", color: "var(--color-text-tertiary)" }}
+      className={cn("tracking-[0.15em] uppercase", className)}
+      style={{ fontSize: "10px", color: "var(--color-text-tertiary)", fontWeight: 500, letterSpacing: "0.15em" }}
     >
       {children}
     </p>

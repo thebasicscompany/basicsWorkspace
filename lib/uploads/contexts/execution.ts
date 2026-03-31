@@ -2,7 +2,8 @@
 import type { UserFile } from '@/lib/sim/executor/types'
 
 export interface ExecutionFileContext {
-  orgId: string
+  orgId?: string
+  workspaceId?: string
   workflowId?: string
   executionId?: string
 }

@@ -1,4 +1,5 @@
 import { requireOrg } from "@/lib/auth-helpers"
+import { verifyInternalToken } from "@/lib/auth/internal"
 
 /**
  * POST /api/auth/oauth/token
@@ -7,14 +8,35 @@ import { requireOrg } from "@/lib/auth-helpers"
  * Proxies to the gateway's /v1/connections/:provider/token endpoint
  * which decrypts and returns the stored OAuth token.
  *
- * Request body: { credentialId: string }
- * credentialId is the provider name (e.g. "slack", "github") as stored by the credential selector.
+ * Accepts two auth methods:
+ * 1. Session cookie (browser/UI calls)
+ * 2. Internal JWT Bearer token (server-side executor calls)
  *
+ * Request body: { credentialId: string }
  * Response: { accessToken: string, instanceUrl?: string }
  */
 export async function POST(req: Request) {
+  // Try session auth first, then internal JWT
+  let userId: string | undefined
+
   const ctx = await requireOrg(req)
-  if (ctx instanceof Response) return ctx
+  if (ctx instanceof Response) {
+    // Session auth failed — try internal JWT
+    const authHeader = req.headers.get("authorization")
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1]
+      const verification = await verifyInternalToken(token)
+      if (verification.valid && verification.userId) {
+        userId = verification.userId
+      }
+    }
+
+    if (!userId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 })
+    }
+  } else {
+    userId = ctx.userId
+  }
 
   const gatewayUrl = process.env.GATEWAY_URL
   const gatewayKey = process.env.GATEWAY_API_KEY
@@ -40,7 +62,7 @@ export async function POST(req: Request) {
       headers: {
         Authorization: `Bearer ${gatewayKey}`,
         "Content-Type": "application/json",
-        "X-User-Id": ctx.userId,
+        "X-User-Id": userId,
       },
     })
 

@@ -12,4 +12,7 @@ export const env = {
   EXA_API_KEY: process.env.EXA_API_KEY ?? '',
   FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY ?? '',
   JINA_API_KEY: process.env.JINA_API_KEY ?? '',
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER ?? '',
+  BROWSERBASE_API_KEY: process.env.BROWSERBASE_API_KEY ?? '',
+  BROWSERBASE_PROJECT_ID: process.env.BROWSERBASE_PROJECT_ID ?? '',
 } as const

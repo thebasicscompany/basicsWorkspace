@@ -16,31 +16,38 @@ export function AppHeader({ breadcrumb, actions, className }: AppHeaderProps) {
   return (
     <header
       className={cn(
-        "h-12 flex items-center justify-between px-6 bg-white border-b shrink-0",
+        "flex items-center justify-between px-6 bg-white border-b shrink-0",
         className
       )}
-      style={{ borderColor: "var(--color-border)" }}
+      style={{
+        borderColor: "var(--color-border)",
+        borderBottomWidth: "0.5px",
+        height: 72,
+        paddingTop: 16,
+        paddingBottom: 16,
+      }}
     >
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm">
+      <nav className="flex items-center gap-2.5 text-xl font-display">
         {breadcrumb.map((item, i) => {
           const isLast = i === breadcrumb.length - 1
           return (
-            <span key={i} className="flex items-center gap-1.5">
+            <span key={i} className="flex items-center gap-2.5">
               {i > 0 && (
-                <span style={{ color: "var(--color-text-tertiary)" }}>/</span>
+                <span className="font-light opacity-30" style={{ color: "var(--color-text-primary)" }}>/</span>
               )}
               {isLast ? (
-                <span className="font-medium text-zinc-700">{item.label}</span>
+                <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{item.label}</span>
               ) : item.href ? (
                 <Link
                   href={item.href}
-                  className="text-zinc-400 hover:text-zinc-600 transition-colors"
+                  className="hover:text-zinc-600 transition-colors"
+                  style={{ color: "var(--color-text-tertiary)", fontWeight: 400 }}
                 >
                   {item.label}
                 </Link>
               ) : (
-                <span style={{ color: "var(--color-text-tertiary)" }}>
+                <span style={{ color: "var(--color-text-tertiary)", fontWeight: 400 }}>
                   {item.label}
                 </span>
               )}

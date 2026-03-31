@@ -36,6 +36,26 @@ export async function secureFetchWithPinnedIP(
   return fetch(url, fetchOptions)
 }
 
+/**
+ * Validates a database hostname. Stub implementation — accepts all non-empty hostnames.
+ * TODO: Wire real DNS resolution + private IP blocking like Sim's ipaddr.js-based implementation.
+ */
+export async function validateDatabaseHost(
+  host: string | null | undefined,
+  paramName = 'host'
+): Promise<{ isValid: boolean; error?: string; resolvedIP?: string; originalHostname?: string }> {
+  if (!host) {
+    return { isValid: false, error: `${paramName} is required` }
+  }
+
+  const lowerHost = host.toLowerCase()
+  if (lowerHost === 'localhost' || lowerHost === '127.0.0.1' || lowerHost === '::1') {
+    return { isValid: false, error: `${paramName} cannot be localhost` }
+  }
+
+  return { isValid: true, originalHostname: host }
+}
+
 /** Fetch wrapper with basic validation. */
 export async function secureFetchWithValidation(
   url: string,
