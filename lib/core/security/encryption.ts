@@ -1,4 +1,4 @@
-import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto"
+import { randomBytes, createCipheriv, createDecipheriv, createHmac, timingSafeEqual } from "node:crypto"
 
 const ENV_KEY_VAR = "ENCRYPTION_KEY"
 
@@ -79,4 +79,15 @@ export function decryptRecord(record: Record<string, string>): Record<string, st
 export function isEncryptionEnabled(): boolean {
   const hex = process.env[ENV_KEY_VAR]
   return !!hex && hex.length === 64
+}
+
+/**
+ * Timing-safe string comparison to prevent timing attacks.
+ * HMACs both strings so timingSafeEqual always compares equal-length buffers.
+ */
+export function safeCompare(a: string, b: string): boolean {
+  const key = 'safeCompare'
+  const ha = createHmac('sha256', key).update(a).digest()
+  const hb = createHmac('sha256', key).update(b).digest()
+  return timingSafeEqual(ha, hb)
 }
