@@ -22,9 +22,9 @@ type ContextEvent = {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SOURCE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  contacts:    { label: "CRM",         icon: AddressBook,    color: "#2D8653" },
-  companies:   { label: "CRM",         icon: Buildings,      color: "#2D8653" },
-  deals:       { label: "CRM",         icon: CurrencyDollar, color: "#2D8653" },
+  contacts:    { label: "CRM",         icon: AddressBook,    color: "#2563EB" },
+  companies:   { label: "CRM",         icon: Buildings,      color: "#2563EB" },
+  deals:       { label: "CRM",         icon: CurrencyDollar, color: "#2563EB" },
   tasks:       { label: "Tasks",       icon: CheckSquare,    color: "#F59E0B" },
   notes:       { label: "Notes",       icon: Note,           color: "#8B5CF6" },
   meetings:    { label: "Meetings",    icon: VideoCamera,    color: "#3B82F6" },

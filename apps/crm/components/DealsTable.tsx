@@ -9,7 +9,7 @@ const STAGE_COLORS: Record<string, string> = {
   "Qualified":   "#F59E0B",
   "Proposal":    "#3B82F6",
   "Negotiation": "#8B5CF6",
-  "Closed Won":  "#2D8653",
+  "Closed Won":  "#2563EB",
   "Closed Lost": "#EF4444",
 }
 

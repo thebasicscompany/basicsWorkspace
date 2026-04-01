@@ -52,7 +52,7 @@ const WorkflowEdgeComponent = ({
     let opacity = 1
 
     if (edgeRunStatus === 'success') {
-      color = 'var(--color-accent, #2D8653)'
+      color = 'var(--color-accent, #2563EB)'
     } else if (edgeRunStatus === 'error') {
       color = '#ef4444'
     } else if (isErrorEdge) {

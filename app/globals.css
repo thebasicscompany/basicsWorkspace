@@ -11,35 +11,35 @@
 /* ─── Design Tokens ─────────────────────────────────────────── */
 
 :root {
-  /* Surfaces */
-  --color-bg-base:        #F9F7F4;
+  /* Surfaces — crisp white/gray (Yachtly-inspired) */
+  --color-bg-base:        #F5F7FA;
   --color-bg-surface:     #FFFFFF;
   --color-bg-elevated:    #FFFFFF;
-  --color-bg-subtle:      #F4F2EF;
-  --color-bg-sidebar:     #EFEDE9;
+  --color-bg-subtle:      #F0F2F5;
+  --color-bg-sidebar:     #FFFFFF;
 
   /* Text */
-  --color-text-primary:   #18181B;
-  --color-text-secondary: #71717A;
-  --color-text-tertiary:  #A1A1AA;
-  --color-text-accent:    #2D8653;
+  --color-text-primary:   #1A1D26;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary:  #9CA3AF;
+  --color-text-accent:    #2563EB;
 
   /* Borders */
-  --color-border:         #E4E2DE;
-  --color-border-strong:  #D4D2CE;
+  --color-border:         #E5E7EB;
+  --color-border-strong:  #D1D5DB;
 
-  /* Accent — Basics brand green */
-  --color-accent:         #2D8653;
-  --color-accent-light:   #E6F4ED;
+  /* Accent — Bright blue */
+  --color-accent:         #2563EB;
+  --color-accent-light:   #EFF6FF;
 
   /* Brand primary (used by agent block bgColor) */
-  --brand-primary-hex:    #2D8653;
+  --brand-primary-hex:    #2563EB;
 
   /* Semantic */
   --color-success:        #22C55E;
   --color-warning:        #F59E0B;
   --color-error:          #EF4444;
-  --color-info:           #2D8653;
+  --color-info:           #2563EB;
 
   /* Radius */
   --radius-sm:   6px;
@@ -49,35 +49,35 @@
   --radius-2xl:  22px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  /* Shadows — clean, modern */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
 
-  /* Premium Squircle Shadows */
-  --shadow-squircle-color: 0 8px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04), inset 0 2px 2px rgba(255,255,255,0.2), inset 0 -2px 4px rgba(0,0,0,0.15);
-  --shadow-squircle-white: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02), inset 0 1px 1px rgba(255,255,255,1), inset 0 -1px 1px rgba(0,0,0,0.03);
-  --shadow-squircle-green: 0 4px 12px rgba(45,134,83,0.3), inset 0 2px 2px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.15);
-  --shadow-squircle-green-sm: 0 4px 10px rgba(45,134,83,0.15), inset 0 2px 2px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(45,134,83,0.1);
-  /* ── shadcn semantic vars — mapped to Basics brand ── */
-  --background:             #F9F7F4;
-  --foreground:             #18181B;
+  /* Card/tile shadows */
+  --shadow-squircle-color: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03);
+  --shadow-squircle-white: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-squircle-green: 0 4px 12px rgba(37,99,235,0.25), 0 1px 3px rgba(37,99,235,0.1);
+  --shadow-squircle-green-sm: 0 2px 8px rgba(37,99,235,0.15), 0 1px 2px rgba(37,99,235,0.08);
+  /* ── shadcn semantic vars — mapped to blue accent ── */
+  --background:             #F5F7FA;
+  --foreground:             #1A1D26;
   --card:                   #FFFFFF;
-  --card-foreground:        #18181B;
+  --card-foreground:        #1A1D26;
   --popover:                #FFFFFF;
-  --popover-foreground:     #18181B;
-  --primary:                #2D8653;
+  --popover-foreground:     #1A1D26;
+  --primary:                #2563EB;
   --primary-foreground:     #FFFFFF;
-  --secondary:              #F4F2EF;
-  --secondary-foreground:   #18181B;
-  --muted:                  #F4F2EF;
-  --muted-foreground:       #71717A;
-  --accent:                 #E6F4ED;
-  --accent-foreground:      #2D8653;
+  --secondary:              #F0F2F5;
+  --secondary-foreground:   #1A1D26;
+  --muted:                  #F0F2F5;
+  --muted-foreground:       #6B7280;
+  --accent:                 #EFF6FF;
+  --accent-foreground:      #2563EB;
   --destructive:            #EF4444;
-  --border:                 #E4E2DE;
-  --input:                  #E4E2DE;
-  --ring:                   #2D8653;
+  --border:                 #E5E7EB;
+  --input:                  #E5E7EB;
+  --ring:                   #2563EB;
   --radius:                 0.625rem;
 }
 
@@ -230,25 +230,7 @@ h1, h2, h3, h4, h5, h6,
   background: var(--color-border-strong);
 }
 
-/* ─── Paper Grain Texture ───────────────────────────────────── */
-
-.paper-grain::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.028;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-}
-
-.dark .paper-grain::before {
-  opacity: 0.04;
-  mix-blend-mode: soft-light;
-}
+/* Paper grain disabled for clean Yachtly aesthetic */
 
 /* ─── Editorial Animations ──────────────────────────────────── */
 
@@ -288,67 +270,67 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .dark {
-  /* Basics design tokens — dark mode */
-  --color-bg-base:        #141414;
-  --color-bg-surface:     #1C1C1C;
-  --color-bg-elevated:    #242424;
-  --color-bg-subtle:      #1A1A1A;
-  --color-bg-sidebar:     #171717;
+  /* Basics design tokens — dark mode (blue accent) */
+  --color-bg-base:        #0F1117;
+  --color-bg-surface:     #1A1D26;
+  --color-bg-elevated:    #22252E;
+  --color-bg-subtle:      #161922;
+  --color-bg-sidebar:     #141720;
 
-  --color-text-primary:   #F0F0F0;
-  --color-text-secondary: #A1A1AA;
-  --color-text-tertiary:  #71717A;
-  --color-text-accent:    #4ADE80;
+  --color-text-primary:   #F0F2F5;
+  --color-text-secondary: #9CA3AF;
+  --color-text-tertiary:  #6B7280;
+  --color-text-accent:    #60A5FA;
 
-  --color-border:         #2A2A2A;
-  --color-border-strong:  #3A3A3A;
+  --color-border:         #2A2D38;
+  --color-border-strong:  #3B3F4C;
 
-  --color-accent:         #34D399;
-  --color-accent-light:   rgba(52, 211, 153, 0.12);
+  --color-accent:         #3B82F6;
+  --color-accent-light:   rgba(59, 130, 246, 0.12);
 
   --color-success:        #4ADE80;
   --color-warning:        #FBBF24;
   --color-error:          #F87171;
-  --color-info:           #34D399;
+  --color-info:           #60A5FA;
 
   /* Shadows — softer in dark mode */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
 
-  --shadow-squircle-color: 0 8px 16px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), inset 0 2px 2px rgba(255,255,255,0.05), inset 0 -2px 4px rgba(0,0,0,0.3);
-  --shadow-squircle-white: 0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.05), inset 0 -1px 1px rgba(0,0,0,0.1);
-  --shadow-squircle-green: 0 4px 12px rgba(52,211,153,0.2), inset 0 2px 2px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.3);
-  --shadow-squircle-green-sm: 0 4px 10px rgba(52,211,153,0.1), inset 0 2px 2px rgba(255,255,255,0.05), inset 0 -2px 4px rgba(0,0,0,0.2);
+  --shadow-squircle-color: 0 4px 12px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-squircle-white: 0 2px 8px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15);
+  --shadow-squircle-green: 0 4px 12px rgba(59,130,246,0.2), 0 1px 3px rgba(59,130,246,0.1);
+  --shadow-squircle-green-sm: 0 2px 8px rgba(59,130,246,0.1), 0 1px 2px rgba(59,130,246,0.08);
 
-  /* shadcn semantic — Basics dark palette */
-  --background:             #141414;
-  --foreground:             #F0F0F0;
-  --card:                   #1C1C1C;
-  --card-foreground:        #F0F0F0;
-  --popover:                #1C1C1C;
-  --popover-foreground:     #F0F0F0;
-  --primary:                #34D399;
-  --primary-foreground:     #0A0A0A;
-  --secondary:              #242424;
-  --secondary-foreground:   #F0F0F0;
-  --muted:                  #242424;
-  --muted-foreground:       #A1A1AA;
-  --accent:                 rgba(52, 211, 153, 0.12);
-  --accent-foreground:      #34D399;
+  /* shadcn semantic — dark blue palette */
+  --background:             #0F1117;
+  --foreground:             #F0F2F5;
+  --card:                   #1A1D26;
+  --card-foreground:        #F0F2F5;
+  --popover:                #1A1D26;
+  --popover-foreground:     #F0F2F5;
+  --primary:                #3B82F6;
+  --primary-foreground:     #FFFFFF;
+  --secondary:              #22252E;
+  --secondary-foreground:   #F0F2F5;
+  --muted:                  #22252E;
+  --muted-foreground:       #9CA3AF;
+  --accent:                 rgba(59, 130, 246, 0.12);
+  --accent-foreground:      #60A5FA;
   --destructive:            #F87171;
-  --border:                 #2A2A2A;
-  --input:                  #2A2A2A;
-  --ring:                   #34D399;
+  --border:                 #2A2D38;
+  --input:                  #2A2D38;
+  --ring:                   #3B82F6;
 
-  --sidebar:                #171717;
-  --sidebar-foreground:     #F0F0F0;
-  --sidebar-primary:        #34D399;
-  --sidebar-primary-foreground: #0A0A0A;
-  --sidebar-accent:         rgba(52,211,153,0.12);
-  --sidebar-accent-foreground: #34D399;
-  --sidebar-border:         #2A2A2A;
-  --sidebar-ring:           #34D399;
+  --sidebar:                #141720;
+  --sidebar-foreground:     #F0F2F5;
+  --sidebar-primary:        #3B82F6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:         rgba(59,130,246,0.12);
+  --sidebar-accent-foreground: #60A5FA;
+  --sidebar-border:         #2A2D38;
+  --sidebar-ring:           #3B82F6;
 }
 
 @layer base {

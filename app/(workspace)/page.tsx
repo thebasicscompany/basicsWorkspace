@@ -65,10 +65,10 @@ export default function LaunchpadPage() {
   return (
     <PageTransition>
       <div className="relative flex flex-col p-10 h-screen overflow-hidden">
-        {/* Warm ambient background — soft radial washes */}
+        {/* Clean ambient background — subtle blue wash */}
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" style={{ background: "var(--color-bg-base)" }}>
-          <div className="absolute top-[-15%] left-[-5%] w-[45%] h-[45%] rounded-full opacity-[0.06] blur-[100px]" style={{ background: "#2D8653" }} />
-          <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "#C4956A" }} />
+          <div className="absolute top-[-15%] left-[-5%] w-[45%] h-[45%] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "#2563EB" }} />
+          <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full opacity-[0.03] blur-[140px]" style={{ background: "#7C3AED" }} />
         </div>
 
         <div className="relative z-10 flex flex-col h-full editorial-stagger">
@@ -77,7 +77,7 @@ export default function LaunchpadPage() {
             className="font-display mb-8 shrink-0"
             style={{ fontSize: "28px", lineHeight: 1.2, color: "var(--color-text-primary)", fontWeight: 400 }}
           >
-            {greeting}, <span className="italic" style={{ color: "#2D8653" }}>Arav.</span>
+            {greeting}, <span className="italic" style={{ color: "#2563EB" }}>Arav.</span>
           </h1>
 
           <SectionLabel className="mb-5">Your Apps</SectionLabel>

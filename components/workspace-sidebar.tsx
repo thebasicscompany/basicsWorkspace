@@ -47,12 +47,12 @@ function SidebarItem({
           className={cn(
             "flex items-center justify-center w-10 h-10 rounded-[10px] transition-all duration-200",
             active
-              ? ""
-              : "text-zinc-400 hover:text-zinc-600 hover:bg-[--color-bg-base]"
+              ? "bg-[#EFF6FF] dark:bg-[rgba(59,130,246,0.12)]"
+              : "text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F5F7FA] dark:hover:bg-[#22252E]"
           )}
           style={
             active
-              ? { color: "#2D8653" }
+              ? { color: "#2563EB" }
               : undefined
           }
           aria-label={label}
@@ -117,7 +117,7 @@ function UserMenu() {
         <button
           className="flex items-center justify-center w-10 h-10 rounded-[10px] text-white text-sm font-semibold select-none cursor-pointer hover:opacity-90 transition-all focus:outline-none"
           style={{
-            background: "#2D8653",
+            background: "#2563EB",
             boxShadow: "var(--shadow-squircle-green)"
           }}
           aria-label="Account menu"

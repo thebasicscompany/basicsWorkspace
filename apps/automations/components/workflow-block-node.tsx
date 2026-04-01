@@ -208,11 +208,11 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
 }: NodeProps<BlockNodeData>) {
   const { type, name, enabled } = data
   const blockConfig = useMemo(() => getBlock(type), [type])
-  const rawBgColor = blockConfig?.bgColor ?? '#2D8653'
+  const rawBgColor = blockConfig?.bgColor ?? '#2563EB'
   // For icon background, use the raw value (CSS vars work here)
   const iconBgColor = rawBgColor
   // For border alpha (hex + '40'), CSS vars don't work — resolve to fallback
-  const borderColor = rawBgColor.startsWith('var(') ? '#2D8653' : rawBgColor
+  const borderColor = rawBgColor.startsWith('var(') ? '#2563EB' : rawBgColor
   const BlockIcon = blockConfig?.icon
 
   const isEnabled = enabled !== false

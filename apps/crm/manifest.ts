@@ -7,7 +7,7 @@ export const crmApp = {
   href: "/crm",
   icon: AddressBook,
   iconColor: "text-white",
-  iconBg: "bg-teal-600",
+  iconBg: "bg-sky-600",
   iconWeight: "fill",
   isGroup: true,
   order: 2,

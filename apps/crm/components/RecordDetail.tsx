@@ -50,9 +50,9 @@ function relativeTime(iso: string) {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  contacts:    "#2D8653",
-  companies:   "#2D8653",
-  deals:       "#2D8653",
+  contacts:    "#2563EB",
+  companies:   "#2563EB",
+  deals:       "#2563EB",
   tasks:       "#F59E0B",
   automations: "#6366F1",
   meetings:    "#3B82F6",

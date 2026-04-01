@@ -569,7 +569,7 @@ return {
   await createWorkflow(
     'Copilot Playground',
     'An empty workflow for testing the copilot. Open this and ask the copilot to build a workflow for you.',
-    '#2D8653',
+    '#2563EB',
     [],
     []
   )

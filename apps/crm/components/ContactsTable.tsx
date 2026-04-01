@@ -8,7 +8,7 @@ export type { Contact }
 
 const STATUS_COLORS: Record<string, string> = {
   Lead: "#6366F1",
-  Customer: "#2D8653",
+  Customer: "#2563EB",
   Churned: "#EF4444",
   Prospect: "#F59E0B",
 }

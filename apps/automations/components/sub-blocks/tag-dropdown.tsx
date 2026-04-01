@@ -92,7 +92,7 @@ interface TagComputationResult {
 
 const BLOCK_COLORS = {
   VARIABLE: '#2F8BFF',
-  DEFAULT: '#2D8653',
+  DEFAULT: '#2563EB',
   LOOP: '#2FB3FF',
   PARALLEL: '#FEE12B',
 } as const

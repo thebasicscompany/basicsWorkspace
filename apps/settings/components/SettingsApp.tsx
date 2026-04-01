@@ -177,7 +177,7 @@ function SaveButton({
       disabled={disabled || loading}
       className="flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] font-medium text-white transition-all"
       style={{
-        background: saved ? "#2D8653" : "var(--color-accent)",
+        background: saved ? "#2563EB" : "var(--color-accent)",
         opacity: disabled || loading ? 0.7 : 1,
       }}
     >
