@@ -1,5 +1,8 @@
 import type { Metadata } from "next"
 import { Manrope, JetBrains_Mono } from "next/font/google"
+import { Toaster } from "sonner"
+import { ThemeProvider } from "@/components/theme-provider"
+import { CommandPalette } from "@/components/command-palette"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -25,8 +28,22 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${manrope.variable} ${jetbrainsMono.variable}`}>
-      <body className="paper-grain">{children}</body>
+    <html lang="en" className={`${manrope.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <body className="paper-grain">
+        <ThemeProvider>
+          {children}
+          <CommandPalette />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                fontFamily: "var(--font-manrope, 'Manrope', sans-serif)",
+                fontSize: "13px",
+              },
+            }}
+          />
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

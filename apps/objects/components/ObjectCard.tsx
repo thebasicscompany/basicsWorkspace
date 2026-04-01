@@ -3,8 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Sliders, Trash, Lock } from "@phosphor-icons/react"
+import { toast } from "sonner"
 import { OBJECT_ICON_MAP, colorToHex } from "@/apps/objects/icons"
 import { FieldBuilderModal } from "@/apps/objects/components/FieldBuilderModal"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import type { ObjectConfig } from "@/apps/objects/hooks/useObjectConfig"
 
 export function ObjectCard({
@@ -19,19 +21,20 @@ export function ObjectCard({
   const router = useRouter()
   const [fieldsOpen, setFieldsOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const Icon = OBJECT_ICON_MAP[config.icon] ?? OBJECT_ICON_MAP["Cube"]
   const hex = colorToHex(config.color)
   const fieldCount = config.fields.length
 
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm(`Delete "${config.name}" and all its records? This cannot be undone.`)) return
+  async function handleDelete() {
     setDeleting(true)
     try {
       await fetch(`/api/objects/${config.slug}`, { method: "DELETE" })
+      toast.success(`"${config.name}" deleted`)
       onDeleted?.()
     } catch {
+      toast.error("Failed to delete object")
       setDeleting(false)
     }
   }
@@ -125,7 +128,7 @@ export function ObjectCard({
 
           {!config.isSystem && (
             <button
-              onClick={handleDelete}
+              onClick={(e) => { e.stopPropagation(); setConfirmOpen(true) }}
               disabled={deleting}
               className="flex items-center justify-center rounded-lg ml-auto transition-colors"
               style={{
@@ -158,6 +161,14 @@ export function ObjectCard({
         onOpenChange={setFieldsOpen}
         config={config}
         onSaved={() => { setFieldsOpen(false); onFieldsSaved?.() }}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={`Delete "${config.name}"`}
+        description="This will permanently delete this object type and all its records. This action cannot be undone."
+        onConfirm={handleDelete}
       />
     </>
   )

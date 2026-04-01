@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { CircleNotch } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { ConnectionTile } from '@/components/launchpad/connection-tile'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { PROVIDERS } from '@/apps/shop/providers'
 
 const CATEGORIES = [
@@ -51,11 +53,12 @@ export function ConnectionsGrid() {
 
   useEffect(() => { fetchConnections() }, [fetchConnections])
 
+  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null)
+
   async function handleClick(providerId: string) {
     const isConnected = connectedSet.has(providerId)
     if (isConnected) {
-      await fetch(`/api/connections/${providerId}`, { method: 'DELETE' })
-      setConnections((prev) => prev.filter((c) => c.provider !== providerId))
+      setConfirmDisconnect(providerId)
     } else {
       try {
         const res = await fetch(`/api/connections/${providerId}/authorize`)
@@ -64,6 +67,18 @@ export function ConnectionsGrid() {
         window.location.href = url
       } catch { /* ignore */ }
     }
+  }
+
+  async function handleDisconnect() {
+    if (!confirmDisconnect) return
+    try {
+      await fetch(`/api/connections/${confirmDisconnect}`, { method: 'DELETE' })
+      setConnections((prev) => prev.filter((c) => c.provider !== confirmDisconnect))
+      toast.success('Connection removed')
+    } catch {
+      toast.error('Failed to disconnect')
+    }
+    setConfirmDisconnect(null)
   }
 
   const connectedSet = new Set(connections.map((c) => c.provider))
@@ -113,6 +128,15 @@ export function ConnectionsGrid() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDisconnect}
+        onOpenChange={(open) => { if (!open) setConfirmDisconnect(null) }}
+        title="Disconnect integration"
+        description={`This will remove the connection to ${PROVIDERS.find((p) => p.id === confirmDisconnect)?.name ?? 'this service'}. You can reconnect it later.`}
+        confirmLabel="Disconnect"
+        onConfirm={handleDisconnect}
+      />
     </div>
   )
 }

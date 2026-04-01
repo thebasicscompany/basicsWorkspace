@@ -8,6 +8,8 @@ import {
   Plus, Note, TextB, TextItalic, ListBullets,
   ListNumbers, Quotes, TrashSimple,
 } from "@phosphor-icons/react"
+import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +54,8 @@ export function NotesApp() {
       .finally(() => setLoading(false))
   }, [])
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   const createNote = async () => {
     const res = await fetch("/api/records", {
       method: "POST",
@@ -63,6 +67,7 @@ export function NotesApp() {
       const note = toNote(record)
       setNotes((prev) => [note, ...prev])
       setSelectedId(note.id)
+      toast.success("Note created")
     }
   }
 
@@ -78,12 +83,18 @@ export function NotesApp() {
   }, [])
 
   const deleteNote = async (id: string) => {
-    await fetch(`/api/records/${id}`, { method: "DELETE" })
-    setNotes((prev) => {
-      const rest = prev.filter((n) => n.id !== id)
-      if (selectedId === id) setSelectedId(rest[0]?.id ?? null)
-      return rest
-    })
+    try {
+      await fetch(`/api/records/${id}`, { method: "DELETE" })
+      setNotes((prev) => {
+        const rest = prev.filter((n) => n.id !== id)
+        if (selectedId === id) setSelectedId(rest[0]?.id ?? null)
+        return rest
+      })
+      toast.success("Note deleted")
+    } catch {
+      toast.error("Failed to delete note")
+    }
+    setConfirmDeleteId(null)
   }
 
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null
@@ -134,7 +145,7 @@ export function NotesApp() {
                 note={note}
                 active={note.id === selectedId}
                 onClick={() => setSelectedId(note.id)}
-                onDelete={() => deleteNote(note.id)}
+                onDelete={() => setConfirmDeleteId(note.id)}
               />
             ))
           )}
@@ -166,6 +177,14 @@ export function NotesApp() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}
+        title="Delete note"
+        description="This note will be permanently deleted. This action cannot be undone."
+        onConfirm={() => confirmDeleteId && deleteNote(confirmDeleteId)}
+      />
     </div>
   )
 }

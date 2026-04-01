@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lightning, Plus, Play, Clock, DotsThree, Trash, PencilSimple, ClockCounterClockwise } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { EmptyState } from '@/components/ui/empty-state'
 
 interface Workflow {
@@ -68,6 +69,9 @@ export function WorkflowList() {
     try {
       await fetch(`/api/workflows/${id}`, { method: 'DELETE' })
       setWorkflows((prev) => prev.filter((wf) => wf.id !== id))
+      toast.success('Workflow deleted')
+    } catch {
+      toast.error('Failed to delete workflow')
     } finally {
       setDeleting(false)
       setConfirmDeleteId(null)

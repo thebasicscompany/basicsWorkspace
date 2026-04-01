@@ -245,6 +245,11 @@ h1, h2, h3, h4, h5, h6,
   background-size: 256px 256px;
 }
 
+.dark .paper-grain::before {
+  opacity: 0.04;
+  mix-blend-mode: soft-light;
+}
+
 /* ─── Editorial Animations ──────────────────────────────────── */
 
 @keyframes editorial-rise {
@@ -283,37 +288,67 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .dark {
-  --background:        oklch(0.145 0 0);
-  --foreground:        oklch(0.985 0 0);
-  --card:        oklch(0.205 0 0);
-  --card-foreground:        oklch(0.985 0 0);
-  --popover:        oklch(0.205 0 0);
-  --popover-foreground:        oklch(0.985 0 0);
-  --primary:        oklch(0.922 0 0);
-  --primary-foreground:        oklch(0.205 0 0);
-  --secondary:        oklch(0.269 0 0);
-  --secondary-foreground:        oklch(0.985 0 0);
-  --muted:        oklch(0.269 0 0);
-  --muted-foreground:        oklch(0.708 0 0);
-  --accent:        oklch(0.269 0 0);
-  --accent-foreground:        oklch(0.985 0 0);
-  --destructive:        oklch(0.704 0.191 22.216);
-  --border:        oklch(1 0 0 / 10%);
-  --input:        oklch(1 0 0 / 15%);
-  --ring:        oklch(0.556 0 0);
-  --chart-1:        oklch(0.87 0 0);
-  --chart-2:        oklch(0.556 0 0);
-  --chart-3:        oklch(0.439 0 0);
-  --chart-4:        oklch(0.371 0 0);
-  --chart-5:        oklch(0.269 0 0);
-  --sidebar:        oklch(0.205 0 0);
-  --sidebar-foreground:        oklch(0.985 0 0);
-  --sidebar-primary:        oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground:        oklch(0.985 0 0);
-  --sidebar-accent:        oklch(0.269 0 0);
-  --sidebar-accent-foreground:        oklch(0.985 0 0);
-  --sidebar-border:        oklch(1 0 0 / 10%);
-  --sidebar-ring:        oklch(0.556 0 0);
+  /* Basics design tokens — dark mode */
+  --color-bg-base:        #141414;
+  --color-bg-surface:     #1C1C1C;
+  --color-bg-elevated:    #242424;
+  --color-bg-subtle:      #1A1A1A;
+  --color-bg-sidebar:     #171717;
+
+  --color-text-primary:   #F0F0F0;
+  --color-text-secondary: #A1A1AA;
+  --color-text-tertiary:  #71717A;
+  --color-text-accent:    #4ADE80;
+
+  --color-border:         #2A2A2A;
+  --color-border-strong:  #3A3A3A;
+
+  --color-accent:         #34D399;
+  --color-accent-light:   rgba(52, 211, 153, 0.12);
+
+  --color-success:        #4ADE80;
+  --color-warning:        #FBBF24;
+  --color-error:          #F87171;
+  --color-info:           #34D399;
+
+  /* Shadows — softer in dark mode */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
+
+  --shadow-squircle-color: 0 8px 16px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), inset 0 2px 2px rgba(255,255,255,0.05), inset 0 -2px 4px rgba(0,0,0,0.3);
+  --shadow-squircle-white: 0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.05), inset 0 -1px 1px rgba(0,0,0,0.1);
+  --shadow-squircle-green: 0 4px 12px rgba(52,211,153,0.2), inset 0 2px 2px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.3);
+  --shadow-squircle-green-sm: 0 4px 10px rgba(52,211,153,0.1), inset 0 2px 2px rgba(255,255,255,0.05), inset 0 -2px 4px rgba(0,0,0,0.2);
+
+  /* shadcn semantic — Basics dark palette */
+  --background:             #141414;
+  --foreground:             #F0F0F0;
+  --card:                   #1C1C1C;
+  --card-foreground:        #F0F0F0;
+  --popover:                #1C1C1C;
+  --popover-foreground:     #F0F0F0;
+  --primary:                #34D399;
+  --primary-foreground:     #0A0A0A;
+  --secondary:              #242424;
+  --secondary-foreground:   #F0F0F0;
+  --muted:                  #242424;
+  --muted-foreground:       #A1A1AA;
+  --accent:                 rgba(52, 211, 153, 0.12);
+  --accent-foreground:      #34D399;
+  --destructive:            #F87171;
+  --border:                 #2A2A2A;
+  --input:                  #2A2A2A;
+  --ring:                   #34D399;
+
+  --sidebar:                #171717;
+  --sidebar-foreground:     #F0F0F0;
+  --sidebar-primary:        #34D399;
+  --sidebar-primary-foreground: #0A0A0A;
+  --sidebar-accent:         rgba(52,211,153,0.12);
+  --sidebar-accent-foreground: #34D399;
+  --sidebar-border:         #2A2A2A;
+  --sidebar-ring:           #34D399;
 }
 
 @layer base {

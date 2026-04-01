@@ -35,11 +35,12 @@ export function AppTile({
         "w-[80px] h-[80px] rounded-[20px] cursor-pointer group tile-hover",
         "flex items-center justify-center shrink-0",
         dashed
-          ? "border-[2px] border-dashed border-zinc-300/70 bg-transparent hover:border-zinc-400 hover:bg-black/[0.02]"
-          : (iconBg || "bg-white border"),
+          ? "border-[2px] border-dashed border-zinc-300/70 dark:border-zinc-600/70 bg-transparent hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+          : (iconBg || "border"),
         className
       )}
       style={dashed ? undefined : {
+        background: !iconBg ? "var(--color-bg-surface)" : undefined,
         borderColor: !iconBg ? "var(--color-border)" : undefined,
         boxShadow: iconBg ? "var(--shadow-squircle-color)" : "var(--shadow-squircle-white)",
       }}
@@ -47,7 +48,7 @@ export function AppTile({
       {groupIcons && groupIcons.length > 0 ? (
         <div className="grid grid-cols-2 gap-1 w-[44px] h-[44px]">
           {groupIcons.slice(0, 4).map((gi, i) => (
-            <div key={i} className={cn("flex items-center justify-center rounded-md", iconBg ? "bg-black/10" : "bg-zinc-50")}>
+            <div key={i} className={cn("flex items-center justify-center rounded-md", iconBg ? "bg-black/10" : "bg-zinc-50 dark:bg-zinc-800")}>
               {gi}
             </div>
           ))}

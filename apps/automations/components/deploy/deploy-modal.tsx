@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Check, Copy } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { BlockState } from '@/apps/automations/stores/workflows/utils'
 
 interface DeployModalProps {
@@ -301,6 +303,7 @@ export function DeployModal({
 }: DeployModalProps) {
   const [activeTab, setActiveTab] = useState<TabView>('general')
   const [isUndeploying, setIsUndeploying] = useState(false)
+  const [confirmUndeploy, setConfirmUndeploy] = useState(false)
 
   // Reset tab when opening
   useEffect(() => {
@@ -313,11 +316,14 @@ export function DeployModal({
     setIsUndeploying(true)
     try {
       await onUndeploy()
+      toast.success('Workflow undeployed')
       onOpenChange(false)
     } catch (err) {
       console.error('Undeploy failed:', err)
+      toast.error('Failed to undeploy workflow')
     } finally {
       setIsUndeploying(false)
+      setConfirmUndeploy(false)
     }
   }, [onUndeploy, onOpenChange])
 
@@ -344,7 +350,7 @@ export function DeployModal({
                 isDeployed={isDeployed}
                 deployedAt={deployedAt}
                 isUndeploying={isUndeploying}
-                onUndeploy={handleUndeploy}
+                onUndeploy={() => setConfirmUndeploy(true)}
               />
             </TabsContent>
 
@@ -375,12 +381,28 @@ export function DeployModal({
             {isDeployed ? 'Close' : 'Cancel'}
           </Button>
           {!isDeployed && (
-            <Button onClick={async () => { await onDeploy(); }}>
+            <Button onClick={async () => {
+              try {
+                await onDeploy()
+                toast.success('Workflow deployed')
+              } catch {
+                toast.error('Failed to deploy workflow')
+              }
+            }}>
               Deploy Workflow
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
+
+      <ConfirmDialog
+        open={confirmUndeploy}
+        onOpenChange={setConfirmUndeploy}
+        title="Undeploy workflow"
+        description="This will take the workflow offline. Webhooks and scheduled triggers will stop firing. You can redeploy at any time."
+        confirmLabel="Undeploy"
+        onConfirm={handleUndeploy}
+      />
     </Dialog>
   )
 }

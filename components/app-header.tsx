@@ -16,10 +16,11 @@ export function AppHeader({ breadcrumb, actions, className }: AppHeaderProps) {
   return (
     <header
       className={cn(
-        "flex items-center justify-between px-6 bg-white border-b shrink-0",
+        "flex items-center justify-between px-6 border-b shrink-0",
         className
       )}
       style={{
+        background: "var(--color-bg-surface)",
         borderColor: "var(--color-border)",
         borderBottomWidth: "0.5px",
         height: 72,
