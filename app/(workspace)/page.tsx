@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus } from "@phosphor-icons/react"
+import Link from "next/link"
+import { Plus, Lightning, Clock } from "@phosphor-icons/react"
 import { PageTransition } from "@/components/page-transition"
 import { AppTile } from "@/components/launchpad/app-tile"
 import { ConnectionTile } from "@/components/launchpad/connection-tile"
@@ -31,6 +32,9 @@ export default function LaunchpadPage() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
 
   const [connections, setConnections] = useState<{ provider: string }[]>([])
+  const [recentWorkflows, setRecentWorkflows] = useState<
+    { id: string; name: string; updatedAt: string; isDeployed?: boolean; runCount?: number }[]
+  >([])
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -42,7 +46,21 @@ export default function LaunchpadPage() {
     } catch { /* gateway not running */ }
   }, [])
 
-  useEffect(() => { fetchConnections() }, [fetchConnections])
+  const fetchRecentWorkflows = useCallback(async () => {
+    try {
+      const res = await fetch("/api/workflows?limit=4")
+      if (res.ok) {
+        const data = await res.json()
+        const wfs = data.workflows ?? data
+        setRecentWorkflows(Array.isArray(wfs) ? wfs.slice(0, 4) : [])
+      }
+    } catch { /* ok */ }
+  }, [])
+
+  useEffect(() => {
+    fetchConnections()
+    fetchRecentWorkflows()
+  }, [fetchConnections, fetchRecentWorkflows])
 
   return (
     <PageTransition>
@@ -82,6 +100,49 @@ export default function LaunchpadPage() {
               dashed
             />
           </div>
+
+          {recentWorkflows.length > 0 && (
+            <>
+              <div className="my-10 shrink-0 opacity-30" style={{ borderTop: "1px solid var(--color-border-strong)" }} />
+
+              <SectionLabel className="mb-4">Recent Workflows</SectionLabel>
+              <div className="flex flex-wrap gap-3 shrink-0 editorial-stagger">
+                {recentWorkflows.map((wf) => (
+                  <Link
+                    key={wf.id}
+                    href={`/automations/${wf.id}`}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:shadow-md"
+                    style={{
+                      background: 'var(--color-bg-surface)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--color-accent-light)' }}
+                    >
+                      <Lightning size={14} weight="fill" style={{ color: 'var(--color-accent)' }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)', maxWidth: 160 }}>
+                        {wf.name}
+                      </p>
+                      <p className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--color-text-tertiary)' }}>
+                        {wf.isDeployed && (
+                          <span className="flex items-center gap-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
+                            Live
+                          </span>
+                        )}
+                        <Clock size={9} />
+                        {new Date(wf.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="my-10 shrink-0 opacity-30" style={{ borderTop: "1px solid var(--color-border-strong)" }} />
 

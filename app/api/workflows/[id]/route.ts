@@ -66,46 +66,55 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     .returning()
 
   if (blocks !== undefined) {
-    // Delete existing blocks (cascade-deletes edges via FK)
-    await db
-      .delete(workflowBlocks)
-      .where(eq(workflowBlocks.workflowId, id as `${string}-${string}-${string}-${string}-${string}`))
+    // Wrap delete + re-insert in a transaction to prevent partial saves (Sim pattern)
+    const blockIds = new Set(blocks.map((b) => b.id as string).filter(Boolean))
 
-    if (blocks.length > 0) {
-      await db.insert(workflowBlocks).values(
-        blocks.map((b) => ({
-          // Preserve client-side block ID so edges can reference them
-          id: (b.id as string) ?? undefined,
-          workflowId: id as `${string}-${string}-${string}-${string}-${string}`,
-          type: b.type as string,
-          name: (b.name as string | undefined) ?? "Block",
-          positionX: b.positionX as string | undefined,
-          positionY: b.positionY as string | undefined,
-          enabled: b.enabled as boolean | undefined,
-          advancedMode: b.advancedMode as boolean | undefined,
-          triggerMode: b.triggerMode as boolean | undefined,
-          horizontalHandles: b.horizontalHandles as boolean | undefined,
-          locked: b.locked as boolean | undefined,
-          height: b.height as number | undefined,
-          subBlocks: b.subBlocks as Record<string, unknown> | undefined,
-          outputs: b.outputs as Record<string, unknown> | undefined,
-          data: b.data as Record<string, unknown> | undefined,
-        }))
-      )
+    await db.transaction(async (tx) => {
+      // Delete existing blocks + edges (cascade via FK)
+      await tx
+        .delete(workflowBlocks)
+        .where(eq(workflowBlocks.workflowId, id as `${string}-${string}-${string}-${string}-${string}`))
 
-      // Insert edges after blocks (so FK references are valid)
-      if (edges && edges.length > 0) {
-        await db.insert(workflowEdges).values(
-          edges.map((e) => ({
+      if (blocks.length > 0) {
+        await tx.insert(workflowBlocks).values(
+          blocks.map((b) => ({
+            id: (b.id as string) ?? undefined,
             workflowId: id as `${string}-${string}-${string}-${string}-${string}`,
-            sourceBlockId: e.sourceBlockId as `${string}-${string}-${string}-${string}-${string}`,
-            targetBlockId: e.targetBlockId as `${string}-${string}-${string}-${string}-${string}`,
-            sourceHandle: e.sourceHandle ?? null,
-            targetHandle: e.targetHandle ?? null,
+            type: b.type as string,
+            name: (b.name as string | undefined) ?? "Block",
+            positionX: b.positionX as string | undefined,
+            positionY: b.positionY as string | undefined,
+            enabled: b.enabled as boolean | undefined,
+            advancedMode: b.advancedMode as boolean | undefined,
+            triggerMode: b.triggerMode as boolean | undefined,
+            horizontalHandles: b.horizontalHandles as boolean | undefined,
+            locked: b.locked as boolean | undefined,
+            height: b.height as number | undefined,
+            subBlocks: b.subBlocks as Record<string, unknown> | undefined,
+            outputs: b.outputs as Record<string, unknown> | undefined,
+            data: b.data as Record<string, unknown> | undefined,
           }))
         )
+
+        // Only insert edges that reference valid blocks in this save
+        if (edges && edges.length > 0) {
+          const validEdges = edges.filter(
+            (e) => blockIds.has(e.sourceBlockId) && blockIds.has(e.targetBlockId)
+          )
+          if (validEdges.length > 0) {
+            await tx.insert(workflowEdges).values(
+              validEdges.map((e) => ({
+                workflowId: id as `${string}-${string}-${string}-${string}-${string}`,
+                sourceBlockId: e.sourceBlockId as `${string}-${string}-${string}-${string}-${string}`,
+                targetBlockId: e.targetBlockId as `${string}-${string}-${string}-${string}-${string}`,
+                sourceHandle: e.sourceHandle ?? null,
+                targetHandle: e.targetHandle ?? null,
+              }))
+            )
+          }
+        }
       }
-    }
+    })
   }
 
   await logContextEvent({

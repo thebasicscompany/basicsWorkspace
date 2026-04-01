@@ -183,6 +183,42 @@ h1, h2, h3, h4, h5, h6,
   letter-spacing: -0.02em;
 }
 
+/* ─── ReactFlow Connection Feedback ──────────────────────────── */
+
+.react-flow.connecting .react-flow__handle-left {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  transition: box-shadow 0.15s ease;
+}
+
+.react-flow.connecting .react-flow__handle-right {
+  opacity: 0.4;
+}
+
+/* ─── Scrollbar Styling ──────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
 /* ─── Paper Grain Texture ───────────────────────────────────── */
 
 .paper-grain::before {

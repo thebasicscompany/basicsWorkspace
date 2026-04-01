@@ -1,5 +1,6 @@
 import type { Edge } from 'reactflow'
-import { isAnnotationOnlyBlock } from '@/lib/sim/executor/constants'
+import { isAnnotationOnlyBlock, isTriggerBlockType as isCoreTrigger } from '@/lib/sim/executor/constants'
+import { getBlock } from '@/lib/sim/blocks/registry'
 import type { BlockState } from '@/apps/automations/stores/workflow-types'
 
 export interface DroppedEdge {
@@ -57,17 +58,11 @@ export function validateEdges(
   const valid: Edge[] = []
   const dropped: DroppedEdge[] = []
 
-  // Import trigger check inline to avoid circular dependency
-  const TRIGGER_TYPES_SET = new Set([
-    'genericWebhook', 'schedule', 'api', 'webhook', 'manual',
-    'github', 'slack', 'stripe', 'gmail', 'calendly', 'telegram',
-    'hubspot', 'jira', 'linear', 'airtable', 'typeform', 'twilio_voice',
-    'whatsapp', 'rss', 'imap', 'outlook', 'googleforms', 'calcom',
-    'confluence', 'microsoftteams', 'ashby', 'attio', 'webflow',
-    'fathom', 'fireflies', 'grain', 'circleback', 'lemlist',
-  ])
+  // Dynamic trigger check — uses core executor list + block registry category
   function isTriggerBlockType(type: string): boolean {
-    return type === 'starter' || TRIGGER_TYPES_SET.has(type)
+    if (isCoreTrigger(type)) return true
+    const config = getBlock(type)
+    return config?.category === 'triggers'
   }
 
   for (const edge of edges) {

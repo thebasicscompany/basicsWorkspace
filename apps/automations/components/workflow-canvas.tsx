@@ -18,7 +18,7 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket, BracketsCurly, ArrowCounterClockwise, ArrowClockwise, Check, CircleNotch, Warning, ChatCircle } from '@phosphor-icons/react'
+import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket, BracketsCurly, ArrowCounterClockwise, ArrowClockwise, Check, CircleNotch, Warning, Lightning, Clock, WebhooksLogo, ChatCircle } from '@phosphor-icons/react'
 import { DeployModal } from './deploy/deploy-modal'
 import {
   Dialog,
@@ -179,7 +179,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState('')
-  const [toolbarOpen, setToolbarOpen] = useState(false)
+  const [toolbarOpen, setToolbarOpen] = useState(true)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [isDeployed, setIsDeployed] = useState(false)
@@ -378,19 +378,55 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   }, [workflowId])
 
   const handleDeploy = useCallback(async () => {
-    const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'POST' })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed to deploy')
-    setIsDeployed(true)
-    setDeployedAt(data.deployedAt ?? new Date().toISOString())
-    setNeedsRedeployment(false)
-  }, [workflowId])
+    // Run pre-deploy validation
+    const checkResult = runPreDeployChecks({
+      blocks: blockStates as any,
+      edges,
+      workflowId,
+    })
+    if (!checkResult.passed) {
+      setDeployError(checkResult.error || 'Pre-deploy validation failed')
+      return
+    }
+
+    setIsDeploying(true)
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}/deploy`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to deploy')
+      setIsDeployed(true)
+      setDeployedAt(data.deployedAt ?? new Date().toISOString())
+      setNeedsRedeployment(false)
+    } catch (err: any) {
+      setDeployError(err.message || 'Deploy failed')
+    } finally {
+      setIsDeploying(false)
+    }
+  }, [workflowId, blockStates, edges])
+
+  // Connection drag state for visual feedback
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+  const connectionErrorTimer = useRef<NodeJS.Timeout | null>(null)
+
+  const onConnectStart = useCallback(() => setIsConnecting(true), [])
+  const onConnectEnd = useCallback(() => setIsConnecting(false), [])
 
   const onConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) return
-      if (connection.source === connection.target) return
-      if (wouldCreateCycle(connection.source, connection.target, edges)) return
+      if (connection.source === connection.target) {
+        setConnectionError("Can't connect a block to itself")
+        if (connectionErrorTimer.current) clearTimeout(connectionErrorTimer.current)
+        connectionErrorTimer.current = setTimeout(() => setConnectionError(null), 2500)
+        return
+      }
+      if (wouldCreateCycle(connection.source, connection.target, edges)) {
+        setConnectionError("Can't connect — would create a cycle")
+        if (connectionErrorTimer.current) clearTimeout(connectionErrorTimer.current)
+        connectionErrorTimer.current = setTimeout(() => setConnectionError(null), 2500)
+        return
+      }
       setEdges((eds) => addEdge({ ...connection, type: 'workflow' }, eds))
     },
     [setEdges, edges]
@@ -1069,6 +1105,48 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     event.dataTransfer.dropEffect = 'move'
   }, [])
 
+  // Live validation awareness
+  const validationIssues = useMemo(() => {
+    const blockIds = Object.keys(blockStates)
+    if (blockIds.length === 0) return null
+
+    const issues: string[] = []
+
+    // Check for unconnected blocks (no incoming or outgoing edges)
+    const connectedSources = new Set(edges.map((e) => e.source))
+    const connectedTargets = new Set(edges.map((e) => e.target))
+    let unconnected = 0
+    for (const id of blockIds) {
+      const block = blockStates[id]
+      // Start/trigger blocks don't need incoming edges
+      const config = getBlock(block.type)
+      const isTrigger = config?.category === 'triggers' || block.triggerMode
+      const hasIncoming = connectedTargets.has(id)
+      const hasOutgoing = connectedSources.has(id)
+      if (!isTrigger && !hasIncoming && !hasOutgoing) unconnected++
+    }
+    if (unconnected > 0) issues.push(`${unconnected} block${unconnected > 1 ? 's' : ''} not connected`)
+
+    // Check for required fields that are empty
+    let missingFields = 0
+    for (const [blockId, block] of Object.entries(blockStates)) {
+      const config = getBlock(block.type)
+      if (!config) continue
+      for (const sb of config.subBlocks ?? []) {
+        if (!sb.required) continue
+        const required = typeof sb.required === 'boolean' ? sb.required : false
+        if (!required) continue
+        const val = block.subBlocks?.[sb.id]?.value
+        if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)) {
+          missingFields++
+        }
+      }
+    }
+    if (missingFields > 0) issues.push(`${missingFields} required field${missingFields > 1 ? 's' : ''} empty`)
+
+    return issues.length > 0 ? issues : null
+  }, [blockStates, edges])
+
   // Selected block config
   const selectedBlock = selectedBlockId ? blockStates[selectedBlockId] : null
   const selectedConfig = selectedBlock ? getBlock(selectedBlock.type) : null
@@ -1143,6 +1221,19 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
             </>
           )}
         </div>
+
+        {/* Validation issues */}
+        {validationIssues && saveStatus === 'idle' && (
+          <div className="flex items-center gap-1 text-[11px] ml-1" style={{ color: 'var(--color-warning)' }}>
+            <Warning size={11} />
+            <span>{validationIssues[0]}</span>
+            {validationIssues.length > 1 && (
+              <span style={{ color: 'var(--color-text-tertiary)' }}>
+                +{validationIssues.length - 1} more
+              </span>
+            )}
+          </div>
+        )}
 
         <TooltipProvider delay={400}>
           <div className="ml-auto flex items-center gap-2">
@@ -1297,45 +1388,46 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
               <TooltipContent side="bottom">Execute workflow</TooltipContent>
             </Tooltip>
 
+            {/* Deploy status badge */}
+            {isDeployed && (
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                style={{
+                  background: needsRedeployment
+                    ? 'color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-surface))'
+                    : 'var(--color-accent-light)',
+                  color: needsRedeployment ? 'var(--color-warning)' : 'var(--color-accent)',
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: needsRedeployment ? 'var(--color-warning)' : 'var(--color-success)',
+                  }}
+                />
+                {needsRedeployment ? 'Out of sync' : 'Live'}
+              </span>
+            )}
+
             <Tooltip>
               <TooltipTrigger
                 render={
                   <button
-                    onClick={handleDeployClick}
+                    onClick={() => setDeployModalOpen(true)}
                     disabled={isDeploying}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-50"
                     style={{
-                      background: needsRedeployment
-                        ? 'color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-surface))'
-                        : isDeployed
-                          ? 'var(--color-accent-light)'
-                          : 'var(--color-text-primary)',
-                      color: needsRedeployment
-                        ? 'var(--color-warning)'
-                        : isDeployed
-                          ? 'var(--color-accent)'
-                          : '#fff',
-                      border: needsRedeployment
-                        ? '1px solid var(--color-warning)'
-                        : isDeployed
-                          ? '1px solid var(--color-accent)'
-                          : 'none',
+                      background: 'var(--color-bg-base)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-text-primary)',
                     }}
                   />
                 }
               >
                 <Rocket size={12} weight="fill" />
-                {isDeploying
-                  ? 'Deploying\u2026'
-                  : needsRedeployment
-                    ? 'Update'
-                    : isDeployed
-                      ? 'Live'
-                      : 'Deploy'}
+                {isDeploying ? 'Deploying\u2026' : 'Deploy'}
               </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {isDeployed ? 'View deployment settings' : 'Deploy workflow to make it live'}
-              </TooltipContent>
+              <TooltipContent side="bottom">Open deployment settings</TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
@@ -1358,6 +1450,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onConnectStart={onConnectStart}
+              onConnectEnd={onConnectEnd}
               onNodeClick={(_e, node) => { setSelectedBlockId(node.id); setContextMenu(null) }}
               onSelectionChange={({ nodes: sel }) => {
                 if (sel.length === 1) setSelectedBlockId(sel[0].id)
@@ -1373,6 +1467,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
               defaultEdgeOptions={{ type: 'workflow' }}
               fitView
               fitViewOptions={{ padding: 0.3 }}
+              className={isConnecting ? 'connecting' : ''}
             >
               <Background
                 variant={BackgroundVariant.Dots}
@@ -1389,6 +1484,77 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
                 }}
               />
             </ReactFlow>
+
+            {/* Empty canvas onboarding prompt */}
+            {Object.keys(blockStates).length === 0 && workflow && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                <div
+                  className="pointer-events-auto rounded-xl p-6 max-w-sm text-center"
+                  style={{
+                    background: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border)',
+                    boxShadow: 'var(--shadow-lg)',
+                  }}
+                >
+                  <p
+                    className="text-sm font-medium mb-1"
+                    style={{ color: 'var(--color-text-primary)' }}
+                  >
+                    Every workflow starts with a trigger.
+                  </p>
+                  <p
+                    className="text-xs mb-4"
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  >
+                    Pick one to begin, or drag a block from the toolbar.
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    {[
+                      { type: 'start_trigger', name: 'Start', icon: Lightning, color: '#34B5FF' },
+                      { type: 'schedule', name: 'Schedule', icon: Clock, color: '#6366F1' },
+                      { type: 'generic_webhook', name: 'Webhook', icon: WebhooksLogo, color: '#10B981' },
+                    ].map((trigger) => (
+                      <button
+                        key={trigger.type}
+                        onClick={() => {
+                          addBlock(trigger.type, trigger.name)
+                          setToolbarOpen(false)
+                        }}
+                        className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg transition-colors hover:bg-[var(--color-bg-base)]"
+                        style={{ border: '1px solid var(--color-border)' }}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{ background: `${trigger.color}18` }}
+                        >
+                          <trigger.icon size={16} weight="fill" style={{ color: trigger.color }} />
+                        </div>
+                        <span className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                          {trigger.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Connection error toast */}
+            {connectionError && (
+              <div
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium animate-in fade-in-0 slide-in-from-top-2"
+                style={{
+                  background: 'var(--color-bg-surface)',
+                  border: '1px solid var(--color-error)',
+                  color: 'var(--color-error)',
+                  boxShadow: 'var(--shadow-md)',
+                }}
+              >
+                <Warning size={14} weight="fill" />
+                {connectionError}
+              </div>
+            )}
+
             <ExecutionLogPanel
               events={executionEvents}
               isRunning={isRunning}

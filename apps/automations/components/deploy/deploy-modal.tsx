@@ -370,13 +370,16 @@ export function DeployModal({
           </div>
         </Tabs>
 
-        {!isDeployed && (
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {isDeployed ? 'Close' : 'Cancel'}
+          </Button>
+          {!isDeployed && (
+            <Button onClick={async () => { await onDeploy(); }}>
+              Deploy Workflow
             </Button>
-          </DialogFooter>
-        )}
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -41,7 +41,44 @@ export async function POST(request: Request) {
     const contextVariables: Record<string, unknown> = {}
     let resolvedCode = code
 
-    // Resolve <BlockName.field> tags
+    // 1. Resolve <variable.name> workflow variables (Sim pattern — must run before block tags)
+    const varPattern = /<variable\.([^<>]+)>/g
+    const varMatches = resolvedCode.match(varPattern) || []
+
+    for (const match of varMatches) {
+      const variableName = match.slice('<variable.'.length, -1).trim()
+      const normalizedVarName = normalizeName(variableName)
+
+      const foundVariable = Object.entries(workflowVariables).find(
+        ([, variable]) => {
+          const v = variable as Record<string, unknown>
+          return normalizeName(String(v.name || '')) === normalizedVarName
+        }
+      )
+
+      if (foundVariable) {
+        const variable = foundVariable[1] as Record<string, unknown>
+        let variableValue: unknown = variable.value
+        const varType = variable.type === 'string' ? 'plain' : variable.type
+
+        if (variableValue !== undefined && variableValue !== null) {
+          if (varType === 'number') variableValue = Number(variableValue)
+          else if (varType === 'boolean') {
+            variableValue = typeof variableValue === 'boolean'
+              ? variableValue
+              : String(variableValue).toLowerCase().trim() === 'true'
+          } else if (varType === 'json' && typeof variableValue === 'string') {
+            try { variableValue = JSON.parse(variableValue) } catch { /* keep as string */ }
+          }
+        }
+
+        const safeVarName = `__variable_${variableName.replace(/[^a-zA-Z0-9_]/g, '_')}`
+        contextVariables[safeVarName] = variableValue
+        resolvedCode = resolvedCode.split(match).join(safeVarName)
+      }
+    }
+
+    // 2. Resolve <BlockName.field> block output tags
     const tagPattern = /<([^<>]+)>/g
     const tagMatches = resolvedCode.match(tagPattern) || []
 
@@ -52,6 +89,9 @@ export async function POST(request: Request) {
 
       const blockName = tagName.substring(0, dotIndex)
       const fieldPath = tagName.substring(dotIndex + 1)
+
+      // Skip special prefixes (loop, parallel — handled by executor at runtime)
+      if (['loop', 'parallel', 'variable'].includes(blockName)) continue
 
       // Look up block ID from name mapping
       const normalizedName = normalizeName(blockName)
@@ -64,11 +104,19 @@ export async function POST(request: Request) {
 
       if (!blockId) continue
 
-      // Get the value from blockData
+      // Get the value from blockData — support nested paths (e.g. <Block.field.subfield>)
       const blockOutput = blockData[blockId as string] as Record<string, unknown> | undefined
       if (!blockOutput) continue
 
-      let value: unknown = blockOutput[fieldPath]
+      let value: unknown = blockOutput
+      for (const part of fieldPath.split('.')) {
+        if (value && typeof value === 'object' && part in (value as Record<string, unknown>)) {
+          value = (value as Record<string, unknown>)[part]
+        } else {
+          value = undefined
+          break
+        }
+      }
 
       // Try to parse JSON strings
       if (typeof value === 'string') {
@@ -83,7 +131,7 @@ export async function POST(request: Request) {
       resolvedCode = resolvedCode.split(match).join(safeVarName)
     }
 
-    // Resolve {{ENV_VAR}} references
+    // 3. Resolve {{ENV_VAR}} references
     const envPattern = /\{\{([^}]+)\}\}/g
     const envMatches = resolvedCode.match(envPattern) || []
 
