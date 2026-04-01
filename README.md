@@ -37,13 +37,34 @@ Basics Workspace is a company operating system where **automations are the core 
 
 ## Getting Started
 
+### Quick Setup
+
+```bash
+git clone https://github.com/thebasicscompany/basicsWorkspace.git
+cd basicsWorkspace
+npm install
+docker compose up -d
+cp .env.example .env.local     # fill in values
+npm run db:push
+npx tsx scripts/seed.ts        # admin user + org + system objects
+npx tsx scripts/seed-demo.ts   # CRM data + workflows
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Login: `admin@example.com` / `admin123`.
+
 ### Prerequisites
 
 - **Node.js** 20+
 - **Docker** (for PostgreSQL)
 - **npm**
 
-### 1. Clone & install
+### Step-by-step
+
+<details>
+<summary>Expand for detailed setup instructions</summary>
+
+#### 1. Clone & install
 
 ```bash
 git clone https://github.com/thebasicscompany/basicsWorkspace.git
@@ -51,7 +72,7 @@ cd basicsWorkspace
 npm install
 ```
 
-### 2. Start the database
+#### 2. Start the database
 
 ```bash
 docker compose up -d
@@ -59,7 +80,7 @@ docker compose up -d
 
 This starts PostgreSQL 16 with pgvector on port **5435**.
 
-### 3. Configure environment
+#### 3. Configure environment
 
 ```bash
 cp .env.example .env.local
@@ -83,22 +104,23 @@ ENCRYPTION_KEY=          # openssl rand -hex 32
 CRON_SECRET=             # secret for /api/cron endpoints
 ```
 
-### 4. Push schema & seed
+#### 4. Push schema & seed
 
 ```bash
 npm run db:push
-npm run db:seed
+npx tsx scripts/seed.ts        # admin user, org, system objects
+npx tsx scripts/seed-demo.ts   # 12 companies, 25 contacts, 12 deals, 10 tasks, 6 notes, 4 workflows
 ```
 
-This creates all tables and seeds an admin user (`admin@example.com` / `admin123`).
-
-### 5. Run
+#### 5. Run
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Login: `admin@example.com` / `admin123`.
+
+</details>
 
 ## Project Structure
 
