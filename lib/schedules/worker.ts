@@ -12,17 +12,14 @@ import { db } from '@/lib/db'
 import {
   workflowSchedule,
   workflows,
-  workflowBlocks,
-  workflowEdges,
   workflowExecutionLogs,
 } from '@/lib/db/schema'
 import { createLogger } from '@/lib/sim/logger'
-import { apiBlockToBlockState } from '@/apps/automations/stores/workflows/utils'
 import type { BlockState as SerializerBlockState } from '@/apps/automations/stores/workflow-types'
 import { Serializer } from '@/lib/sim/serializer'
 import { Executor } from '@/lib/sim/executor'
 import { getEffectiveEnvVars } from '@/lib/environment/utils.server'
-import type { Edge } from 'reactflow'
+import { loadDeployedWorkflowState } from '@/lib/workflows/persistence/utils'
 
 const logger = createLogger('ScheduleWorker')
 
@@ -122,30 +119,10 @@ export async function executeScheduleForWorkflow(params: {
       return { success: false, error: 'Workflow not found or not deployed' }
     }
 
-    // Load blocks + edges
-    const apiBlocks = await db
-      .select()
-      .from(workflowBlocks)
-      .where(eq(workflowBlocks.workflowId, workflowId as any))
-
-    const apiEdges = await db
-      .select()
-      .from(workflowEdges)
-      .where(eq(workflowEdges.workflowId, workflowId as any))
-
-    const blockStates: Record<string, SerializerBlockState> = {}
-    for (const ab of apiBlocks) {
-      const bs = apiBlockToBlockState(ab) as unknown as SerializerBlockState
-      blockStates[bs.id] = bs
-    }
-
-    const edges: Edge[] = apiEdges.map((e) => ({
-      id: e.id,
-      source: e.sourceBlockId,
-      target: e.targetBlockId,
-      sourceHandle: e.sourceHandle ?? undefined,
-      targetHandle: e.targetHandle ?? undefined,
-    }))
+    // Load deployed workflow state (not draft)
+    const deployed = await loadDeployedWorkflowState(workflowId)
+    const blockStates = deployed.blocks as unknown as Record<string, SerializerBlockState>
+    const edges = deployed.edges
 
     // Serialize and execute
     const serializer = new Serializer()

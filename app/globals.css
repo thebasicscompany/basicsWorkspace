@@ -32,6 +32,9 @@
   --color-accent:         #2D8653;
   --color-accent-light:   #E6F4ED;
 
+  /* Brand primary (used by agent block bgColor) */
+  --brand-primary-hex:    #2D8653;
+
   /* Semantic */
   --color-success:        #22C55E;
   --color-warning:        #F59E0B;
@@ -102,6 +105,14 @@
   --color-accent:         var(--color-accent);
   --color-accent-light:   var(--color-accent-light);
 
+  --color-success:        var(--color-success);
+  --color-warning:        var(--color-warning);
+  --color-error:          var(--color-error);
+  --color-info:           var(--color-info);
+
+  --shadow-sm:              var(--shadow-sm);
+  --shadow-md:              var(--shadow-md);
+  --shadow-lg:              var(--shadow-lg);
   --shadow-squircle-color: var(--shadow-squircle-color);
   --shadow-squircle-white: var(--shadow-squircle-white);
   --shadow-squircle-green: var(--shadow-squircle-green);

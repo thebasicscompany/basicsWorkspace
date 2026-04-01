@@ -20,18 +20,17 @@ basics-workspace is a company OS desktop/web app. Automations-first. Mac Launchp
 
 ## Current Phase
 
-**Phases 0–3D (partial) complete. Phase 3D reconciliation is next.**
+**Phases 0–3D complete. Phase 4 (deploy & trigger runtime) is next. See NEXT.md.**
 
 - Phase 0: Launchpad, shell, design system ✅
 - Phase 1: Auth (Better Auth), DB (Drizzle + Postgres), route groups, logout ✅
 - Phase 2: Shared context layer ✅
-  - 2A–2D: Records, objects, CRM, context ✅
-- Phase 3: Sim + automations engine — **see Sim repo at `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim`**
-  - 3A: Schema, settings page, workflow API routes ✅
-  - 3B: Automations list page, ReactFlow canvas, block toolbar ✅
-  - 3C: Block registry integration, executor-compatible data shapes ✅
-  - 3D (partial): Tag system, all 34 input types, edge persistence, executor wiring ✅
-  - 3D (remaining): **Sim file reconciliation** — see below
+- Phase 3: Automations engine ✅
+  - 3A: Schema, settings, workflow API routes ✅
+  - 3B: Canvas, block toolbar ✅
+  - 3C: Block registry, executor-compatible shapes ✅
+  - 3D: Tag system, sub-block inputs, edge persistence, executor wiring, copilot, chat panel ✅
+- Phase 4: Deploy & trigger runtime — **NOT STARTED** (see NEXT.md)
 
 ## Auth & DB (live — Phase 1 complete)
 
@@ -220,53 +219,6 @@ Summary: Trigger *definitions* are done (193 files). The *runtime* that receives
 - **Environment variables** — store is empty, no management UI yet
 - **Code editor** — uses react-simple-code-editor + Prism but the emcn Code compound component is a stub
 
-### Phase 3D remaining: Sim file reconciliation
-
-**CRITICAL RULE: Copy Sim files LITERALLY, then fix only import paths.**
-
-We found bugs caused by rewriting Sim code from memory/summaries instead of copying it. The `classifyStartBlockType` stub returning `null` broke all start block output resolution. Going forward:
-
-1. **Use the Read tool** to read the actual Sim source file
-2. **File-copy** the code into our repo
-3. **Only change import paths** (e.g., `@/blocks` → `@/lib/sim/blocks`, `@/stores/` → `@/apps/automations/stores/`)
-4. **Only change auth** if the Sim code calls workspace/auth APIs we don't have yet
-5. **Never rewrite logic.** If a function works in Sim, it must work identically here.
-
-#### Files that need 1:1 reconciliation with Sim
-
-**Sim base path:** `C:\Users\aravb\Desktop\Code\basics\basicsOS\sim\apps\sim\`
-
-| Sim file | Our file | Status |
-|----------|----------|--------|
-| `.../sub-block/sub-block.tsx` | `sub-blocks/sub-block-field.tsx` | **REWRITE** — our component map approach works but switch statement logic (props, conditions, wand) is simplified |
-| `.../sub-block/hooks/use-sub-block-input.ts` | `sub-blocks/sub-block-input-controller.tsx` | **REWRITE** — missing field helpers, env var dropdown, streaming, DnD |
-| `.../sub-block/hooks/use-sub-block-value.ts` | `sub-blocks/shared.ts` useSubBlockValue | **REWRITE** — missing deep equality, streaming refs, collaborative sync |
-| `.../sub-block/components/sub-block-input-controller.tsx` | (merged into our controller) | **COPY** — need the real controller that renders both dropdowns |
-| `.../sub-block/components/tag-dropdown/tag-dropdown.tsx` | `sub-blocks/tag-dropdown.tsx` | **COPY** — our version is simplified, missing nested tree building, keyboard nav |
-| `.../sub-block/components/env-var-dropdown.tsx` | **MISSING** | **COPY** — entire env var system missing |
-| `.../sub-block/components/formatted-text.tsx` | (inline in tags.ts) | **COPY** — need the real regex patterns from executor |
-| `.../sub-block/components/short-input/short-input.tsx` | `sub-blocks/short-input.tsx` | **COPY** — ours is 18 lines, Sim is 405 (overlay, wand, password, env var) |
-| `.../sub-block/components/long-input/long-input.tsx` | `sub-blocks/long-input.tsx` | **COPY** — ours is 17 lines, Sim is 405 (overlay, resize, wand) |
-| `.../sub-block/components/code/code.tsx` | `sub-blocks/code-input.tsx` | **COPY** — ours is 16 lines, Sim is 882 (Prism.js, undo/redo, language support) |
-| `.../sub-block/components/dropdown/dropdown.tsx` | `sub-blocks/dropdown-input.tsx` | **COPY** — missing async fetch, multi-select, dependency tracking |
-| `.../sub-block/components/combobox/combobox.tsx` | `sub-blocks/combobox-input.tsx` | **COPY** — missing async fetch, dependency tracking |
-| `.../sub-block/components/table/table.tsx` | `sub-blocks/table-input.tsx` | **COPY** — missing per-cell dropdowns |
-| `.../sub-block/components/messages-input/messages-input.tsx` | `sub-blocks/messages-input.tsx` | **COPY** — missing wand, streaming JSON, per-message overlay |
-| `.../sub-block/components/condition-input/condition-input.tsx` | `sub-blocks/condition-input.tsx` | **COPY** — missing code editor, per-condition overlay |
-| `.../sub-block/components/tool-input/tool-input.tsx` | `sub-blocks/tool-input.tsx` | **COPY** — ours is 160 lines, Sim is 2100 |
-| `.../sub-block/components/eval-input/eval-input.tsx` | `sub-blocks/eval-input.tsx` | **COPY** — missing per-field dropdowns |
-| `.../sub-block/components/variables-input/variables-input.tsx` | `sub-blocks/variables-input.tsx` | **COPY** — missing workflow variable integration |
-| `lib/workflows/blocks/block-outputs.ts` | `apps/automations/lib/block-outputs.ts` | **DONE** — copied with import path fixes |
-| `lib/workflows/blocks/block-path-calculator.ts` | `apps/automations/lib/block-path-calculator.ts` | **DONE** — copied |
-| `lib/workflows/triggers/triggers.ts` | `lib/workflows/triggers/triggers.ts` | **DONE** — TRIGGER_TYPES + classifyStartBlockType copied |
-| `stores/workflows/utils.ts` (mergeSubblockState) | **MISSING** | **COPY** — need full merge with orphaned value handling |
-
-#### What NOT to copy (auth/infra differences)
-- Collaborative/socket sync (`useCollaborativeWorkflow`) — we don't have multi-user yet
-- Workspace-scoped env vars API — we don't have env var storage yet (stub the API call)
-- Wand/AI generation (`useWand` hook) — stub the hook, wire later
-- OAuth credential management — stub credential selectors
-
 ### Key conventions
 
 - **COPY FIRST, ADAPT SECOND.** Read Sim file with Read tool → copy to our repo → change only import paths and auth calls.
@@ -274,3 +226,4 @@ We found bugs caused by rewriting Sim code from memory/summaries instead of copy
 - **Use `useSubBlockStore`** for all subblock value read/writes.
 - **Block definitions in `lib/sim/blocks/blocks/` are read-only.**
 - **UI styling** uses our design tokens (CSS vars, Phosphor icons). The shadcn components use `@base-ui/react` not Radix — check component APIs before using.
+- **See NEXT.md** for remaining work and implementation plan.

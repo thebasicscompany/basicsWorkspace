@@ -4,16 +4,15 @@
  * Stubbed: provider auth verification, billing checks, external subscription management.
  */
 import { db } from '@/lib/db'
-import { webhook, workflows, workflowBlocks, workflowEdges, workflowExecutionLogs } from '@/lib/db/schema'
+import { webhook, workflows, workflowExecutionLogs } from '@/lib/db/schema'
 import { createLogger } from '@/lib/sim/logger'
 import { and, eq, isNull } from 'drizzle-orm'
 import { NextResponse, type NextRequest } from 'next/server'
-import { apiBlockToBlockState } from '@/apps/automations/stores/workflows/utils'
 import type { BlockState as SerializerBlockState } from '@/apps/automations/stores/workflow-types'
 import { Serializer } from '@/lib/sim/serializer'
 import { Executor } from '@/lib/sim/executor'
 import { getEffectiveEnvVars } from '@/lib/environment/utils.server'
-import type { Edge } from 'reactflow'
+import { loadDeployedWorkflowState } from '@/lib/workflows/persistence/utils'
 
 const logger = createLogger('WebhookProcessor')
 
@@ -164,31 +163,10 @@ export async function queueWebhookExecution(
   const workflowId = foundWorkflow.id
 
   try {
-    // Load blocks + edges
-    const apiBlocks = await db
-      .select()
-      .from(workflowBlocks)
-      .where(eq(workflowBlocks.workflowId, workflowId))
-
-    const apiEdges = await db
-      .select()
-      .from(workflowEdges)
-      .where(eq(workflowEdges.workflowId, workflowId))
-
-    // Convert to executor-compatible shapes
-    const blockStates: Record<string, SerializerBlockState> = {}
-    for (const ab of apiBlocks) {
-      const bs = apiBlockToBlockState(ab) as unknown as SerializerBlockState
-      blockStates[bs.id] = bs
-    }
-
-    const edges: Edge[] = apiEdges.map((e) => ({
-      id: e.id,
-      source: e.sourceBlockId,
-      target: e.targetBlockId,
-      sourceHandle: e.sourceHandle ?? undefined,
-      targetHandle: e.targetHandle ?? undefined,
-    }))
+    // Load deployed workflow state (not draft)
+    const deployed = await loadDeployedWorkflowState(workflowId)
+    const blockStates = deployed.blocks as unknown as Record<string, SerializerBlockState>
+    const edges = deployed.edges
 
     // Inject webhook payload into the trigger block's output
     if (foundWebhook.blockId && blockStates[foundWebhook.blockId]) {

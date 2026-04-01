@@ -165,20 +165,12 @@ const SubBlockRow = memo(function SubBlockRow({
   const displayValue = maskedValue || dropdownLabel || value
 
   return (
-    <div className="flex items-center gap-[8px]">
-      <span
-        className="min-w-0 truncate text-[13px] capitalize"
-        style={{ color: 'var(--color-text-tertiary)' }}
-        title={title}
-      >
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="min-w-0 shrink-0 text-[11px] font-medium capitalize text-text-tertiary" title={title}>
         {title}
       </span>
       {displayValue !== undefined && (
-        <span
-          className="flex-1 truncate text-right text-[13px]"
-          style={{ color: 'var(--color-text-primary)' }}
-          title={displayValue}
-        >
+        <span className="flex-1 truncate text-right text-[11px] text-text-secondary" title={displayValue}>
           {displayValue}
         </span>
       )}
@@ -216,7 +208,11 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
 }: NodeProps<BlockNodeData>) {
   const { type, name, enabled } = data
   const blockConfig = useMemo(() => getBlock(type), [type])
-  const bgColor = blockConfig?.bgColor ?? '#2D8653'
+  const rawBgColor = blockConfig?.bgColor ?? '#2D8653'
+  // For icon background, use the raw value (CSS vars work here)
+  const iconBgColor = rawBgColor
+  // For border alpha (hex + '40'), CSS vars don't work — resolve to fallback
+  const borderColor = rawBgColor.startsWith('var(') ? '#2D8653' : rawBgColor
   const BlockIcon = blockConfig?.icon
 
   const isEnabled = enabled !== false
@@ -346,9 +342,9 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
   // ── Ring / selection / execution status ──────────────────────────────────
 
   const getRingStyle = (): string | undefined => {
-    if (selected) return `0 0 0 2px ${bgColor}`
-    if (runPathStatus === 'success') return '0 0 0 2px #22c55e'
-    if (runPathStatus === 'error') return '0 0 0 2px #ef4444'
+    if (selected) return `0 0 0 2px ${borderColor}`
+    if (runPathStatus === 'success') return '0 0 0 2px var(--color-success)'
+    if (runPathStatus === 'error') return '0 0 0 2px var(--color-error)'
     return undefined
   }
 
@@ -370,12 +366,13 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
   return (
     <div className="group relative">
       <div
-        className="workflow-drag-handle relative z-[20] w-[250px] cursor-grab select-none rounded-[8px] [&:active]:cursor-grabbing"
+        className={cn(
+          'workflow-drag-handle relative z-[20] w-[250px] cursor-grab select-none rounded-lg bg-bg-surface shadow-sm [&:active]:cursor-grabbing',
+          !isEnabled && 'opacity-50'
+        )}
         style={{
-          background: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-border)',
+          border: `1.5px solid ${isEnabled ? borderColor + '40' : 'var(--color-border)'}`,
           boxShadow: getRingStyle(),
-          opacity: isEnabled ? 1 : 0.5,
         }}
       >
         {/* Target handle */}
@@ -395,27 +392,23 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
         {/* Header */}
         <div
           className={cn(
-            'flex items-center justify-between p-[8px]',
-            hasContentBelowHeader && 'border-b'
+            'flex items-center justify-between px-2.5 py-2',
+            hasContentBelowHeader && 'border-b border-border'
           )}
-          style={{
-            borderColor: hasContentBelowHeader ? 'var(--color-border)' : undefined,
-          }}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-[10px]">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <div
-              className="flex h-[24px] w-[24px] flex-shrink-0 items-center justify-center rounded-[6px]"
-              style={{ background: isEnabled ? bgColor : 'gray' }}
+              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md"
+              style={{ background: isEnabled ? iconBgColor : 'var(--color-text-tertiary)' }}
             >
               {BlockIcon ? (
-                <BlockIcon className="h-[16px] w-[16px] text-white" />
+                <BlockIcon className="h-4 w-4 text-white" />
               ) : (
                 <Lightning size={16} weight="fill" className="text-white" />
               )}
             </div>
             <span
-              className={cn('truncate font-medium text-[15px]', !isEnabled && 'opacity-50')}
-              style={{ color: 'var(--color-text-primary)' }}
+              className={cn('truncate font-medium text-[13px] text-text-primary', !isEnabled && 'opacity-50')}
               title={name}
             >
               {name}
@@ -423,10 +416,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
           </div>
           <div className="flex flex-shrink-0 items-center gap-1">
             {!isEnabled && (
-              <span
-                className="rounded px-1.5 py-0.5 text-[10px] font-medium"
-                style={{ color: 'var(--color-text-tertiary)' }}
-              >
+              <span className="rounded px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
                 disabled
               </span>
             )}
@@ -435,7 +425,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
 
         {/* Content rows */}
         {hasContentBelowHeader && (
-          <div className="flex flex-col gap-[6px] p-[8px]">
+          <div className="flex flex-col gap-1 px-2.5 py-2">
             {type === 'condition' ? (
               conditionRows.map((cond) => (
                 <SubBlockRow key={cond.id} title={cond.title} value={getDisplayValue(cond.value)} />

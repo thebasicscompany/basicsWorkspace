@@ -65,20 +65,24 @@ async function computeNeedsRedeployment(workflowId: string): Promise<boolean> {
 
     const deployedState = activeVersion.state as Record<string, unknown>
 
-    // Build comparable representations
-    const currentComparable = buildStateFingerprint({
+    // Normalize both sides through JSON round-trip to strip undefined values
+    // (loadWorkflowFromNormalizedTables produces undefined for null handles,
+    //  but the deployed snapshot drops undefined keys during JSON serialization)
+    const normalize = (v: unknown) => JSON.parse(JSON.stringify(v))
+
+    const currentComparable = buildStateFingerprint(normalize({
       blocks: currentData.blocks,
       edges: currentData.edges,
       loops: currentData.loops,
       parallels: currentData.parallels,
-    })
+    }))
 
-    const deployedComparable = buildStateFingerprint({
+    const deployedComparable = buildStateFingerprint(normalize({
       blocks: deployedState.blocks,
       edges: deployedState.edges,
       loops: (deployedState as any).loops || {},
       parallels: (deployedState as any).parallels || {},
-    })
+    }))
 
     return currentComparable !== deployedComparable
   } catch {

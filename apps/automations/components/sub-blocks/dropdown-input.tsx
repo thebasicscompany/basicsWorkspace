@@ -488,7 +488,7 @@ export const Dropdown = memo(function Dropdown({
   // Single select: render with our Select component
   return (
     <Select
-      value={singleValue ?? undefined}
+      value={singleValue ?? ''}
       onValueChange={handleChange}
       disabled={isPreview || disabled || isLoadingOptions}
       onOpenChange={handleOpenChange}
