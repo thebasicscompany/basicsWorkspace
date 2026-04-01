@@ -380,7 +380,7 @@ describe('RouterBlockHandler V2', () => {
     mockGenerateRouterV2Prompt.mockReturnValue('Generated V2 System Prompt')
   })
 
-  it('should handle router_v2 blocks', () => {
+  it('should handle router blocks', () => {
     expect(handler.canHandle(mockRouterV2Block)).toBe(true)
   })
 

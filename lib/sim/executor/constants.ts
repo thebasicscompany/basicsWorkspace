@@ -16,7 +16,6 @@ export enum BlockType {
   PARALLEL = 'parallel',
   LOOP = 'loop',
   ROUTER = 'router',
-  ROUTER_V2 = 'router_v2',
   CONDITION = 'condition',
 
   START_TRIGGER = 'start_trigger',
@@ -329,11 +328,11 @@ export function isConditionBlockType(blockType: string | undefined): boolean {
 }
 
 export function isRouterBlockType(blockType: string | undefined): boolean {
-  return blockType === BlockType.ROUTER || blockType === BlockType.ROUTER_V2
+  return blockType === BlockType.ROUTER
 }
 
 export function isRouterV2BlockType(blockType: string | undefined): boolean {
-  return blockType === BlockType.ROUTER_V2
+  return blockType === BlockType.ROUTER
 }
 
 export function isAgentBlockType(blockType: string | undefined): boolean {

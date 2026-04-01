@@ -26,13 +26,13 @@ interface RouteDefinition {
 
 /**
  * Handler for Router blocks that dynamically select execution paths.
- * Supports both legacy router (block-based) and router_v2 (port-based).
+ * Routes workflow execution to different paths based on context analysis.
  */
 export class RouterBlockHandler implements BlockHandler {
   constructor(private pathTracker?: any) {}
 
   canHandle(block: SerializedBlock): boolean {
-    return block.metadata?.id === BlockType.ROUTER || block.metadata?.id === BlockType.ROUTER_V2
+    return block.metadata?.id === BlockType.ROUTER
   }
 
   async execute(

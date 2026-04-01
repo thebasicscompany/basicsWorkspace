@@ -169,7 +169,7 @@ export class EdgeConstructor {
     // Router V2 uses port-based routing - handle is already set from UI (router-{routeId})
     // We don't modify it here, just validate it exists
     if (metadata.routerV2ConfigMap.has(source)) {
-      // For router_v2, the sourceHandle should already be set from the UI
+      // For router, the sourceHandle should already be set from the UI
       // If not set and not an error handle, generate based on route index
       if (!handle || (!handle.startsWith(EDGE.ROUTER_PREFIX) && handle !== EDGE.ERROR)) {
         const routes = metadata.routerV2ConfigMap.get(source)

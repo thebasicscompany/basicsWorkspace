@@ -167,7 +167,7 @@ export function createBlockFromParams(
         { id: crypto.randomUUID(), title: 'Else', value: '' },
       ]),
     }
-  } else if (params.type === 'router_v2' && !blockState.subBlocks.routes?.value) {
+  } else if (params.type === 'router' && !blockState.subBlocks.routes?.value) {
     blockState.subBlocks.routes = {
       id: 'routes',
       type: 'router-input',

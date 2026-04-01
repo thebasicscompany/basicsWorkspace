@@ -327,7 +327,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
   }, [type, topologySubBlocks, id])
 
   const routerRows = useMemo(() => {
-    if (type !== 'router_v2') return [] as { id: string; value: string }[]
+    if (type !== 'router') return [] as { id: string; value: string }[]
     return getRouterRows(id, topologySubBlocks.routes?.value)
   }, [type, topologySubBlocks, id])
 
@@ -440,7 +440,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
               conditionRows.map((cond) => (
                 <SubBlockRow key={cond.id} title={cond.title} value={getDisplayValue(cond.value)} />
               ))
-            ) : type === 'router_v2' ? (
+            ) : type === 'router' ? (
               <>
                 <SubBlockRow
                   key="context"
@@ -517,7 +517,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
         )}
 
         {/* ── Router block handles ── */}
-        {type === 'router_v2' && (
+        {type === 'router' && (
           <>
             {routerRows.map((route, i) => {
               const topOffset =
@@ -555,7 +555,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
         )}
 
         {/* ── Default source + error handles ── */}
-        {type !== 'condition' && type !== 'router_v2' && type !== 'response' && (
+        {type !== 'condition' && type !== 'router' && type !== 'response' && (
           <>
             <Handle
               type="source"

@@ -93,7 +93,7 @@ export const SubflowNodeComponent = memo(({ data, id, selected }: NodeProps<Subf
   const startHandleId = data.kind === 'loop' ? 'loop-start-source' : 'parallel-start-source'
   const endHandleId = data.kind === 'loop' ? 'loop-end-source' : 'parallel-end-source'
   const BlockIcon = data.kind === 'loop' ? ArrowsClockwise : GitFork
-  const blockIconBg = data.kind === 'loop' ? '#2FB3FF' : '#FEE12B'
+  const blockIconBg = data.kind === 'loop' ? 'var(--color-info)' : 'var(--color-warning)'
   const blockName = data.name || (data.kind === 'loop' ? 'Loop' : 'Parallel')
 
   /**
@@ -114,9 +114,9 @@ export const SubflowNodeComponent = memo(({ data, id, selected }: NodeProps<Subf
     if (!hasRing) return undefined
     if (isSelected || isPreviewSelected) return 'var(--color-accent)'
     if (runPathStatus === 'success') {
-      return executionStatus ? 'var(--color-accent)' : '#22c55e'
+      return executionStatus ? 'var(--color-accent)' : 'var(--color-success)'
     }
-    if (runPathStatus === 'error') return '#ef4444'
+    if (runPathStatus === 'error') return 'var(--color-error)'
     return undefined
   }
   const ringColor = getRingColor()

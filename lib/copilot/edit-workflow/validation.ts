@@ -423,7 +423,7 @@ export function validateSourceHandleForBlock(
         error: `Invalid source handle "${sourceHandle}" for router block. Valid handles: source, ${EDGE.ROUTER_PREFIX}{targetId}, error`,
       }
 
-    case 'router_v2': {
+    case 'router': {
       const routesValue = sourceBlock?.subBlocks?.routes?.value
       if (!routesValue) {
         return {

@@ -144,7 +144,7 @@ import { ReductoBlock, ReductoV2Block } from '@/lib/sim/blocks/blocks/reducto'
 import { ResendBlock } from '@/lib/sim/blocks/blocks/resend'
 import { ResponseBlock } from '@/lib/sim/blocks/blocks/response'
 import { RevenueCatBlock } from '@/lib/sim/blocks/blocks/revenuecat'
-import { RouterBlock, RouterV2Block } from '@/lib/sim/blocks/blocks/router'
+import { RouterBlock } from '@/lib/sim/blocks/blocks/router'
 import { RssBlock } from '@/lib/sim/blocks/blocks/rss'
 import { S3Block } from '@/lib/sim/blocks/blocks/s3'
 import { SalesforceBlock } from '@/lib/sim/blocks/blocks/salesforce'
@@ -366,7 +366,6 @@ export const registry: Record<string, BlockConfig> = {
   response: ResponseBlock,
   revenuecat: RevenueCatBlock,
   router: RouterBlock,
-  router_v2: RouterV2Block,
   rss: RssBlock,
   s3: S3Block,
   salesforce: SalesforceBlock,

@@ -41,43 +41,55 @@ export const workflows = pgTable(
   ]
 )
 
-export const workflowBlocks = pgTable("workflow_blocks", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workflowId: uuid("workflow_id")
-    .notNull()
-    .references(() => workflows.id, { onDelete: "cascade" }),
-  type: text("type").notNull(),
-  name: text("name").notNull(),
-  positionX: numeric("position_x").default("0"),
-  positionY: numeric("position_y").default("0"),
-  enabled: boolean("enabled").default(true),
-  advancedMode: boolean("advanced_mode").default(false),
-  triggerMode: boolean("trigger_mode").default(false),
-  horizontalHandles: boolean("horizontal_handles").default(true),
-  locked: boolean("locked").default(false),
-  height: integer("height"),
-  subBlocks: jsonb("sub_blocks").$type<Record<string, unknown>>().default({}),
-  outputs: jsonb("outputs").$type<Record<string, unknown>>().default({}),
-  data: jsonb("data").$type<Record<string, unknown>>().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-})
+export const workflowBlocks = pgTable(
+  "workflow_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflows.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    name: text("name").notNull(),
+    positionX: numeric("position_x").default("0"),
+    positionY: numeric("position_y").default("0"),
+    enabled: boolean("enabled").default(true),
+    advancedMode: boolean("advanced_mode").default(false),
+    triggerMode: boolean("trigger_mode").default(false),
+    horizontalHandles: boolean("horizontal_handles").default(true),
+    locked: boolean("locked").default(false),
+    height: integer("height"),
+    subBlocks: jsonb("sub_blocks").$type<Record<string, unknown>>().default({}),
+    outputs: jsonb("outputs").$type<Record<string, unknown>>().default({}),
+    data: jsonb("data").$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("workflow_blocks_workflow_id_idx").on(table.workflowId),
+  ]
+)
 
-export const workflowEdges = pgTable("workflow_edges", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workflowId: uuid("workflow_id")
-    .notNull()
-    .references(() => workflows.id, { onDelete: "cascade" }),
-  sourceBlockId: uuid("source_block_id")
-    .notNull()
-    .references(() => workflowBlocks.id, { onDelete: "cascade" }),
-  targetBlockId: uuid("target_block_id")
-    .notNull()
-    .references(() => workflowBlocks.id, { onDelete: "cascade" }),
-  sourceHandle: text("source_handle"),
-  targetHandle: text("target_handle"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-})
+export const workflowEdges = pgTable(
+  "workflow_edges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflows.id, { onDelete: "cascade" }),
+    sourceBlockId: uuid("source_block_id")
+      .notNull()
+      .references(() => workflowBlocks.id, { onDelete: "cascade" }),
+    targetBlockId: uuid("target_block_id")
+      .notNull()
+      .references(() => workflowBlocks.id, { onDelete: "cascade" }),
+    sourceHandle: text("source_handle"),
+    targetHandle: text("target_handle"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("workflow_edges_workflow_id_idx").on(table.workflowId),
+  ]
+)
 
 export const workflowSubflows = pgTable("workflow_subflows", {
   id: uuid("id").primaryKey().defaultRandom(),

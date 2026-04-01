@@ -1,16 +1,16 @@
 import type { Metadata } from "next"
-import { Cabin, Fraunces } from "next/font/google"
+import { Manrope, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 
-const cabin = Cabin({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-cabin",
+  variable: "--font-manrope",
   display: "swap",
 })
 
-const fraunces = Fraunces({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-mono",
   display: "swap",
 })
 
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${cabin.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${manrope.variable} ${jetbrainsMono.variable}`}>
       <body className="paper-grain">{children}</body>
     </html>
   )

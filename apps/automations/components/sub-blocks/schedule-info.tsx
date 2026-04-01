@@ -55,8 +55,8 @@ export function ScheduleInfo({ blockId, isPreview = false }: ScheduleInfoProps) 
                 onClick={handleRedeploy}
                 className='rounded-full border px-2 py-0.5 text-[11px] font-medium'
                 style={{
-                  borderColor: '#f97316',
-                  color: '#f97316',
+                  borderColor: 'var(--color-warning)',
+                  color: 'var(--color-warning)',
                 }}
               >
                 {redeployMutation.isPending ? 'redeploying...' : 'disabled'}
@@ -65,8 +65,8 @@ export function ScheduleInfo({ blockId, isPreview = false }: ScheduleInfoProps) 
               <span
                 className='rounded-full border px-2 py-0.5 text-[11px] font-medium'
                 style={{
-                  borderColor: '#f97316',
-                  color: '#f97316',
+                  borderColor: 'var(--color-warning)',
+                  color: 'var(--color-warning)',
                 }}
               >
                 {failedCount} failed

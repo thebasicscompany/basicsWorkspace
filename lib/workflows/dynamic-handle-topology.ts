@@ -31,15 +31,15 @@ function parseStructuredValue(value: unknown): unknown[] | null {
 
 export function isDynamicHandleBlockType(
   type: string | undefined
-): type is 'condition' | 'router_v2' {
-  return type === 'condition' || type === 'router_v2'
+): type is 'condition' | 'router' {
+  return type === 'condition' || type === 'router'
 }
 
 export function getDynamicHandleSubblockId(
   blockType: string | undefined
 ): 'conditions' | 'routes' | null {
   if (blockType === 'condition') return 'conditions'
-  if (blockType === 'router_v2') return 'routes'
+  if (blockType === 'router') return 'routes'
   return null
 }
 
@@ -47,7 +47,7 @@ export function getDynamicHandleSubblockType(
   blockType: string | undefined
 ): 'condition-input' | 'router-input' | null {
   if (blockType === 'condition') return 'condition-input'
-  if (blockType === 'router_v2') return 'router-input'
+  if (blockType === 'router') return 'router-input'
   return null
 }
 
@@ -109,7 +109,7 @@ export function getDynamicHandleTopologySignature(block: BlockState): string | n
     return `condition:${rows.map((row) => row.id).join('|')}`
   }
 
-  if (block.type === 'router_v2') {
+  if (block.type === 'router') {
     const rows = getRouterRows(block.id, block.subBlocks?.routes?.value)
     return `router:${rows.map((row) => row.id).join('|')}`
   }

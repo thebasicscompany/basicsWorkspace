@@ -68,7 +68,7 @@ export function ExecutionLogPanel({
         {isRunning ? (
           <CircleNotch size={14} className="animate-spin" style={{ color: 'var(--color-accent)' }} />
         ) : hasError ? (
-          <XCircle size={14} weight="fill" style={{ color: '#ef4444' }} />
+          <XCircle size={14} weight="fill" style={{ color: 'var(--color-error)' }} />
         ) : isComplete ? (
           <CheckCircle size={14} weight="fill" style={{ color: 'var(--color-accent)' }} />
         ) : (
@@ -162,12 +162,12 @@ function EventRow({ event }: { event: ExecutionEvent }) {
     return (
       <div className="py-1.5">
         <div className="flex items-center gap-2 text-xs">
-          <XCircle size={12} weight="fill" style={{ color: '#ef4444' }} />
-          <span className="font-medium" style={{ color: '#ef4444' }}>Error</span>
+          <XCircle size={12} weight="fill" style={{ color: 'var(--color-error)' }} />
+          <span className="font-medium" style={{ color: 'var(--color-error)' }}>Error</span>
         </div>
         <pre
           className="mt-1 ml-5 text-[11px] rounded px-2 py-1.5 overflow-x-auto whitespace-pre-wrap break-words max-h-32 overflow-y-auto font-mono"
-          style={{ background: '#fef2f2', color: '#dc2626' }}
+          style={{ background: 'color-mix(in srgb, var(--color-error) 8%, var(--color-bg-surface))', color: 'var(--color-error)' }}
         >
           {event.error}
         </pre>

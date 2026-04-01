@@ -138,105 +138,7 @@ Respond with a JSON object containing:
 }
 
 /**
- * Legacy Router Block (block-based routing).
- * Hidden from toolbar but still supported for existing workflows.
- */
-export const RouterBlock: BlockConfig<RouterResponse> = {
-  type: 'router',
-  name: 'Router (Legacy)',
-  description: 'Route workflow',
-  authMode: AuthMode.ApiKey,
-  docsLink: 'https://docs.sim.ai/blocks/router',
-  longDescription:
-    'This is a core workflow block. Intelligently direct workflow execution to different paths based on input analysis. Use natural language to instruct the router to route to certain blocks based on the input.',
-  bestPractices: `
-  - For the prompt, make it almost programmatic. Use the system prompt to define the routing criteria. Should be very specific with no ambiguity.
-  - Use the target block *names* to define the routing criteria.
-  `,
-  category: 'blocks',
-  bgColor: '#28C43F',
-  icon: ConnectIcon,
-  hideFromToolbar: true, // Hide legacy version from toolbar
-  subBlocks: [
-    {
-      id: 'prompt',
-      title: 'Prompt',
-      type: 'long-input',
-      placeholder: 'Route to the correct block based on the input...',
-      required: true,
-    },
-    {
-      id: 'model',
-      title: 'Model',
-      type: 'combobox',
-      placeholder: 'Type or select a model...',
-      required: true,
-      defaultValue: 'claude-sonnet-4-5',
-      options: getModelOptions,
-    },
-    ...getProviderCredentialSubBlocks(),
-    {
-      id: 'temperature',
-      title: 'Temperature',
-      type: 'slider',
-      hidden: true,
-      min: 0,
-      max: 2,
-    },
-    {
-      id: 'systemPrompt',
-      title: 'System Prompt',
-      type: 'code',
-      hidden: true,
-      value: (params: Record<string, any>) => {
-        return generateRouterPrompt(params.prompt || '')
-      },
-    },
-  ],
-  tools: {
-    access: [
-      'openai_chat',
-      'anthropic_chat',
-      'google_chat',
-      'xai_chat',
-      'deepseek_chat',
-      'deepseek_reasoner',
-    ],
-    config: {
-      tool: (params: Record<string, any>) => {
-        const model = params.model || 'gpt-4o'
-        if (!model) {
-          throw new Error('No model selected')
-        }
-        const tool = getBaseModelProviders()[model as ProviderId]
-        if (!tool) {
-          throw new Error(`Invalid model selected: ${model}`)
-        }
-        return tool
-      },
-    },
-  },
-  inputs: {
-    prompt: { type: 'string', description: 'Routing prompt content' },
-    model: { type: 'string', description: 'AI model to use' },
-    ...PROVIDER_CREDENTIAL_INPUTS,
-    temperature: {
-      type: 'number',
-      description: 'Response randomness level (low for consistent routing)',
-    },
-  },
-  outputs: {
-    prompt: { type: 'string', description: 'Routing prompt used' },
-    model: { type: 'string', description: 'Model used' },
-    tokens: { type: 'json', description: 'Token usage' },
-    cost: { type: 'json', description: 'Cost information' },
-    selectedPath: { type: 'json', description: 'Selected routing path' },
-    selectedRoute: { type: 'string', description: 'Selected route ID' },
-  },
-}
-
-/**
- * Router V2 Block (port-based routing).
+ * Router Block (port-based routing).
  * Uses route definitions with descriptions instead of downstream block names.
  */
 interface RouterV2Response extends ToolResponse {
@@ -263,8 +165,8 @@ interface RouterV2Response extends ToolResponse {
   }
 }
 
-export const RouterV2Block: BlockConfig<RouterV2Response> = {
-  type: 'router_v2',
+export const RouterBlock: BlockConfig<RouterV2Response> = {
+  type: 'router',
   name: 'Router',
   description: 'Route workflow based on context',
   authMode: AuthMode.ApiKey,

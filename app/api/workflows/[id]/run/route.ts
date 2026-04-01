@@ -11,6 +11,8 @@ import type { SerializableExecutionState } from "@/lib/sim/executor/execution/ty
 import type { Edge } from "reactflow"
 
 interface RunRequestBody {
+  input?: string
+  conversationId?: string
   runFromBlockId?: string
   runUntilBlockId?: string
 }
@@ -30,7 +32,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
   } catch {
     // No body or invalid JSON — that's fine, run normally
   }
-  const { runFromBlockId, runUntilBlockId } = body
+  const { input: chatInput, conversationId, runFromBlockId, runUntilBlockId } = body
 
   const [workflow] = await db
     .select()
@@ -87,6 +89,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
         const executor = new Executor({
           workflow: serialized,
           envVarValues,
+          workflowInput: chatInput ? { input: chatInput, conversationId: conversationId ?? '' } : undefined,
           workflowVariables: (workflow.variables as Record<string, unknown>) ?? {},
           contextExtensions: {
             workspaceId: orgId,

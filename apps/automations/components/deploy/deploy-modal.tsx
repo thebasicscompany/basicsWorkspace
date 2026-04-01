@@ -73,8 +73,8 @@ function GeneralTab({
           <span
             className="text-xs font-medium px-2 py-0.5 rounded-full"
             style={{
-              background: isDeployed ? '#dcfce7' : '#f3f4f6',
-              color: isDeployed ? '#166534' : '#6b7280',
+              background: isDeployed ? 'var(--color-accent-light)' : 'var(--color-bg-base)',
+              color: isDeployed ? 'var(--color-accent)' : 'var(--color-text-secondary)',
             }}
           >
             {isDeployed ? 'Live' : 'Not Deployed'}
@@ -203,7 +203,7 @@ function ApiTab({
                   <span className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
                     {wh.blockName}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#dcfce7', color: '#166534' }}>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--color-accent-light)', color: 'var(--color-accent)' }}>
                     {wh.provider}
                   </span>
                 </div>

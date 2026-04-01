@@ -7,8 +7,7 @@ export const automationsApp = {
   href: "/automations",
   icon: Lightning,
   iconColor: "text-white",
-  iconBg: "bg-[#2D8653]",
+  iconBg: "bg-emerald-700",
   iconWeight: "fill",
-  subtitle: "3 active",
   order: 1,
 } satisfies AppManifest

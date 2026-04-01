@@ -526,7 +526,7 @@ async function testDynamicHandleTopology() {
 
     // Test isDynamicHandleBlockType
     assert(dht.isDynamicHandleBlockType('condition') === true, 'condition is dynamic')
-    assert(dht.isDynamicHandleBlockType('router_v2') === true, 'router_v2 is dynamic')
+    assert(dht.isDynamicHandleBlockType('router') === true, 'router is dynamic')
     assert(dht.isDynamicHandleBlockType('agent') === false, 'agent is not dynamic')
 
     // Test getConditionRows with defaults

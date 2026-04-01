@@ -18,8 +18,23 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket, BracketsCurly } from '@phosphor-icons/react'
+import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket, BracketsCurly, ArrowCounterClockwise, ArrowClockwise, Check, CircleNotch, Warning, ChatCircle } from '@phosphor-icons/react'
 import { DeployModal } from './deploy/deploy-modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip'
 import { getBlock, getBlocksByCategory, type BlockConfig } from '@/lib/sim/blocks'
 import {
   prepareBlockState,
@@ -44,6 +59,9 @@ import { useVariablesStore } from '@/apps/automations/stores/variables'
 import { VariablesPanel } from './variables-panel'
 import { ExecutionLogPanel, type ExecutionEvent } from './execution-log-panel'
 import { CopilotModal } from './copilot-modal'
+import { WorkflowChat } from './workflow-chat'
+import { useChatStore } from '@/apps/automations/stores/chat'
+import { applyWorkflowStateToStores } from '@/apps/automations/lib/apply-workflow-state'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -170,10 +188,36 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const [needsRedeployment, setNeedsRedeployment] = useState(false)
   const [deployModalOpen, setDeployModalOpen] = useState(false)
   const [variablesPanelOpen, setVariablesPanelOpen] = useState(false)
+  const isChatOpen = useChatStore((s) => s.isOpen)
+  const toggleChat = useChatStore((s) => s.setOpen)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; blockId: string } | null>(null)
   const [executionEvents, setExecutionEvents] = useState<ExecutionEvent[]>([])
   const [execLogOpen, setExecLogOpen] = useState(false)
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
+
+  // Save status indicator
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const saveStatusTimer = useRef<NodeJS.Timeout | null>(null)
+
+  // Undo/Redo history
+  type CanvasSnapshot = { blocks: Record<string, BlockState>; edges: Edge[] }
+  const undoStack = useRef<CanvasSnapshot[]>([])
+  const redoStack = useRef<CanvasSnapshot[]>([])
+  const pushUndoSnapshot = useCallback(() => {
+    undoStack.current.push({
+      blocks: structuredClone(blockStates),
+      edges: structuredClone(edges),
+    })
+    // Cap history at 50 entries
+    if (undoStack.current.length > 50) undoStack.current.shift()
+    redoStack.current = []
+  }, [blockStates, edges])
+
+  // Delete confirmation dialog
+  const [deleteConfirm, setDeleteConfirm] = useState<{ ids: Set<string>; names: string[] } | null>(null)
+
+  // Deploy validation dialog (replaces alert())
+  const [deployError, setDeployError] = useState<string | null>(null)
 
   // Set active workflow in registry so stores work correctly
   useEffect(() => {
@@ -232,6 +276,47 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId, setNodes, setEdges])
 
+  // Re-fetch workflow when copilot makes edits (Sim-style: fetch then applyWorkflowStateToStores)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.workflowId !== workflowId) return
+
+      fetch(`/api/workflows/${workflowId}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (!data) return
+          const { blocks: apiBlocks, edges: apiEdges } = data
+
+          // Convert API blocks to BlockState and build WorkflowState
+          const states: Record<string, BlockState> = {}
+          for (const ab of apiBlocks) {
+            const bs = apiBlockToBlockState(ab)
+            states[bs.id] = bs
+          }
+          const rfEdges = apiEdges ? apiEdges.map(apiEdgeToReactFlowEdge) : []
+
+          // Apply to stores (Sim's applyWorkflowStateToStores pattern)
+          applyWorkflowStateToStores(workflowId, {
+            blocks: states as any,
+            edges: rfEdges,
+            loops: {},
+            parallels: {},
+          })
+
+          // Update local React state for ReactFlow nodes/edges
+          setBlockStates(states)
+          setNodes(Object.values(states).map(b => blockStateToNode(b, states)))
+          setEdges(rfEdges)
+        })
+        .catch(() => {})
+    }
+
+    window.addEventListener('copilot:workflow-updated', handler)
+    return () => window.removeEventListener('copilot:workflow-updated', handler)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowId, setNodes, setEdges])
+
   // Check deployment status
   const checkDeployStatus = useCallback(() => {
     fetch(`/api/workflows/${workflowId}/deploy`)
@@ -262,7 +347,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
       workflowId,
     })
     if (!checkResult.passed) {
-      alert(checkResult.error || 'Pre-deploy validation failed')
+      setDeployError(checkResult.error || 'Pre-deploy validation failed')
       return
     }
 
@@ -277,7 +362,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
       setDeployModalOpen(true)
     } catch (err: any) {
       console.error('Deploy error:', err)
-      alert(err.message || 'Deploy failed')
+      setDeployError(err.message || 'Deploy failed')
     } finally {
       setIsDeploying(false)
     }
@@ -373,26 +458,37 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
     const edgesToSave = currentEdges.map(reactFlowEdgeToApi)
 
-    await fetch(`/api/workflows/${workflowId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ blocks: blocksToSave, edges: edgesToSave }),
-    })
-
-    const vars = Object.values(useVariablesStore.getState().variables)
-      .filter((v) => v.workflowId === workflowId)
-    if (vars.length > 0) {
-      const variablesRecord: Record<string, unknown> = {}
-      for (const v of vars) variablesRecord[v.id] = v
-      await fetch(`/api/workflows/${workflowId}/variables`, {
-        method: 'POST',
+    setSaveStatus('saving')
+    try {
+      await fetch(`/api/workflows/${workflowId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variables: variablesRecord }),
+        body: JSON.stringify({ blocks: blocksToSave, edges: edgesToSave }),
       })
-    }
 
-    // Re-check deploy status after save to detect drift from deployed version
-    if (isDeployed) checkDeployStatus()
+      const vars = Object.values(useVariablesStore.getState().variables)
+        .filter((v) => v.workflowId === workflowId)
+      if (vars.length > 0) {
+        const variablesRecord: Record<string, unknown> = {}
+        for (const v of vars) variablesRecord[v.id] = v
+        await fetch(`/api/workflows/${workflowId}/variables`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variables: variablesRecord }),
+        })
+      }
+
+      // Re-check deploy status after save to detect drift from deployed version
+      if (isDeployed) checkDeployStatus()
+
+      setSaveStatus('saved')
+      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
+      saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+    } catch {
+      setSaveStatus('error')
+      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
+      saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 4000)
+    }
   }, [workflowId, isDeployed, checkDeployStatus])
 
   // Debounced auto-save (subblock edits, position changes, variable edits)
@@ -674,28 +770,41 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     []
   )
 
-  const deleteBlock = useCallback(
-    (blockId: string) => {
+  const executeDelete = useCallback(
+    (idsToRemove: Set<string>) => {
+      pushUndoSnapshot()
       const newBlocks = { ...blockStates }
-      delete newBlocks[blockId]
-      const newEdges = edges.filter((e) => e.source !== blockId && e.target !== blockId)
+      for (const id of idsToRemove) delete newBlocks[id]
+      const newEdges = edges.filter(
+        (e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target)
+      )
 
       setBlockStates(newBlocks)
-      setNodes((ns) => ns.filter((n) => n.id !== blockId))
+      setNodes((ns) => ns.filter((n) => !idsToRemove.has(n.id)))
       setEdges(newEdges)
 
       const subBlockStore = useSubBlockStore.getState()
       const existing = { ...subBlockStore.workflowValues[workflowId] }
-      delete existing[blockId]
+      for (const id of idsToRemove) delete existing[id]
       subBlockStore.setWorkflowValues(workflowId, existing)
 
-      if (selectedBlockId === blockId) setSelectedBlockId(null)
+      if (selectedBlockId && idsToRemove.has(selectedBlockId)) setSelectedBlockId(null)
 
-      // Save immediately
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveNow(newBlocks, newEdges)
     },
-    [workflowId, selectedBlockId, blockStates, edges, setNodes, setEdges, saveNow]
+    [workflowId, selectedBlockId, blockStates, edges, setNodes, setEdges, saveNow, pushUndoSnapshot]
+  )
+
+  const deleteBlock = useCallback(
+    (blockId: string) => {
+      const block = blockStates[blockId]
+      setDeleteConfirm({
+        ids: new Set([blockId]),
+        names: [block?.name || 'Untitled'],
+      })
+    },
+    [blockStates]
   )
 
   const duplicateBlock = useCallback(
@@ -756,10 +865,64 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
       const isCtrl = event.ctrlKey || event.metaKey
 
-      // Delete / Backspace — remove selected blocks and edges
+      // Ctrl+Z — Undo
+      if (isCtrl && event.key === 'z' && !event.shiftKey) {
+        const snapshot = undoStack.current.pop()
+        if (!snapshot) return
+        event.preventDefault()
+        redoStack.current.push({
+          blocks: structuredClone(blockStates),
+          edges: structuredClone(edges),
+        })
+        setBlockStates(snapshot.blocks)
+        setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
+        setEdges(snapshot.edges)
+
+        // Re-hydrate subblock store from snapshot
+        const subBlockValues: Record<string, Record<string, any>> = {}
+        for (const [bId, bs] of Object.entries(snapshot.blocks)) {
+          subBlockValues[bId] = {}
+          for (const [sbId, sb] of Object.entries(bs.subBlocks)) {
+            subBlockValues[bId][sbId] = (sb as any).value
+          }
+        }
+        useSubBlockStore.getState().setWorkflowValues(workflowId, subBlockValues)
+
+        if (saveTimer.current) clearTimeout(saveTimer.current)
+        saveNow(snapshot.blocks, snapshot.edges)
+        return
+      }
+
+      // Ctrl+Shift+Z — Redo
+      if (isCtrl && event.key === 'z' && event.shiftKey) {
+        const snapshot = redoStack.current.pop()
+        if (!snapshot) return
+        event.preventDefault()
+        undoStack.current.push({
+          blocks: structuredClone(blockStates),
+          edges: structuredClone(edges),
+        })
+        setBlockStates(snapshot.blocks)
+        setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
+        setEdges(snapshot.edges)
+
+        const subBlockValues: Record<string, Record<string, any>> = {}
+        for (const [bId, bs] of Object.entries(snapshot.blocks)) {
+          subBlockValues[bId] = {}
+          for (const [sbId, sb] of Object.entries(bs.subBlocks)) {
+            subBlockValues[bId][sbId] = (sb as any).value
+          }
+        }
+        useSubBlockStore.getState().setWorkflowValues(workflowId, subBlockValues)
+
+        if (saveTimer.current) clearTimeout(saveTimer.current)
+        saveNow(snapshot.blocks, snapshot.edges)
+        return
+      }
+
+      // Delete / Backspace — show confirmation before removing selected blocks
       if (event.key === 'Delete' || event.key === 'Backspace') {
         let selectedNodes = reactFlow.getNodes().filter((n) => n.selected)
-        // Fallback: if nothing selected in ReactFlow, use our local selectedBlockId
         if (selectedNodes.length === 0 && selectedBlockId) {
           const node = reactFlow.getNode(selectedBlockId)
           if (node) selectedNodes = [node]
@@ -768,29 +931,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
         event.preventDefault()
         const idsToRemove = new Set(selectedNodes.map((n) => n.id))
-
-        // Compute new state for immediate save
-        const newBlocks = { ...blockStates }
-        for (const id of idsToRemove) delete newBlocks[id]
-        const newEdges = edges.filter(
-          (e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target)
-        )
-
-        setBlockStates(newBlocks)
-        setNodes((ns) => ns.filter((n) => !idsToRemove.has(n.id)))
-        setEdges(newEdges)
-
-        // Clean subblock store
-        const subBlockStore = useSubBlockStore.getState()
-        const existing = { ...subBlockStore.workflowValues[workflowId] }
-        for (const id of idsToRemove) delete existing[id]
-        subBlockStore.setWorkflowValues(workflowId, existing)
-
-        setSelectedBlockId(null)
-
-        // Save immediately — don't wait for debounce
-        if (saveTimer.current) clearTimeout(saveTimer.current)
-        saveNow(newBlocks, newEdges)
+        const names = selectedNodes.map((n) => blockStates[n.id]?.name || 'Untitled')
+        setDeleteConfirm({ ids: idsToRemove, names })
         return
       }
 
@@ -857,7 +999,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [reactFlow, workflowId, selectedBlockId, blockStates, edges, setNodes, setEdges, saveNow])
+  }, [reactFlow, workflowId, selectedBlockId, blockStates, edges, setNodes, setEdges, saveNow, pushUndoSnapshot])
 
   async function saveName() {
     if (!draftName.trim() || draftName === workflow?.name) {
@@ -878,6 +1020,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     name: string,
     dropPosition?: { x: number; y: number }
   ) {
+    pushUndoSnapshot()
     const position = dropPosition ?? {
       x: 200 + Object.keys(blockStates).length * 250,
       y: 200,
@@ -979,80 +1122,223 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
           </button>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setToolbarOpen((o) => !o)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{
-              background: toolbarOpen
-                ? 'var(--color-accent-light)'
-                : 'var(--color-bg-base)',
-              border: `1px solid ${toolbarOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
-              color: toolbarOpen
-                ? 'var(--color-accent)'
-                : 'var(--color-text-primary)',
-            }}
-          >
-            <Plus size={12} weight="bold" />
-            Add Block
-          </button>
-          <button
-            onClick={() => setVariablesPanelOpen((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{
-              background: variablesPanelOpen
-                ? 'var(--color-accent-light)'
-                : 'var(--color-bg-base)',
-              border: `1px solid ${variablesPanelOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
-              color: variablesPanelOpen
-                ? 'var(--color-accent)'
-                : 'var(--color-text-primary)',
-            }}
-          >
-            <BracketsCurly size={12} weight="bold" />
-            Variables
-          </button>
-          <button
-            onClick={runWorkflow}
-            disabled={isRunning}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-opacity disabled:opacity-50"
-            style={{ background: 'var(--color-accent)' }}
-          >
-            <Play size={12} weight="fill" />
-            {isRunning ? 'Running\u2026' : 'Run'}
-          </button>
-          <button
-            onClick={handleDeployClick}
-            disabled={isDeploying}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-50"
-            style={{
-              background: needsRedeployment
-                ? '#fef3c7'
-                : isDeployed
-                  ? '#dcfce7'
-                  : 'var(--color-text-primary)',
-              color: needsRedeployment
-                ? '#92400e'
-                : isDeployed
-                  ? '#166534'
-                  : '#fff',
-              border: needsRedeployment
-                ? '1px solid #fcd34d'
-                : isDeployed
-                  ? '1px solid #bbf7d0'
-                  : 'none',
-            }}
-          >
-            <Rocket size={12} weight="fill" />
-            {isDeploying
-              ? 'Deploying\u2026'
-              : needsRedeployment
-                ? 'Update'
-                : isDeployed
-                  ? 'Live'
-                  : 'Deploy'}
-          </button>
+        {/* Save status indicator */}
+        <div className="flex items-center gap-1 text-[11px] ml-1" style={{ color: 'var(--color-text-tertiary)', minWidth: 60 }}>
+          {saveStatus === 'saving' && (
+            <>
+              <CircleNotch size={11} className="animate-spin" />
+              <span>Saving…</span>
+            </>
+          )}
+          {saveStatus === 'saved' && (
+            <>
+              <Check size={11} weight="bold" style={{ color: 'var(--color-success)' }} />
+              <span style={{ color: 'var(--color-success)' }}>Saved</span>
+            </>
+          )}
+          {saveStatus === 'error' && (
+            <>
+              <Warning size={11} style={{ color: 'var(--color-error)' }} />
+              <span style={{ color: 'var(--color-error)' }}>Save failed</span>
+            </>
+          )}
         </div>
+
+        <TooltipProvider delay={400}>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Undo / Redo */}
+            <div className="flex items-center gap-0.5 mr-1">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      onClick={() => {
+                        const snapshot = undoStack.current.pop()
+                        if (!snapshot) return
+                        redoStack.current.push({ blocks: structuredClone(blockStates), edges: structuredClone(edges) })
+                        setBlockStates(snapshot.blocks)
+                        setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
+                        setEdges(snapshot.edges)
+                        const sbv: Record<string, Record<string, any>> = {}
+                        for (const [bId, bs] of Object.entries(snapshot.blocks)) {
+                          sbv[bId] = {}
+                          for (const [sbId, sb] of Object.entries(bs.subBlocks)) sbv[bId][sbId] = (sb as any).value
+                        }
+                        useSubBlockStore.getState().setWorkflowValues(workflowId, sbv)
+                        if (saveTimer.current) clearTimeout(saveTimer.current)
+                        saveNow(snapshot.blocks, snapshot.edges)
+                      }}
+                      disabled={undoStack.current.length === 0}
+                      className="p-1.5 rounded-lg hover:bg-zinc-100 transition-colors disabled:opacity-30"
+                    />
+                  }
+                >
+                  <ArrowCounterClockwise size={14} style={{ color: 'var(--color-text-secondary)' }} />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Undo (Ctrl+Z)</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      onClick={() => {
+                        const snapshot = redoStack.current.pop()
+                        if (!snapshot) return
+                        undoStack.current.push({ blocks: structuredClone(blockStates), edges: structuredClone(edges) })
+                        setBlockStates(snapshot.blocks)
+                        setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
+                        setEdges(snapshot.edges)
+                        const sbv: Record<string, Record<string, any>> = {}
+                        for (const [bId, bs] of Object.entries(snapshot.blocks)) {
+                          sbv[bId] = {}
+                          for (const [sbId, sb] of Object.entries(bs.subBlocks)) sbv[bId][sbId] = (sb as any).value
+                        }
+                        useSubBlockStore.getState().setWorkflowValues(workflowId, sbv)
+                        if (saveTimer.current) clearTimeout(saveTimer.current)
+                        saveNow(snapshot.blocks, snapshot.edges)
+                      }}
+                      disabled={redoStack.current.length === 0}
+                      className="p-1.5 rounded-lg hover:bg-zinc-100 transition-colors disabled:opacity-30"
+                    />
+                  }
+                >
+                  <ArrowClockwise size={14} style={{ color: 'var(--color-text-secondary)' }} />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Redo (Ctrl+Shift+Z)</TooltipContent>
+              </Tooltip>
+            </div>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={() => setToolbarOpen((o) => !o)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{
+                      background: toolbarOpen
+                        ? 'var(--color-accent-light)'
+                        : 'var(--color-bg-base)',
+                      border: `1px solid ${toolbarOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      color: toolbarOpen
+                        ? 'var(--color-accent)'
+                        : 'var(--color-text-primary)',
+                    }}
+                  />
+                }
+              >
+                <Plus size={12} weight="bold" />
+                Add Block
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Toggle block toolbar</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={() => toggleChat(!isChatOpen)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{
+                      background: isChatOpen
+                        ? 'var(--color-accent-light)'
+                        : 'var(--color-bg-base)',
+                      border: `1px solid ${isChatOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      color: isChatOpen
+                        ? 'var(--color-accent)'
+                        : 'var(--color-text-primary)',
+                    }}
+                  />
+                }
+              >
+                <ChatCircle size={12} weight="bold" />
+                Chat
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Chat with workflow</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={() => setVariablesPanelOpen((v) => !v)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{
+                      background: variablesPanelOpen
+                        ? 'var(--color-accent-light)'
+                        : 'var(--color-bg-base)',
+                      border: `1px solid ${variablesPanelOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      color: variablesPanelOpen
+                        ? 'var(--color-accent)'
+                        : 'var(--color-text-primary)',
+                    }}
+                  />
+                }
+              >
+                <BracketsCurly size={12} weight="bold" />
+                Variables
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Manage workflow variables</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={runWorkflow}
+                    disabled={isRunning}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-opacity disabled:opacity-50"
+                    style={{ background: 'var(--color-accent)' }}
+                  />
+                }
+              >
+                <Play size={12} weight="fill" />
+                {isRunning ? 'Running\u2026' : 'Run'}
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Execute workflow</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={handleDeployClick}
+                    disabled={isDeploying}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-50"
+                    style={{
+                      background: needsRedeployment
+                        ? 'color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-surface))'
+                        : isDeployed
+                          ? 'var(--color-accent-light)'
+                          : 'var(--color-text-primary)',
+                      color: needsRedeployment
+                        ? 'var(--color-warning)'
+                        : isDeployed
+                          ? 'var(--color-accent)'
+                          : '#fff',
+                      border: needsRedeployment
+                        ? '1px solid var(--color-warning)'
+                        : isDeployed
+                          ? '1px solid var(--color-accent)'
+                          : 'none',
+                    }}
+                  />
+                }
+              >
+                <Rocket size={12} weight="fill" />
+                {isDeploying
+                  ? 'Deploying\u2026'
+                  : needsRedeployment
+                    ? 'Update'
+                    : isDeployed
+                      ? 'Live'
+                      : 'Deploy'}
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {isDeployed ? 'View deployment settings' : 'Deploy workflow to make it live'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
 
       {/* Main: toolbar + canvas + info panel */}
@@ -1157,7 +1443,51 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         onClose={() => setVariablesPanelOpen(false)}
       />
 
+      <WorkflowChat workflowId={workflowId} />
       <CopilotModal workflowId={workflowId} />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete {deleteConfirm && deleteConfirm.ids.size > 1 ? `${deleteConfirm.ids.size} blocks` : 'block'}?</DialogTitle>
+            <DialogDescription>
+              {deleteConfirm && deleteConfirm.names.length === 1
+                ? <><strong>{deleteConfirm.names[0]}</strong> will be permanently removed along with its connections.</>
+                : <>The selected blocks will be permanently removed along with their connections.</>
+              }
+              {' '}You can undo this with Ctrl+Z.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirm) {
+                  executeDelete(deleteConfirm.ids)
+                  setDeleteConfirm(null)
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deploy Error Dialog (replaces alert()) */}
+      <Dialog open={!!deployError} onOpenChange={(open) => { if (!open) setDeployError(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Deploy failed</DialogTitle>
+            <DialogDescription>{deployError}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDeployError(null)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -254,6 +254,7 @@ export const SubBlockField = memo(function SubBlockField({
 }: SubBlockProps) {
   const [value, setValue] = useSubBlockValue(blockId, config.id)
   const [isValidJson, setIsValidJson] = useState(true)
+  const [touched, setTouched] = useState(false)
 
   // Conditional visibility gating — disables field until dependencies are satisfied
   const { blocked, finalDisabled } = useDependsOnGate(blockId, config, {
@@ -265,14 +266,24 @@ export const SubBlockField = memo(function SubBlockField({
   // Derive preview value
   const previewValue = getPreviewValue(config, isPreview, subBlockValues)
 
+  // Inline validation: show error when required field is empty and touched
+  const required = isFieldRequired(config, subBlockValues)
+  const isEmpty = value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
+  const showError = touched && required && isEmpty && !isPreview && !blocked
+
   // Build component props — spread config fields that sub-components need
+  const handleChange = useCallback((v: any) => {
+    if (!touched) setTouched(true)
+    setValue(v)
+  }, [setValue, touched])
+
   const componentProps = useMemo(
     () => ({
       blockId,
       subBlockId: config.id,
       config,
       value: isPreview ? previewValue : value,
-      onChange: setValue,
+      onChange: handleChange,
       isPreview,
       previewValue,
       disabled: finalDisabled,
@@ -290,11 +301,14 @@ export const SubBlockField = memo(function SubBlockField({
       max: (config as any).max,
       step: (config as any).step,
     }),
-    [blockId, config, value, setValue, isPreview, previewValue, finalDisabled]
+    [blockId, config, value, handleChange, isPreview, previewValue, finalDisabled]
   )
 
   return (
-    <div className={blocked ? 'opacity-50' : ''}>
+    <div
+      className={blocked ? 'opacity-50' : ''}
+      onBlur={() => { if (!touched) setTouched(true) }}
+    >
       {renderLabel(config, isValidJson, subBlockValues, canonicalToggle, labelSuffix)}
 
       {blocked && (
@@ -303,25 +317,31 @@ export const SubBlockField = memo(function SubBlockField({
         </div>
       )}
 
-      {TAG_ENABLED_TYPES.has(config.type) ? (
-        <TagEnabledInput
-          blockId={blockId}
-          config={config}
-          isPreview={isPreview}
-          disabled={finalDisabled}
-        />
-      ) : INPUT_COMPONENTS[config.type] ? (
-        (() => {
-          const Component = INPUT_COMPONENTS[config.type]!
-          return <Component {...componentProps} />
-        })()
-      ) : (
-        <TagEnabledInput
-          blockId={blockId}
-          config={{ ...config, type: 'short-input' as any }}
-          isPreview={isPreview}
-          disabled={finalDisabled}
-        />
+      <div className={showError ? 'rounded-lg ring-1 ring-[var(--color-error)]' : ''}>
+        {TAG_ENABLED_TYPES.has(config.type) ? (
+          <TagEnabledInput
+            blockId={blockId}
+            config={config}
+            isPreview={isPreview}
+            disabled={finalDisabled}
+          />
+        ) : INPUT_COMPONENTS[config.type] ? (
+          (() => {
+            const Component = INPUT_COMPONENTS[config.type]!
+            return <Component {...componentProps} />
+          })()
+        ) : (
+          <TagEnabledInput
+            blockId={blockId}
+            config={{ ...config, type: 'short-input' as any }}
+            isPreview={isPreview}
+            disabled={finalDisabled}
+          />
+        )}
+      </div>
+
+      {showError && (
+        <p className="mt-0.5 pl-0.5 text-[10px] text-[var(--color-error)]">Required</p>
       )}
     </div>
   )
