@@ -155,18 +155,13 @@ export function WorkflowList() {
           {workflows.map((wf) => (
             <div
               key={wf.id}
-              className="relative text-left rounded-xl p-5 transition-shadow hover:shadow-md bg-[var(--color-bg-surface)] group cursor-pointer"
-              style={{ border: '1px solid var(--color-border)' }}
+              className="relative text-left rounded-xl p-5 pl-7 transition-shadow hover:shadow-md bg-bg-surface border border-border group cursor-pointer overflow-hidden"
               onClick={() => router.push(`/automations/${wf.id}`)}
             >
+              {/* Left accent stripe */}
+              <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${wf.isDeployed ? 'bg-accent' : 'bg-border-strong'}`} />
               <div className="flex items-start justify-between mb-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ background: 'var(--color-accent-light)' }}
-                >
-                  <Lightning size={16} style={{ color: 'var(--color-accent)' }} weight="fill" />
-                </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-auto">
                   {wf.isDeployed && (
                     <span
                       className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide"

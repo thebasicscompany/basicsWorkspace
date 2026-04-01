@@ -483,8 +483,8 @@ export function Terminal({ workflowId }: { workflowId: string }) {
   return (
     <div
       aria-label="Terminal"
-      className="flex flex-col border-t border-[var(--color-border)] bg-[var(--color-bg-surface)]"
-      style={{ height: isOpen ? terminalHeight : 30 }}
+      className="w-full flex-shrink-0 flex flex-col overflow-hidden border-t border-[var(--color-border)] bg-[var(--color-bg-surface)]"
+      style={{ height: isOpen ? terminalHeight : 44 }}
     >
       {/* Resize handle */}
       {isOpen && (
@@ -495,7 +495,7 @@ export function Terminal({ workflowId }: { workflowId: string }) {
       )}
 
       {/* Header bar */}
-      <div className="flex h-[30px] shrink-0 items-center justify-between border-b border-[var(--color-border)] px-[12px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[var(--color-border)] px-[16px]">
         <div className="flex items-center gap-[8px]">
           <button
             onClick={handleToggleOpen}

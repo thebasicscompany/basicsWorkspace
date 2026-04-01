@@ -81,13 +81,12 @@ const CopilotModalInner: FC = () => {
       </AssistantModalPrimitive.Anchor>
 
       <AssistantModalPrimitive.Content
-        sideOffset={16}
-        className="z-50 rounded-xl border shadow-2xl overflow-hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2"
+        sideOffset={24}
+        className="z-50 rounded-[20px] shadow-xl border border-black/[0.06] dark:border-white/10 overflow-hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2"
         style={{
           width: 420,
           height: 560,
           background: "var(--color-bg-surface)",
-          borderColor: "var(--color-border)",
         }}
       >
         <div className="flex flex-col h-full">

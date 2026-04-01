@@ -163,13 +163,11 @@ export default function LaunchpadPage() {
                         key={wf.id}
                         href={`/automations/${wf.id}`}
                         className={cn(
-                          "flex items-center gap-3 px-[24px] py-[16px] hover:bg-zinc-50 transition-colors group",
+                          "relative flex items-center gap-3 px-[24px] py-[16px] hover:bg-zinc-50 transition-colors group",
                           idx !== recentWorkflows.length - 1 && "border-b border-zinc-100"
                         )}
                       >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[var(--color-accent-light)] text-[var(--color-accent)]">
-                          <Lightning size={16} weight="fill" />
-                        </div>
+                        <div className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full ${wf.isDeployed ? 'bg-accent' : 'bg-border-strong'}`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-[14px] font-medium text-zinc-900 truncate">
                             {wf.name}

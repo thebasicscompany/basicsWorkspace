@@ -18,7 +18,7 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Play, ArrowLeft, Plus, MagnifyingGlass, X, Rocket, BracketsCurly, ArrowCounterClockwise, ArrowClockwise, Check, CircleNotch, Warning, Lightning, Clock, WebhooksLogo, ChatCircle } from '@phosphor-icons/react'
+import { Play, MagnifyingGlass, X, BracketsCurly, ArrowCounterClockwise, ArrowClockwise, Check, CircleNotch, Warning, Lightning, Clock, WebhooksLogo, ChatCircle, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { DeployModal } from './deploy/deploy-modal'
 import {
   Dialog,
@@ -1152,199 +1152,155 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
   const selectedConfig = selectedBlock ? getBlock(selectedBlock.type) : null
 
   return (
-    <div
-      className="flex flex-col h-screen"
-      style={{ background: 'var(--color-bg-base)' }}
-    >
+    <div className="flex flex-col h-screen bg-bg-base">
       {/* Header */}
-      <div
-        className="flex items-center gap-3 px-4 h-12 flex-shrink-0 z-10"
-        style={{
-          background: 'var(--color-bg-surface)',
-          borderBottom: '1px solid var(--color-border)',
-        }}
-      >
-        <button
-          onClick={() => router.push('/automations')}
-          className="p-1.5 rounded-lg hover:bg-zinc-100 transition-colors"
-        >
-          <ArrowLeft
-            size={16}
-            style={{ color: 'var(--color-text-secondary)' }}
-          />
-        </button>
+      <header className="flex items-center justify-between px-6 h-[72px] shrink-0 z-10 bg-bg-surface border-b border-border">
+        {/* Left: breadcrumb + save status */}
+        <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-2.5 text-xl font-display">
+            <button
+              onClick={() => router.push('/automations')}
+              className="text-text-tertiary font-normal hover:text-zinc-600 transition-colors"
+            >
+              Automations
+            </button>
+            <span className="text-text-primary font-light opacity-30">/</span>
+            {editingName ? (
+              <input
+                autoFocus
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveName()
+                  if (e.key === 'Escape') {
+                    setDraftName(workflow?.name ?? '')
+                    setEditingName(false)
+                  }
+                }}
+                className="text-text-primary font-medium min-w-40 bg-transparent border-0 border-b border-accent outline-none text-[inherit]"
+              />
+            ) : (
+              <button
+                onClick={() => setEditingName(true)}
+                className="text-text-primary font-medium hover:opacity-70 transition-opacity"
+              >
+                {workflow?.name ?? '...'}
+              </button>
+            )}
+          </nav>
 
-        {editingName ? (
-          <input
-            autoFocus
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            onBlur={saveName}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') saveName()
-              if (e.key === 'Escape') {
-                setDraftName(workflow?.name ?? '')
-                setEditingName(false)
-              }
-            }}
-            className="text-sm font-semibold bg-transparent border-0 outline-none border-b border-[var(--color-accent)]"
-            style={{ color: 'var(--color-text-primary)', minWidth: 160 }}
-          />
-        ) : (
-          <button
-            onClick={() => setEditingName(true)}
-            className="text-sm font-semibold hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            {workflow?.name ?? '\u2026'}
-          </button>
-        )}
-
-        {/* Save status indicator */}
-        <div className="flex items-center gap-1 text-[11px] ml-1" style={{ color: 'var(--color-text-tertiary)', minWidth: 60 }}>
-          {saveStatus === 'saving' && (
-            <>
-              <CircleNotch size={11} className="animate-spin" />
-              <span>Saving…</span>
-            </>
-          )}
-          {saveStatus === 'saved' && (
-            <>
-              <Check size={11} weight="bold" style={{ color: 'var(--color-success)' }} />
-              <span style={{ color: 'var(--color-success)' }}>Saved</span>
-            </>
-          )}
-          {saveStatus === 'error' && (
-            <>
-              <Warning size={11} style={{ color: 'var(--color-error)' }} />
-              <span style={{ color: 'var(--color-error)' }}>Save failed</span>
-            </>
-          )}
-        </div>
-
-        {/* Validation issues */}
-        {validationIssues && saveStatus === 'idle' && (
-          <div className="flex items-center gap-1 text-[11px] ml-1" style={{ color: 'var(--color-warning)' }}>
-            <Warning size={11} />
-            <span>{validationIssues[0]}</span>
-            {validationIssues.length > 1 && (
-              <span style={{ color: 'var(--color-text-tertiary)' }}>
-                +{validationIssues.length - 1} more
+          <div className="flex items-center gap-1 text-[11px] text-text-tertiary min-w-[60px]">
+            {saveStatus === 'saving' && (
+              <>
+                <CircleNotch size={11} className="animate-spin" />
+                <span>Saving...</span>
+              </>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="text-green-600 flex items-center gap-1">
+                <Check size={11} weight="bold" />
+                Saved
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="text-red-500 flex items-center gap-1">
+                <Warning size={11} />
+                Save failed
               </span>
             )}
           </div>
-        )}
 
-        <TooltipProvider delay={400}>
-          <div className="ml-auto flex items-center gap-2">
-            {/* Undo / Redo */}
-            <div className="flex items-center gap-0.5 mr-1">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      onClick={() => {
-                        const snapshot = undoStack.current.pop()
-                        if (!snapshot) return
-                        redoStack.current.push({ blocks: structuredClone(blockStates), edges: structuredClone(edges) })
-                        setBlockStates(snapshot.blocks)
-                        setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
-                        setEdges(snapshot.edges)
-                        const sbv: Record<string, Record<string, any>> = {}
-                        for (const [bId, bs] of Object.entries(snapshot.blocks)) {
-                          sbv[bId] = {}
-                          for (const [sbId, sb] of Object.entries(bs.subBlocks)) sbv[bId][sbId] = (sb as any).value
-                        }
-                        useSubBlockStore.getState().setWorkflowValues(workflowId, sbv)
-                        if (saveTimer.current) clearTimeout(saveTimer.current)
-                        saveNow(snapshot.blocks, snapshot.edges)
-                      }}
-                      disabled={undoStack.current.length === 0}
-                      className="p-1.5 rounded-lg hover:bg-zinc-100 transition-colors disabled:opacity-30"
-                    />
-                  }
-                >
-                  <ArrowCounterClockwise size={14} style={{ color: 'var(--color-text-secondary)' }} />
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Undo (Ctrl+Z)</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      onClick={() => {
-                        const snapshot = redoStack.current.pop()
-                        if (!snapshot) return
-                        undoStack.current.push({ blocks: structuredClone(blockStates), edges: structuredClone(edges) })
-                        setBlockStates(snapshot.blocks)
-                        setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
-                        setEdges(snapshot.edges)
-                        const sbv: Record<string, Record<string, any>> = {}
-                        for (const [bId, bs] of Object.entries(snapshot.blocks)) {
-                          sbv[bId] = {}
-                          for (const [sbId, sb] of Object.entries(bs.subBlocks)) sbv[bId][sbId] = (sb as any).value
-                        }
-                        useSubBlockStore.getState().setWorkflowValues(workflowId, sbv)
-                        if (saveTimer.current) clearTimeout(saveTimer.current)
-                        saveNow(snapshot.blocks, snapshot.edges)
-                      }}
-                      disabled={redoStack.current.length === 0}
-                      className="p-1.5 rounded-lg hover:bg-zinc-100 transition-colors disabled:opacity-30"
-                    />
-                  }
-                >
-                  <ArrowClockwise size={14} style={{ color: 'var(--color-text-secondary)' }} />
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Redo (Ctrl+Shift+Z)</TooltipContent>
-              </Tooltip>
+          {validationIssues && saveStatus === 'idle' && (
+            <div className="flex items-center gap-1 text-[11px] text-amber-500">
+              <Warning size={11} />
+              <span>{validationIssues[0]}</span>
+              {validationIssues.length > 1 && (
+                <span className="text-text-tertiary">
+                  +{validationIssues.length - 1} more
+                </span>
+              )}
             </div>
+          )}
+        </div>
 
+        {/* Right: actions */}
+        <TooltipProvider delay={400}>
+          <div className="flex items-center gap-1">
+            {/* Undo / Redo */}
             <Tooltip>
               <TooltipTrigger
                 render={
                   <button
-                    onClick={() => setToolbarOpen((o) => !o)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                    style={{
-                      background: toolbarOpen
-                        ? 'var(--color-accent-light)'
-                        : 'var(--color-bg-base)',
-                      border: `1px solid ${toolbarOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                      color: toolbarOpen
-                        ? 'var(--color-accent)'
-                        : 'var(--color-text-primary)',
+                    onClick={() => {
+                      const snapshot = undoStack.current.pop()
+                      if (!snapshot) return
+                      redoStack.current.push({ blocks: structuredClone(blockStates), edges: structuredClone(edges) })
+                      setBlockStates(snapshot.blocks)
+                      setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
+                      setEdges(snapshot.edges)
+                      const sbv: Record<string, Record<string, any>> = {}
+                      for (const [bId, bs] of Object.entries(snapshot.blocks)) {
+                        sbv[bId] = {}
+                        for (const [sbId, sb] of Object.entries(bs.subBlocks)) sbv[bId][sbId] = (sb as any).value
+                      }
+                      useSubBlockStore.getState().setWorkflowValues(workflowId, sbv)
+                      if (saveTimer.current) clearTimeout(saveTimer.current)
+                      saveNow(snapshot.blocks, snapshot.edges)
                     }}
+                    disabled={undoStack.current.length === 0}
+                    className="p-1.5 rounded-lg text-text-tertiary hover:bg-black/5 transition-colors disabled:opacity-30"
                   />
                 }
               >
-                <Plus size={12} weight="bold" />
-                Add Block
+                <ArrowCounterClockwise size={14} />
               </TooltipTrigger>
-              <TooltipContent side="bottom">Toggle block toolbar</TooltipContent>
+              <TooltipContent side="bottom">Undo</TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={() => {
+                      const snapshot = redoStack.current.pop()
+                      if (!snapshot) return
+                      undoStack.current.push({ blocks: structuredClone(blockStates), edges: structuredClone(edges) })
+                      setBlockStates(snapshot.blocks)
+                      setNodes(Object.values(snapshot.blocks).map(b => blockStateToNode(b, snapshot.blocks)))
+                      setEdges(snapshot.edges)
+                      const sbv: Record<string, Record<string, any>> = {}
+                      for (const [bId, bs] of Object.entries(snapshot.blocks)) {
+                        sbv[bId] = {}
+                        for (const [sbId, sb] of Object.entries(bs.subBlocks)) sbv[bId][sbId] = (sb as any).value
+                      }
+                      useSubBlockStore.getState().setWorkflowValues(workflowId, sbv)
+                      if (saveTimer.current) clearTimeout(saveTimer.current)
+                      saveNow(snapshot.blocks, snapshot.edges)
+                    }}
+                    disabled={redoStack.current.length === 0}
+                    className="p-1.5 rounded-lg text-text-tertiary hover:bg-black/5 transition-colors disabled:opacity-30"
+                  />
+                }
+              >
+                <ArrowClockwise size={14} />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Redo</TooltipContent>
+            </Tooltip>
+
+            <div className="w-px h-4 mx-2 bg-border" />
 
             <Tooltip>
               <TooltipTrigger
                 render={
                   <button
                     onClick={() => toggleChat(!isChatOpen)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                    style={{
-                      background: isChatOpen
-                        ? 'var(--color-accent-light)'
-                        : 'var(--color-bg-base)',
-                      border: `1px solid ${isChatOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                      color: isChatOpen
-                        ? 'var(--color-accent)'
-                        : 'var(--color-text-primary)',
-                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${isChatOpen ? 'bg-accent-light text-accent' : 'text-text-tertiary hover:bg-black/5'}`}
                   />
                 }
               >
-                <ChatCircle size={12} weight="bold" />
-                Chat
+                <ChatCircle size={16} weight={isChatOpen ? 'fill' : 'regular'} />
               </TooltipTrigger>
-              <TooltipContent side="bottom">Chat with workflow</TooltipContent>
+              <TooltipContent side="bottom">Chat</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -1352,95 +1308,66 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
                 render={
                   <button
                     onClick={() => setVariablesPanelOpen((v) => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                    style={{
-                      background: variablesPanelOpen
-                        ? 'var(--color-accent-light)'
-                        : 'var(--color-bg-base)',
-                      border: `1px solid ${variablesPanelOpen ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                      color: variablesPanelOpen
-                        ? 'var(--color-accent)'
-                        : 'var(--color-text-primary)',
-                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${variablesPanelOpen ? 'bg-accent-light text-accent' : 'text-text-tertiary hover:bg-black/5'}`}
                   />
                 }
               >
-                <BracketsCurly size={12} weight="bold" />
-                Variables
+                <BracketsCurly size={16} weight={variablesPanelOpen ? 'fill' : 'regular'} />
               </TooltipTrigger>
-              <TooltipContent side="bottom">Manage workflow variables</TooltipContent>
+              <TooltipContent side="bottom">Variables</TooltipContent>
             </Tooltip>
 
+            <div className="w-px h-4 mx-2 bg-border" />
+
+            {/* Deploy */}
+            {isDeployed && (
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${needsRedeployment ? 'bg-amber-50 text-amber-500' : 'bg-accent-light text-accent'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${needsRedeployment ? 'bg-amber-500' : 'bg-green-500'}`} />
+                {needsRedeployment ? 'Out of sync' : 'Live'}
+              </span>
+            )}
+
+            <button
+              onClick={() => setDeployModalOpen(true)}
+              disabled={isDeploying}
+              className="text-[13px] font-medium text-text-secondary underline underline-offset-4 hover:opacity-70 transition-opacity disabled:opacity-50"
+            >
+              {isDeploying ? 'Deploying...' : 'Deploy'}
+            </button>
+
+            <div className="w-px h-4 mx-2 bg-border" />
+
+            {/* Run */}
             <Tooltip>
               <TooltipTrigger
                 render={
                   <button
                     onClick={runWorkflow}
                     disabled={isRunning}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-opacity disabled:opacity-50"
-                    style={{ background: 'var(--color-accent)' }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium text-white bg-accent transition-opacity disabled:opacity-50"
                   />
                 }
               >
-                <Play size={12} weight="fill" />
-                {isRunning ? 'Running\u2026' : 'Run'}
+                {isRunning ? (
+                  <CircleNotch size={12} className="animate-spin" />
+                ) : (
+                  <Play size={12} weight="fill" />
+                )}
+                {isRunning ? 'Running...' : 'Run'}
               </TooltipTrigger>
-              <TooltipContent side="bottom">Execute workflow</TooltipContent>
-            </Tooltip>
-
-            {/* Deploy status badge */}
-            {isDeployed && (
-              <span
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{
-                  background: needsRedeployment
-                    ? 'color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-surface))'
-                    : 'var(--color-accent-light)',
-                  color: needsRedeployment ? 'var(--color-warning)' : 'var(--color-accent)',
-                }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: needsRedeployment ? 'var(--color-warning)' : 'var(--color-success)',
-                  }}
-                />
-                {needsRedeployment ? 'Out of sync' : 'Live'}
-              </span>
-            )}
-
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    onClick={() => setDeployModalOpen(true)}
-                    disabled={isDeploying}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-50"
-                    style={{
-                      background: 'var(--color-bg-base)',
-                      border: '1px solid var(--color-border)',
-                      color: 'var(--color-text-primary)',
-                    }}
-                  />
-                }
-              >
-                <Rocket size={12} weight="fill" />
-                {isDeploying ? 'Deploying\u2026' : 'Deploy'}
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Open deployment settings</TooltipContent>
+              <TooltipContent side="bottom">Run workflow</TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
-      </div>
+      </header>
 
       {/* Main: toolbar + canvas + info panel */}
       <div className="flex flex-1 overflow-hidden">
-        {toolbarOpen && (
-          <BlockToolbar
-            onAdd={(type, name) => addBlock(type, name)}
-            onClose={() => setToolbarOpen(false)}
-          />
-        )}
+        <BlockToolbar
+          isOpen={toolbarOpen}
+          onToggle={() => setToolbarOpen((o) => !o)}
+          onAdd={(type, name) => addBlock(type, name)}
+        />
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 relative">
@@ -1661,11 +1588,13 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 // ─── Block Toolbar (left panel — click to add OR drag to canvas) ─────────────
 
 function BlockToolbar({
+  isOpen,
+  onToggle,
   onAdd,
-  onClose,
 }: {
+  isOpen: boolean
+  onToggle: () => void
   onAdd: (type: string, name: string) => void
-  onClose: () => void
 }) {
   const [search, setSearch] = useState('')
 
@@ -1684,77 +1613,97 @@ function BlockToolbar({
   const filteredTools = tools.filter(filterBlock)
 
   return (
-    <div
-      className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
-      style={{
-        background: 'var(--color-bg-surface)',
-        borderRight: '1px solid var(--color-border)',
-      }}
-    >
-      <div
-        className="p-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--color-border)' }}
-      >
+    <div className="flex flex-shrink-0 h-full">
+      {/* Panel content */}
+      {isOpen && (
         <div
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+          className="w-64 flex flex-col overflow-hidden"
           style={{
-            background: 'var(--color-bg-base)',
-            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-surface)',
           }}
         >
-          <MagnifyingGlass
-            size={12}
-            style={{ color: 'var(--color-text-tertiary)' }}
-          />
-          <input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search blocks\u2026"
-            className="text-xs bg-transparent border-0 outline-none flex-1"
-            style={{ color: 'var(--color-text-primary)' }}
-          />
-          {search && (
-            <button onClick={() => setSearch('')}>
-              <X
-                size={10}
+          <div
+            className="p-3 flex-shrink-0"
+            style={{ borderBottom: '1px solid var(--color-border)' }}
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-[12px] shadow-sm"
+              style={{
+                background: 'var(--color-bg-base)',
+                border: '1px solid rgba(0,0,0,0.06)',
+              }}
+            >
+              <MagnifyingGlass
+                size={12}
                 style={{ color: 'var(--color-text-tertiary)' }}
               />
-            </button>
-          )}
-        </div>
-      </div>
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search blocks..."
+                className="text-xs bg-transparent border-0 outline-none flex-1"
+                style={{ color: 'var(--color-text-primary)' }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')}>
+                  <X
+                    size={10}
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  />
+                </button>
+              )}
+            </div>
+          </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
-        {filteredTriggers.length > 0 && (
-          <BlockSection
-            title="Triggers"
-            items={filteredTriggers}
-            onAdd={onAdd}
-          />
+          <div className="flex-1 overflow-y-auto p-2">
+            {filteredTriggers.length > 0 && (
+              <BlockSection
+                title="Triggers"
+                items={filteredTriggers}
+                onAdd={onAdd}
+              />
+            )}
+            {filteredBlocks.length > 0 && (
+              <BlockSection
+                title="Blocks"
+                items={filteredBlocks}
+                onAdd={onAdd}
+              />
+            )}
+            {filteredTools.length > 0 && (
+              <BlockSection title="Tools" items={filteredTools} onAdd={onAdd} />
+            )}
+            {filteredTriggers.length +
+              filteredBlocks.length +
+              filteredTools.length ===
+              0 && (
+              <p
+                className="text-xs text-center py-8"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
+                No blocks match &ldquo;{search}&rdquo;
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Notch toggle — always visible, flush against panel edge */}
+      <button
+        onClick={onToggle}
+        className="flex items-center justify-center w-[14px] self-stretch cursor-pointer hover:bg-[var(--color-bg-base)] transition-colors"
+        style={{
+          background: 'var(--color-bg-surface)',
+          borderRight: '1px solid var(--color-border)',
+        }}
+      >
+        {isOpen ? (
+          <CaretLeft size={10} weight="bold" style={{ color: 'var(--color-text-tertiary)' }} />
+        ) : (
+          <CaretRight size={10} weight="bold" style={{ color: 'var(--color-text-tertiary)' }} />
         )}
-        {filteredBlocks.length > 0 && (
-          <BlockSection
-            title="Blocks"
-            items={filteredBlocks}
-            onAdd={onAdd}
-          />
-        )}
-        {filteredTools.length > 0 && (
-          <BlockSection title="Tools" items={filteredTools} onAdd={onAdd} />
-        )}
-        {filteredTriggers.length +
-          filteredBlocks.length +
-          filteredTools.length ===
-          0 && (
-          <p
-            className="text-xs text-center py-8"
-            style={{ color: 'var(--color-text-tertiary)' }}
-          >
-            No blocks match &ldquo;{search}&rdquo;
-          </p>
-        )}
-      </div>
+      </button>
     </div>
   )
 }
@@ -1788,7 +1737,7 @@ function BlockSection({
               e.dataTransfer.setData('application/block-name', block.name)
               e.dataTransfer.effectAllowed = 'move'
             }}
-            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors text-left cursor-grab active:cursor-grabbing"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] hover:bg-black/[0.03] transition-colors text-left cursor-grab active:cursor-grabbing"
           >
             <div
               className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"

@@ -254,7 +254,7 @@ export function VariablesPanel({ isOpen, onClose }: VariablesPanelProps) {
 
   return (
     <div
-      className="fixed z-30 flex flex-col overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-lg"
+      className="fixed z-30 flex flex-col overflow-hidden rounded-[20px] border border-black/[0.06] dark:border-white/10 bg-[var(--color-bg-surface)] shadow-xl"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,

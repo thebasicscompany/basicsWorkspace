@@ -166,11 +166,11 @@ const SubBlockRow = memo(function SubBlockRow({
 
   return (
     <div className="flex items-center gap-2 py-0.5">
-      <span className="min-w-0 shrink-0 text-[11px] font-medium capitalize text-text-tertiary" title={title}>
+      <span className="min-w-0 shrink-0 text-[12px] font-[450] capitalize text-[var(--color-text-tertiary)]" title={title}>
         {title}
       </span>
       {displayValue !== undefined && (
-        <span className="flex-1 truncate text-right text-[11px] text-text-secondary" title={displayValue}>
+        <span className="flex-1 truncate text-right text-[12px] text-[var(--color-text-secondary)]" title={displayValue}>
           {displayValue}
         </span>
       )}
@@ -367,11 +367,11 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
     <div className="group relative">
       <div
         className={cn(
-          'workflow-drag-handle relative z-[20] w-[250px] cursor-grab select-none rounded-lg bg-bg-surface shadow-sm [&:active]:cursor-grabbing',
+          'workflow-drag-handle relative z-[20] w-[260px] cursor-grab select-none rounded-[16px] bg-bg-surface shadow-md [&:active]:cursor-grabbing',
           !isEnabled && 'opacity-50'
         )}
         style={{
-          border: `1.5px solid ${isEnabled ? borderColor + '40' : 'var(--color-border)'}`,
+          border: `1px solid ${isEnabled ? borderColor + '60' : 'var(--color-border)'}`,
           boxShadow: getRingStyle(),
         }}
       >
@@ -392,7 +392,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
         {/* Header */}
         <div
           className={cn(
-            'flex items-center justify-between px-2.5 py-2',
+            'flex items-center justify-between px-3.5 py-3',
             hasContentBelowHeader && 'border-b border-border'
           )}
         >
@@ -425,7 +425,7 @@ export const WorkflowBlockNode = memo(function WorkflowBlockNode({
 
         {/* Content rows */}
         {hasContentBelowHeader && (
-          <div className="flex flex-col gap-1 px-2.5 py-2">
+          <div className="flex flex-col gap-1 px-3.5 py-3">
             {type === 'condition' ? (
               conditionRows.map((cond) => (
                 <SubBlockRow key={cond.id} title={cond.title} value={getDisplayValue(cond.value)} />
