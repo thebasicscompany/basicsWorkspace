@@ -104,6 +104,7 @@ export const workflowExecutionLogs = pgTable(
     endedAt: timestamp("ended_at", { withTimezone: true }),
     totalDurationMs: integer("total_duration_ms"),
     executionData: jsonb("execution_data").$type<unknown[]>().default([]),
+    executionState: jsonb("execution_state").$type<Record<string, unknown>>(),
     cost: jsonb("cost").$type<Record<string, unknown>>(),
   },
   (table) => [

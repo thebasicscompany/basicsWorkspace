@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm"
+import { eq, and, desc } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { workflows, workflowBlocks, workflowEdges, workflowExecutionLogs } from "@/lib/db/schema"
 import { requireOrg } from "@/lib/auth-helpers"
@@ -7,6 +7,7 @@ import { apiBlockToBlockState } from "@/apps/automations/stores/workflows/utils"
 import type { BlockState as SerializerBlockState } from "@/apps/automations/stores/workflow-types"
 import { Serializer } from "@/lib/sim/serializer"
 import { Executor } from "@/lib/sim/executor"
+import type { SerializableExecutionState } from "@/lib/sim/executor/execution/types"
 import type { Edge } from "reactflow"
 
 interface RunRequestBody {
@@ -94,10 +95,35 @@ export async function POST(req: Request, { params }: { params: Params }) {
           },
         })
 
-        // TODO: runFromBlockId requires a sourceSnapshot (previous execution state)
-        // to properly use executor.executeFromBlock(). For now, we execute normally
-        // and pass runFromBlockId as the trigger block so execution starts from there.
-        const result = await executor.execute(id, runFromBlockId || undefined)
+        let result
+        if (runFromBlockId) {
+          // Look up the most recent successful execution's snapshot
+          const [latestLog] = await db
+            .select({ executionState: workflowExecutionLogs.executionState })
+            .from(workflowExecutionLogs)
+            .where(
+              and(
+                eq(workflowExecutionLogs.workflowId, id as `${string}-${string}-${string}-${string}-${string}`),
+                eq(workflowExecutionLogs.status, "success")
+              )
+            )
+            .orderBy(desc(workflowExecutionLogs.startedAt))
+            .limit(1)
+
+          if (!latestLog?.executionState) {
+            send({ type: "error", executionId, error: "No previous successful execution found to run from block" })
+            controller.close()
+            return
+          }
+
+          result = await executor.executeFromBlock(
+            id,
+            runFromBlockId,
+            latestLog.executionState as unknown as SerializableExecutionState
+          )
+        } else {
+          result = await executor.execute(id)
+        }
 
         // Send block-level results from logs
         if (result.logs) {
@@ -133,6 +159,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
           endedAt: new Date(endTime),
           totalDurationMs: endTime - startTime,
           executionData: result.logs ?? [],
+          executionState: (result.executionState as unknown as Record<string, unknown>) ?? null,
         })
 
         // Update workflow run count + last run
@@ -162,6 +189,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
           endedAt: new Date(),
           totalDurationMs: Date.now() - startTime,
           executionData: [],
+          executionState: null,
         })
       } finally {
         controller.close()

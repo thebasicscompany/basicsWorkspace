@@ -43,6 +43,7 @@ import { runPreDeployChecks } from '@/apps/automations/lib/pre-deploy-checks'
 import { useVariablesStore } from '@/apps/automations/stores/variables'
 import { VariablesPanel } from './variables-panel'
 import { ExecutionLogPanel, type ExecutionEvent } from './execution-log-panel'
+import { CopilotModal } from './copilot-modal'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1155,6 +1156,8 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
         isOpen={variablesPanelOpen}
         onClose={() => setVariablesPanelOpen(false)}
       />
+
+      <CopilotModal workflowId={workflowId} />
     </div>
   )
 }

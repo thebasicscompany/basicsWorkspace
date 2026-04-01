@@ -1,5 +1,4 @@
 import { createLogger } from '@/lib/sim/logger'
-import { getInternalApiBaseUrl } from '@/lib/core/utils/urls'
 import { generateRouterPrompt, generateRouterV2Prompt } from '@/lib/sim/blocks/blocks/router'
 import type { BlockOutput } from '@/lib/sim/blocks/types'
 import { validateModelProvider } from '@/lib/ee/access-control/utils/permission-check'
@@ -11,8 +10,9 @@ import {
   ROUTER,
 } from '@/lib/sim/executor/constants'
 import type { BlockHandler, ExecutionContext } from '@/lib/sim/executor/types'
-import { buildAuthHeaders } from '@/lib/sim/executor/utils/http'
 import { resolveVertexCredential } from '@/lib/sim/executor/utils/vertex-credential'
+import { executeProviderRequest } from '@/lib/sim/providers'
+import type { Message } from '@/lib/sim/providers/types'
 import { calculateCost, getProviderFromModel } from '@/lib/sim/providers/utils'
 import type { SerializedBlock } from '@/lib/sim/serializer/types'
 
@@ -76,10 +76,7 @@ export class RouterBlockHandler implements BlockHandler {
     const providerId = getProviderFromModel(routerConfig.model)
 
     try {
-      const url = new URL('/api/providers', getInternalApiBaseUrl())
-      if (ctx.userId) url.searchParams.set('userId', ctx.userId)
-
-      const messages = [{ role: 'user', content: routerConfig.prompt }]
+      const messages: Message[] = [{ role: 'user', content: routerConfig.prompt }]
       const systemPrompt = generateRouterPrompt(routerConfig.prompt, targetBlocks)
 
       let finalApiKey: string | undefined = routerConfig.apiKey
@@ -87,42 +84,15 @@ export class RouterBlockHandler implements BlockHandler {
         finalApiKey = await resolveVertexCredential(routerConfig.vertexCredential, 'vertex-router')
       }
 
-      const providerRequest: Record<string, any> = {
-        provider: providerId,
+      const result = await executeProviderRequest(providerId, {
         model: routerConfig.model,
-        systemPrompt: systemPrompt,
-        context: JSON.stringify(messages),
+        systemPrompt,
+        messages,
         temperature: ROUTER.INFERENCE_TEMPERATURE,
         apiKey: finalApiKey,
-        azureEndpoint: inputs.azureEndpoint,
-        azureApiVersion: inputs.azureApiVersion,
-        vertexProject: routerConfig.vertexProject,
-        vertexLocation: routerConfig.vertexLocation,
-        bedrockAccessKeyId: routerConfig.bedrockAccessKeyId,
-        bedrockSecretKey: routerConfig.bedrockSecretKey,
-        bedrockRegion: routerConfig.bedrockRegion,
         workflowId: ctx.workflowId,
         workspaceId: ctx.workspaceId,
-      }
-
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: await buildAuthHeaders(),
-        body: JSON.stringify(providerRequest),
       })
-
-      if (!response.ok) {
-        let errorMessage = `Provider API request failed with status ${response.status}`
-        try {
-          const errorData = await response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
-          }
-        } catch (_e) {}
-        throw new Error(errorMessage)
-      }
-
-      const result = await response.json()
 
       const chosenBlockId = result.content.trim().toLowerCase()
       const chosenBlock = targetBlocks?.find((b) => b.id === chosenBlockId)
@@ -206,10 +176,7 @@ export class RouterBlockHandler implements BlockHandler {
     const providerId = getProviderFromModel(routerConfig.model)
 
     try {
-      const url = new URL('/api/providers', getInternalApiBaseUrl())
-      if (ctx.userId) url.searchParams.set('userId', ctx.userId)
-
-      const messages = [{ role: 'user', content: routerConfig.context }]
+      const messages: Message[] = [{ role: 'user', content: routerConfig.context }]
       const systemPrompt = generateRouterV2Prompt(routerConfig.context, routes)
 
       let finalApiKey: string | undefined = routerConfig.apiKey
@@ -217,20 +184,12 @@ export class RouterBlockHandler implements BlockHandler {
         finalApiKey = await resolveVertexCredential(routerConfig.vertexCredential, 'vertex-router')
       }
 
-      const providerRequest: Record<string, any> = {
-        provider: providerId,
+      const result = await executeProviderRequest(providerId, {
         model: routerConfig.model,
-        systemPrompt: systemPrompt,
-        context: JSON.stringify(messages),
+        systemPrompt,
+        messages,
         temperature: ROUTER.INFERENCE_TEMPERATURE,
         apiKey: finalApiKey,
-        azureEndpoint: inputs.azureEndpoint,
-        azureApiVersion: inputs.azureApiVersion,
-        vertexProject: routerConfig.vertexProject,
-        vertexLocation: routerConfig.vertexLocation,
-        bedrockAccessKeyId: routerConfig.bedrockAccessKeyId,
-        bedrockSecretKey: routerConfig.bedrockSecretKey,
-        bedrockRegion: routerConfig.bedrockRegion,
         workflowId: ctx.workflowId,
         workspaceId: ctx.workspaceId,
         responseFormat: {
@@ -252,26 +211,7 @@ export class RouterBlockHandler implements BlockHandler {
           },
           strict: true,
         },
-      }
-
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: await buildAuthHeaders(),
-        body: JSON.stringify(providerRequest),
       })
-
-      if (!response.ok) {
-        let errorMessage = `Provider API request failed with status ${response.status}`
-        try {
-          const errorData = await response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
-          }
-        } catch (_e) {}
-        throw new Error(errorMessage)
-      }
-
-      const result = await response.json()
 
       let chosenRouteId: string
       let reasoning = ''

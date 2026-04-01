@@ -3,9 +3,9 @@ import type { BlockOutput } from '@/lib/sim/blocks/types'
 import { validateModelProvider } from '@/lib/ee/access-control/utils/permission-check'
 import { BlockType, DEFAULTS, EVALUATOR } from '@/lib/sim/executor/constants'
 import type { BlockHandler, ExecutionContext } from '@/lib/sim/executor/types'
-import { buildAPIUrl, buildAuthHeaders, extractAPIErrorMessage } from '@/lib/sim/executor/utils/http'
 import { isJSONString, parseJSON, stringifyJSON } from '@/lib/sim/executor/utils/json'
 import { resolveVertexCredential } from '@/lib/sim/executor/utils/vertex-credential'
+import { executeProviderRequest } from '@/lib/sim/providers'
 import { calculateCost, getProviderFromModel } from '@/lib/sim/providers/utils'
 import type { SerializedBlock } from '@/lib/sim/serializer/types'
 
@@ -104,54 +104,29 @@ export class EvaluatorBlockHandler implements BlockHandler {
     }
 
     try {
-      const url = buildAPIUrl('/api/providers', ctx.userId ? { userId: ctx.userId } : {})
-
-      const providerRequest: Record<string, any> = {
-        provider: providerId,
+      const result = await executeProviderRequest(providerId, {
         model: evaluatorConfig.model,
         systemPrompt: systemPromptObj.systemPrompt,
         responseFormat: systemPromptObj.responseFormat,
-        context: stringifyJSON([
+        messages: [
           {
             role: 'user',
             content:
               'Please evaluate the content provided in the system prompt. Return ONLY a valid JSON with metric scores.',
           },
-        ]),
-
+        ],
         temperature: EVALUATOR.DEFAULT_TEMPERATURE,
         apiKey: finalApiKey,
-        azureEndpoint: inputs.azureEndpoint,
-        azureApiVersion: inputs.azureApiVersion,
-        vertexProject: evaluatorConfig.vertexProject,
-        vertexLocation: evaluatorConfig.vertexLocation,
-        bedrockAccessKeyId: evaluatorConfig.bedrockAccessKeyId,
-        bedrockSecretKey: evaluatorConfig.bedrockSecretKey,
-        bedrockRegion: evaluatorConfig.bedrockRegion,
         workflowId: ctx.workflowId,
         workspaceId: ctx.workspaceId,
-      }
-
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: await buildAuthHeaders(),
-        body: stringifyJSON(providerRequest),
       })
-
-      if (!response.ok) {
-        const errorMessage = await extractAPIErrorMessage(response)
-        throw new Error(errorMessage)
-      }
-
-      const result = await response.json()
 
       const parsedContent = this.extractJSONFromResponse(result.content)
 
       const metricScores = this.extractMetricScores(parsedContent, inputs.metrics)
 
-      const inputTokens = result.tokens?.input || result.tokens?.prompt || DEFAULTS.TOKENS.PROMPT
-      const outputTokens =
-        result.tokens?.output || result.tokens?.completion || DEFAULTS.TOKENS.COMPLETION
+      const inputTokens = result.tokens?.input || DEFAULTS.TOKENS.PROMPT
+      const outputTokens = result.tokens?.output || DEFAULTS.TOKENS.COMPLETION
 
       const costCalculation = calculateCost(result.model, inputTokens, outputTokens, false)
 
