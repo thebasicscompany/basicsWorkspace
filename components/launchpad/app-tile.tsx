@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import * as Tooltip from "@radix-ui/react-tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface AppTileProps {
   name: string
@@ -55,27 +55,16 @@ export function AppTile({
     </motion.div>
   )
 
-  const trigger = href ? (
-    <Link href={href} className="block outline-none">{box}</Link>
-  ) : (
-    <button onClick={onClick} className="outline-none focus:outline-none">{box}</button>
-  )
-
   return (
-    <Tooltip.Root delayDuration={300}>
-      <Tooltip.Trigger asChild>
-        {trigger}
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          side="top"
-          sideOffset={8}
-          className="z-50 rounded-[8px] bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-zinc-50 shadow-md border border-zinc-800"
-        >
-          {name}
-          <Tooltip.Arrow className="fill-zinc-900" />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+    <Tooltip>
+      <TooltipTrigger
+        render={href ? <Link href={href} className="block outline-none" /> : <button onClick={onClick} className="outline-none focus:outline-none" />}
+      >
+        {box}
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={8}>
+        {name}
+      </TooltipContent>
+    </Tooltip>
   )
 }

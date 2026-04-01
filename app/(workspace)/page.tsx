@@ -10,7 +10,7 @@ import { ConnectionTile } from "@/components/launchpad/connection-tile"
 import { INSTALLED_APPS, type AppManifest } from "@/apps/_registry"
 import { PROVIDER_MAP } from "@/apps/shop/providers"
 import { cn } from "@/lib/utils"
-import * as Tooltip from "@radix-ui/react-tooltip"
+
 
 function renderAppIcon(app: AppManifest, size = 20) {
   const Icon = app.icon
