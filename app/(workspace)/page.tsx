@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Plus, Lightning, Clock } from "@phosphor-icons/react"
+import { Plus, Lightning, Clock, ArrowRight } from "@phosphor-icons/react"
 import { PageTransition } from "@/components/page-transition"
 import { AppTile } from "@/components/launchpad/app-tile"
 import { ConnectionTile } from "@/components/launchpad/connection-tile"
-import { SectionLabel } from "@/components/section-label"
 import { INSTALLED_APPS, type AppManifest } from "@/apps/_registry"
 import { PROVIDER_MAP } from "@/apps/shop/providers"
+import { cn } from "@/lib/utils"
+import * as Tooltip from "@radix-ui/react-tooltip"
 
-// ─── Render icon from manifest ─────────────────────────────────
-function renderAppIcon(app: AppManifest, size = 32) {
+function renderAppIcon(app: AppManifest, size = 20) {
   const Icon = app.icon
   return <Icon size={size} weight={app.iconWeight ?? "fill"} className={app.iconColor} />
 }
@@ -21,11 +21,10 @@ function renderGroupIcons(app: AppManifest) {
   if (!app.subApps) return undefined
   return app.subApps.slice(0, 4).map((sub) => {
     const Icon = sub.icon
-    return <Icon key={sub.slug} size={11} className={sub.iconColor} />
+    return <Icon key={sub.slug} size={10} className={sub.iconColor} />
   })
 }
 
-// ─── Page ──────────────────────────────────────────────────────
 export default function LaunchpadPage() {
   const router = useRouter()
   const hour = new Date().getHours()
@@ -48,11 +47,11 @@ export default function LaunchpadPage() {
 
   const fetchRecentWorkflows = useCallback(async () => {
     try {
-      const res = await fetch("/api/workflows?limit=4")
+      const res = await fetch("/api/workflows?limit=5")
       if (res.ok) {
         const data = await res.json()
         const wfs = data.workflows ?? data
-        setRecentWorkflows(Array.isArray(wfs) ? wfs.slice(0, 4) : [])
+        setRecentWorkflows(Array.isArray(wfs) ? wfs.slice(0, 5) : [])
       }
     } catch { /* ok */ }
   }, [])
@@ -64,110 +63,149 @@ export default function LaunchpadPage() {
 
   return (
     <PageTransition>
-      <div className="relative flex flex-col p-10 h-screen overflow-hidden">
-        {/* Clean ambient background — subtle blue wash */}
-        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" style={{ background: "var(--color-bg-base)" }}>
-          <div className="absolute top-[-15%] left-[-5%] w-[45%] h-[45%] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "#2563EB" }} />
-          <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full opacity-[0.03] blur-[140px]" style={{ background: "#7C3AED" }} />
-        </div>
-
-        <div className="relative z-10 flex flex-col h-full editorial-stagger">
-          {/* Editorial greeting — serif display */}
-          <h1
-            className="font-display mb-8 shrink-0"
-            style={{ fontSize: "28px", lineHeight: 1.2, color: "var(--color-text-primary)", fontWeight: 400 }}
-          >
-            {greeting}, <span className="italic" style={{ color: "#2563EB" }}>Arav.</span>
-          </h1>
-
-          <SectionLabel className="mb-5">Your Apps</SectionLabel>
-          <div className="flex flex-wrap gap-x-8 gap-y-10 shrink-0 editorial-stagger">
-            {INSTALLED_APPS.map((app) => (
-              <AppTile
-                key={app.slug}
-                name={app.name}
-                subtitle={app.subtitle}
-                href={app.href}
-                icon={renderAppIcon(app)}
-                groupIcons={renderGroupIcons(app)}
-                iconBg={app.iconBg}
-              />
-            ))}
-            <AppTile
-              name="Add App"
-              href="/shop"
-              icon={<Plus size={24} className="text-zinc-500 group-hover:text-zinc-600 transition-colors" />}
-              dashed
-            />
+      {/* 24px top padding, 32px horizontal padding per Mercury spec */}
+      <div className="relative flex flex-col pt-[24px] px-[32px] pb-[112px] min-h-screen">
+        
+        <div className="relative z-10 flex flex-col h-full max-w-[968px] w-full mx-auto editorial-stagger">
+          
+          <div className="flex items-baseline justify-between mb-8">
+            <h1 className="text-[28px] font-medium text-zinc-900 tracking-tight">
+              {greeting}, Arav
+            </h1>
           </div>
 
-          {recentWorkflows.length > 0 && (
-            <>
-              <div className="my-10 shrink-0 opacity-30" style={{ borderTop: "1px solid var(--color-border-strong)" }} />
-
-              <SectionLabel className="mb-4">Recent Workflows</SectionLabel>
-              <div className="flex flex-wrap gap-3 shrink-0 editorial-stagger">
-                {recentWorkflows.map((wf) => (
-                  <Link
-                    key={wf.id}
-                    href={`/automations/${wf.id}`}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:shadow-md"
-                    style={{
-                      background: 'var(--color-bg-surface)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'var(--color-accent-light)' }}
-                    >
-                      <Lightning size={14} weight="fill" style={{ color: 'var(--color-accent)' }} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)', maxWidth: 160 }}>
-                        {wf.name}
-                      </p>
-                      <p className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--color-text-tertiary)' }}>
-                        {wf.isDeployed && (
-                          <span className="flex items-center gap-0.5">
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
-                            Live
-                          </span>
-                        )}
-                        <Clock size={9} />
-                        {new Date(wf.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className="my-10 shrink-0 opacity-30" style={{ borderTop: "1px solid var(--color-border-strong)" }} />
-
-          <SectionLabel className="mb-5">Connections</SectionLabel>
-          <div className="flex flex-wrap gap-x-8 gap-y-10 shrink-0 editorial-stagger">
-            {connections.map((conn) => {
-              const provider = PROVIDER_MAP.get(conn.provider)
-              if (!provider) return null
-              const Icon = provider.icon
-              return (
-                <ConnectionTile
-                  key={provider.id}
-                  name={provider.name}
-                  icon={<Icon className="w-8 h-8" />}
-                  connected
-                />
-              )
-            })}
-            <ConnectionTile
-              name="Add More"
-              icon={<Plus size={24} className="text-zinc-500 group-hover:text-zinc-600 transition-colors" />}
-              connected={false}
+          {/* Action Row - Mercury Style Pill Buttons */}
+          <div className="flex items-center gap-3 mb-10">
+            <button
               onClick={() => router.push("/shop")}
-              dashed
-            />
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-white rounded-full text-[14px] font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
+              <Plus size={16} weight="bold" />
+              Get new apps
+            </button>
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-full text-[14px] font-medium hover:bg-zinc-50 transition-colors whitespace-nowrap"
+            >
+              <Lightning size={16} />
+              Create workflow
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+            
+            {/* Main Content Area: Apps & Connections */}
+            <div className="flex flex-col gap-10">
+              
+              {/* Your Apps Sector */}
+              <section className="flex flex-col gap-4">
+                <h2 className="text-[18px] font-medium text-zinc-900 tracking-tight mb-2">Installed Apps</h2>
+                <div className="flex flex-wrap gap-5">
+                  {INSTALLED_APPS.map((app) => (
+                    <AppTile
+                      key={app.slug}
+                      name={app.name}
+                      subtitle={app.subtitle}
+                      href={app.href}
+                      icon={renderAppIcon(app)}
+                      groupIcons={renderGroupIcons(app)}
+                      iconBg={app.iconBg}
+                    />
+                  ))}
+                  <AppTile
+                    name="Browse Catalog"
+                    href="/shop"
+                    icon={<Plus size={20} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />}
+                    dashed
+                  />
+                </div>
+              </section>
+
+              {/* Connections Sector */}
+              <section className="flex flex-col gap-4">
+                <h2 className="text-[18px] font-medium text-zinc-900 tracking-tight mb-2">Connections</h2>
+                <div className="flex flex-wrap gap-5">
+                  {connections.map((conn) => {
+                    const provider = PROVIDER_MAP.get(conn.provider)
+                    if (!provider) return null
+                    const Icon = provider.icon
+                    return (
+                      <ConnectionTile
+                        key={provider.id}
+                        name={provider.name}
+                        icon={<Icon className="w-5 h-5 text-zinc-700" />}
+                        connected
+                      />
+                    )
+                  })}
+                  <ConnectionTile
+                    name="Connect Service"
+                    icon={<Plus size={20} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />}
+                    connected={false}
+                    onClick={() => router.push("/shop")}
+                    dashed
+                  />
+                </div>
+              </section>
+
+            </div>
+
+            {/* Right Sidebar Area: Workflows List Card */}
+            <div className="flex flex-col">
+              <div className="bg-white border border-zinc-200 rounded-[16px] shadow-sm flex flex-col overflow-hidden">
+                <div className="px-[24px] pt-[24px] pb-[16px] flex items-center justify-between">
+                  <h2 className="text-[16px] font-medium text-zinc-900">Recent workflows</h2>
+                </div>
+                
+                <div className="flex flex-col">
+                  {recentWorkflows.length > 0 ? (
+                    recentWorkflows.map((wf, idx) => (
+                      <Link
+                        key={wf.id}
+                        href={`/automations/${wf.id}`}
+                        className={cn(
+                          "flex items-center gap-3 px-[24px] py-[16px] hover:bg-zinc-50 transition-colors group",
+                          idx !== recentWorkflows.length - 1 && "border-b border-zinc-100"
+                        )}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+                          <Lightning size={16} weight="fill" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-medium text-zinc-900 truncate">
+                            {wf.name}
+                          </p>
+                          <p className="text-[13px] text-zinc-500 font-[360] flex items-center gap-1.5 mt-0.5">
+                            {wf.isDeployed && (
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
+                                Live
+                              </span>
+                            )}
+                            <Clock size={12} />
+                            {new Date(wf.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
+                        <ArrowRight size={16} className="text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0" />
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="px-[24px] py-[32px] text-center">
+                      <p className="text-[13px] text-zinc-500 font-[360]">No workflows created yet.</p>
+                    </div>
+                  )}
+                </div>
+
+                {recentWorkflows.length > 0 && (
+                  <Link 
+                    href="/automations" 
+                    className="px-[24px] py-[16px] bg-zinc-50 text-[13px] font-medium text-[var(--color-accent-foreground)] hover:bg-zinc-100 transition-colors border-t border-zinc-100 text-center"
+                  >
+                    View all workflows
+                  </Link>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

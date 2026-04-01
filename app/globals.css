@@ -28,18 +28,18 @@
   --color-border:         #E5E7EB;
   --color-border-strong:  #D1D5DB;
 
-  /* Accent — Bright blue */
-  --color-accent:         #2563EB;
-  --color-accent-light:   #EFF6FF;
+  /* Accent — Brand green */
+  --color-accent:         #059669; /* Emerald 600 */
+  --color-accent-light:   #E6F5F0; /* Soft emerald */
 
   /* Brand primary (used by agent block bgColor) */
-  --brand-primary-hex:    #2563EB;
+  --brand-primary-hex:    #059669;
 
   /* Semantic */
   --color-success:        #22C55E;
   --color-warning:        #F59E0B;
   --color-error:          #EF4444;
-  --color-info:           #2563EB;
+  --color-info:           #059669;
 
   /* Radius */
   --radius-sm:   6px;
@@ -72,13 +72,13 @@
   --secondary-foreground:   #1A1D26;
   --muted:                  #F0F2F5;
   --muted-foreground:       #6B7280;
-  --accent:                 #EFF6FF;
-  --accent-foreground:      #2563EB;
+  --accent:                 #E6F5F0;
+  --accent-foreground:      #059669;
   --destructive:            #EF4444;
   --border:                 #E5E7EB;
   --input:                  #E5E7EB;
-  --ring:                   #2563EB;
-  --radius:                 0.625rem;
+  --ring:                   #059669;
+  --radius:                 0.75rem; /* 12px for Mercury style */
 }
 
 /* ─── Tailwind v4 Theme ──────────────────────────────────────── */

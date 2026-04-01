@@ -1,4 +1,6 @@
-import { WorkspaceSidebar } from "@/components/workspace-sidebar"
+import { WorkspaceSidebar, SidebarProvider } from "@/components/workspace-sidebar"
+import { RadixTooltipProvider } from "@/components/radix-tooltip-provider"
+import { WorkspaceMain } from "@/components/workspace-main"
 
 export default function WorkspaceLayout({
   children,
@@ -6,9 +8,11 @@ export default function WorkspaceLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
-      <WorkspaceSidebar />
-      <main className="ml-16 min-h-screen flex flex-col">{children}</main>
-    </>
+    <RadixTooltipProvider>
+      <SidebarProvider>
+        <WorkspaceSidebar />
+        <WorkspaceMain>{children}</WorkspaceMain>
+      </SidebarProvider>
+    </RadixTooltipProvider>
   )
 }

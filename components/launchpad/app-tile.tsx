@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import * as Tooltip from "@radix-ui/react-tooltip"
 
 interface AppTileProps {
   name: string
@@ -12,74 +13,69 @@ interface AppTileProps {
   onClick?: () => void
   className?: string
   groupIcons?: React.ReactNode[]
-  iconBg?: string
   dashed?: boolean
+  iconBg?: string
 }
 
 export function AppTile({
   name,
-  subtitle,
   icon,
   href,
   onClick,
   className,
   groupIcons,
-  iconBg,
   dashed,
+  iconBg,
 }: AppTileProps) {
   const box = (
     <motion.div
-      whileTap={{ scale: 0.96 }}
-      transition={{ duration: 0.12, ease: "easeOut" }}
+      whileTap={{ scale: 0.94 }}
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.1, ease: "easeOut" }}
       className={cn(
-        "w-[80px] h-[80px] rounded-[20px] cursor-pointer group tile-hover",
-        "flex items-center justify-center shrink-0",
-        dashed
-          ? "border-[2px] border-dashed border-zinc-300/70 dark:border-zinc-600/70 bg-transparent hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-          : (iconBg || "border"),
+        "flex flex-col items-center justify-center cursor-pointer w-16 h-16 shrink-0 relative",
+        "rounded-[16px] shadow-sm border border-zinc-200/60 transition-all",
+        dashed ? "border-dashed bg-transparent hover:bg-zinc-50 border-zinc-300" : (iconBg ? iconBg : "bg-white"),
         className
       )}
-      style={dashed ? undefined : {
-        background: !iconBg ? "var(--color-bg-surface)" : undefined,
-        borderColor: !iconBg ? "var(--color-border)" : undefined,
-        boxShadow: iconBg ? "var(--shadow-squircle-color)" : "var(--shadow-squircle-white)",
-      }}
     >
       {groupIcons && groupIcons.length > 0 ? (
-        <div className="grid grid-cols-2 gap-1 w-[44px] h-[44px]">
+        <div className="grid grid-cols-2 gap-1 w-[32px] h-[32px]">
           {groupIcons.slice(0, 4).map((gi, i) => (
-            <div key={i} className={cn("flex items-center justify-center rounded-md", iconBg ? "bg-black/10" : "bg-zinc-50 dark:bg-zinc-800")}>
+            <div key={i} className="flex items-center justify-center rounded-[4px] bg-black/10">
               {gi}
             </div>
           ))}
         </div>
       ) : (
-        icon
+        <div className={cn("text-zinc-700", iconBg && "text-zinc-900")}>
+          {icon}
+        </div>
       )}
     </motion.div>
   )
 
+  const trigger = href ? (
+    <Link href={href} className="block outline-none">{box}</Link>
+  ) : (
+    <button onClick={onClick} className="outline-none focus:outline-none">{box}</button>
+  )
+
   return (
-    <div className="flex flex-col items-center gap-2 w-[80px]">
-      {href ? (
-        <Link href={href} className="block">{box}</Link>
-      ) : (
-        <button onClick={onClick}>{box}</button>
-      )}
-      <p
-        className="text-center leading-tight w-full truncate"
-        style={{ fontSize: "12px", color: "var(--color-text-primary)", fontWeight: 500 }}
-      >
-        {name}
-      </p>
-      {subtitle && (
-        <p
-          className="text-center leading-tight -mt-1 truncate w-full"
-          style={{ fontSize: "10px", color: "var(--color-text-tertiary)", fontWeight: 400 }}
+    <Tooltip.Root delayDuration={300}>
+      <Tooltip.Trigger asChild>
+        {trigger}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side="top"
+          sideOffset={8}
+          className="z-50 rounded-[8px] bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-zinc-50 shadow-md border border-zinc-800"
         >
-          {subtitle}
-        </p>
-      )}
-    </div>
+          {name}
+          <Tooltip.Arrow className="fill-zinc-900" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   )
 }
