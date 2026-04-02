@@ -4,7 +4,7 @@ import { create } from "zustand"
 
 interface RecorderEvent {
   timestamp: number
-  type: "click" | "keyInput" | "windowSwitch" | "scroll"
+  type: "click" | "keyInput" | "windowSwitch" | "scroll" | "clipboard"
   coordinates?: { x: number; y: number }
   textEntered?: string
   windowTitle?: string

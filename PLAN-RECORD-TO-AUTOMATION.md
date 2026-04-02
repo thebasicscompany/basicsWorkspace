@@ -251,17 +251,21 @@ contextBridge.exposeInMainWorld('recorder', {
 
 **No understanding yet** — capture pipeline is built.
 
-### Phase R2: Understanding MVP (1-2 weeks)
+### Phase R2: Understanding MVP ✅ DONE
 
 **Goal:** Captured events → semantic action descriptions via LLM.
 
-- Send screenshots + click coordinates to Claude API (or gateway) with structured prompt
-- Prompt includes: "Here is a screenshot. The user clicked at (x, y). What UI element did they interact with? What action did they perform?"
-- Batch process all events from a recording session
-- Return structured action sequence to renderer
-- Show action timeline in a review panel
+- ✅ `POST /api/recordings/[id]/understand` — reads events, sends screenshots + coordinates to vision LLM via gateway
+- ✅ Structured prompt with JSON schema response format for reliable parsing
+- ✅ Batch processes all events from a recording session with base64-encoded screenshots
+- ✅ Returns `UnderstoodAction[]` with step, action, element, app, value, confidence
+- ✅ Saves structured actions to `structuredActions` column in recordings table
+- ✅ Recording detail page at `/recorder/[id]` with action timeline
+- ✅ Action timeline UI with confidence badges (high/medium/low), app/element labels, value display
+- ✅ "Understand" button on detail page, status transitions (recorded → processing → converted/failed)
+- ✅ Recording list rows are clickable → navigate to detail page
 
-**No workflow generation yet** — just prove the understanding works.
+**No workflow generation yet** — understanding pipeline is built.
 
 ### Phase R3: Workflow Generation (1-2 weeks)
 

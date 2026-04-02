@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { VideoCamera, Trash, ArrowClockwise } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -42,6 +43,7 @@ function formatDuration(seconds: number | null): string {
 }
 
 export function RecordingList() {
+  const router = useRouter()
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [loading, setLoading] = useState(true)
   const { recording: isRecording } = useRecorderStore()
@@ -137,8 +139,9 @@ export function RecordingList() {
             {recordings.map((rec) => (
               <tr
                 key={rec.id}
-                className="border-b last:border-b-0 transition-colors hover:bg-[var(--color-bg-subtle)]"
+                className="border-b last:border-b-0 transition-colors hover:bg-[var(--color-bg-subtle)] cursor-pointer"
                 style={{ borderColor: "var(--color-border)" }}
+                onClick={() => router.push(`/recorder/${rec.id}`)}
               >
                 <td className="px-4 py-2.5" style={{ color: "var(--color-text-primary)" }}>
                   {rec.name}
@@ -157,7 +160,7 @@ export function RecordingList() {
                 </td>
                 <td className="px-4 py-2.5">
                   <button
-                    onClick={() => deleteRecording(rec.id)}
+                    onClick={(e) => { e.stopPropagation(); deleteRecording(rec.id) }}
                     className="flex items-center justify-center rounded-lg p-1.5 transition-colors hover:bg-red-50"
                     style={{ color: "var(--color-text-tertiary)" }}
                   >

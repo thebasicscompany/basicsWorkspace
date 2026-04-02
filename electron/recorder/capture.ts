@@ -5,6 +5,11 @@ import * as os from "os"
 
 let sessionDir: string | null = null
 
+// Cache: avoid redundant desktopCapturer.getSources() calls for rapid events
+let cachedBuffer: Buffer | null = null
+let cachedAt = 0
+const CACHE_TTL_MS = 100
+
 export function initSessionDir(sessionId: string): string {
   sessionDir = path.join(os.tmpdir(), "basics-recordings", sessionId)
   fs.mkdirSync(sessionDir, { recursive: true })
@@ -22,22 +27,33 @@ export function cleanupSessionDir(): void {
   sessionDir = null
 }
 
-export async function captureScreenshot(sessionId: string): Promise<string> {
+export async function captureScreenshot(sessionId: string): Promise<{ filepath: string; buffer: Buffer }> {
   const dir = sessionDir || initSessionDir(sessionId)
-  const filename = `${Date.now()}.png`
+  const now = Date.now()
+  const filename = `${now}.jpg`
   const filepath = path.join(dir, filename)
 
-  const sources = await desktopCapturer.getSources({
-    types: ["screen"],
-    thumbnailSize: { width: 1920, height: 1080 },
-  })
+  let jpeg: Buffer
 
-  if (sources.length === 0) {
-    throw new Error("No screen sources available")
+  // Reuse cached frame if within TTL
+  if (cachedBuffer && now - cachedAt < CACHE_TTL_MS) {
+    jpeg = cachedBuffer
+  } else {
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: { width: 1920, height: 1080 },
+    })
+
+    if (sources.length === 0) {
+      throw new Error("No screen sources available")
+    }
+
+    jpeg = sources[0].thumbnail.toJPEG(80)
+    cachedBuffer = jpeg
+    cachedAt = now
   }
 
-  const png = sources[0].thumbnail.toPNG()
-  fs.writeFileSync(filepath, png)
+  fs.writeFileSync(filepath, jpeg)
 
-  return filepath
+  return { filepath, buffer: jpeg }
 }
