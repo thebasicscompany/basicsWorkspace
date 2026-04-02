@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { boolean, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 export const organization = pgTable("organization", {
   id: text("id").primaryKey(),
@@ -12,17 +12,23 @@ export const organization = pgTable("organization", {
   byokApiKey: text("byok_api_key"),
 })
 
-export const member = pgTable("member", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id")
-    .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  role: text("role").notNull(),
-  createdAt: timestamp("created_at").$default(() => new Date()).notNull(),
-})
+export const member = pgTable(
+  "member",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    createdAt: timestamp("created_at").$default(() => new Date()).notNull(),
+  },
+  (table) => [
+    uniqueIndex("member_org_user_unique").on(table.organizationId, table.userId),
+  ]
+)
 
 export const invitation = pgTable("invitation", {
   id: text("id").primaryKey(),

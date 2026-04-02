@@ -83,63 +83,52 @@ export function buildInsertQuery(table: string, data: Record<string, unknown>) {
   return { query, values }
 }
 
-export function buildUpdateQuery(table: string, data: Record<string, unknown>, where: string) {
-  validateWhereClause(where)
-
-  const sanitizedTable = sanitizeIdentifier(table)
-  const columns = Object.keys(data)
-  const values = Object.values(data)
-
-  const setClause = columns.map((col) => `${sanitizeIdentifier(col)} = ?`).join(', ')
-  const query = `UPDATE ${sanitizedTable} SET ${setClause} WHERE ${where}`
-
-  return { query, values }
-}
-
-export function buildDeleteQuery(table: string, where: string) {
-  validateWhereClause(where)
-
-  const sanitizedTable = sanitizeIdentifier(table)
-  const query = `DELETE FROM ${sanitizedTable} WHERE ${where}`
-
-  return { query, values: [] }
-}
-
 /**
- * Validates a WHERE clause to prevent SQL injection attacks
- * @param where - The WHERE clause string to validate
- * @throws {Error} If the WHERE clause contains potentially dangerous patterns
+ * Builds a parameterized WHERE clause from a conditions object.
+ * Each key is a column name (sanitized as an identifier), each value becomes a ? parameter.
+ * All conditions are joined with AND.
  */
-function validateWhereClause(where: string): void {
-  const dangerousPatterns = [
-    /;\s*(drop|delete|insert|update|create|alter|grant|revoke)/i,
-    /union\s+(all\s+)?select/i,
-    /into\s+outfile/i,
-    /into\s+dumpfile/i,
-    /load_file\s*\(/i,
-    /--/,
-    /\/\*/,
-    /\*\//,
-    /\bor\s+(['"]?)(\w+)\1\s*=\s*\1\2\1/i,
-    /\bor\s+true\b/i,
-    /\bor\s+false\b/i,
-    /\band\s+(['"]?)(\w+)\1\s*=\s*\1\2\1/i,
-    /\band\s+true\b/i,
-    /\band\s+false\b/i,
-    /\bsleep\s*\(/i,
-    /\bbenchmark\s*\(/i,
-    /\bwaitfor\s+delay/i,
-    /;\s*\w+/,
-    /information_schema/i,
-    /mysql\./i,
-    /\bxp_cmdshell/i,
-  ]
+function buildWhereClause(conditions: Record<string, unknown>): { clause: string; values: unknown[] } {
+  const columns = Object.keys(conditions)
+  if (columns.length === 0) {
+    throw new Error('At least one condition is required')
+  }
 
-  for (const pattern of dangerousPatterns) {
-    if (pattern.test(where)) {
-      throw new Error('WHERE clause contains potentially dangerous operation')
+  const parts: string[] = []
+  const values: unknown[] = []
+
+  for (const col of columns) {
+    const sanitizedCol = sanitizeIdentifier(col)
+    const value = conditions[col]
+    if (value === null) {
+      parts.push(`${sanitizedCol} IS NULL`)
+    } else {
+      parts.push(`${sanitizedCol} = ?`)
+      values.push(value)
     }
   }
+
+  return { clause: parts.join(' AND '), values }
+}
+
+export function buildUpdateQuery(table: string, data: Record<string, unknown>, conditions: Record<string, unknown>) {
+  const sanitizedTable = sanitizeIdentifier(table)
+  const columns = Object.keys(data)
+  const dataValues = Object.values(data)
+
+  const setClause = columns.map((col) => `${sanitizeIdentifier(col)} = ?`).join(', ')
+  const where = buildWhereClause(conditions)
+  const query = `UPDATE ${sanitizedTable} SET ${setClause} WHERE ${where.clause}`
+
+  return { query, values: [...dataValues, ...where.values] }
+}
+
+export function buildDeleteQuery(table: string, conditions: Record<string, unknown>) {
+  const sanitizedTable = sanitizeIdentifier(table)
+  const where = buildWhereClause(conditions)
+  const query = `DELETE FROM ${sanitizedTable} WHERE ${where.clause}`
+
+  return { query, values: where.values }
 }
 
 export function sanitizeIdentifier(identifier: string): string {

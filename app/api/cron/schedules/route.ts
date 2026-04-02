@@ -22,13 +22,10 @@ function verifyCronAuth(request: NextRequest): boolean {
     return host.startsWith('localhost') || host.startsWith('127.0.0.1')
   }
 
-  // Check Authorization header
+  // Check Authorization header only — never accept secrets in query params
+  // (query params leak in logs, referer headers, and browser history)
   const authHeader = request.headers.get('authorization')
   if (authHeader === `Bearer ${cronSecret}`) return true
-
-  // Check query param (for services that don't support custom headers)
-  const url = new URL(request.url)
-  if (url.searchParams.get('secret') === cronSecret) return true
 
   return false
 }

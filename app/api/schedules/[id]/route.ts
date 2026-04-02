@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { workflowSchedule, workflows } from '@/lib/db/schema'
 import { requireOrg } from '@/lib/auth-helpers'
+import { logContextEvent } from '@/lib/context'
 import { createLogger } from '@/lib/sim/logger'
 import { validateCronExpression } from '@/lib/workflows/schedules/utils'
 
@@ -120,6 +121,16 @@ export async function PUT(req: Request, { params }: { params: Params }) {
         .set({ status: 'disabled', updatedAt: new Date() })
         .where(eq(workflowSchedule.id, scheduleId))
 
+      await logContextEvent({
+        orgId,
+        userId: ctx.userId,
+        sourceApp: 'automations',
+        eventType: 'schedule.disabled',
+        entityType: 'schedule',
+        entityId: scheduleId,
+        metadata: { workflowId: schedule.workflowId },
+      })
+
       logger.info(`[${requestId}] Disabled schedule: ${scheduleId}`)
       return Response.json({ message: 'Schedule disabled successfully' })
     }
@@ -145,6 +156,16 @@ export async function PUT(req: Request, { params }: { params: Params }) {
         .update(workflowSchedule)
         .set({ status: 'active', updatedAt: new Date() })
         .where(eq(workflowSchedule.id, scheduleId))
+
+      await logContextEvent({
+        orgId,
+        userId: ctx.userId,
+        sourceApp: 'automations',
+        eventType: 'schedule.enabled',
+        entityType: 'schedule',
+        entityId: scheduleId,
+        metadata: { workflowId: schedule.workflowId },
+      })
 
       logger.info(`[${requestId}] Enabled schedule: ${scheduleId}`)
       return Response.json({
@@ -177,6 +198,16 @@ export async function PUT(req: Request, { params }: { params: Params }) {
       .update(workflowSchedule)
       .set(setFields)
       .where(eq(workflowSchedule.id, scheduleId))
+
+    await logContextEvent({
+      orgId,
+      userId: ctx.userId,
+      sourceApp: 'automations',
+      eventType: 'schedule.updated',
+      entityType: 'schedule',
+      entityId: scheduleId,
+      metadata: { workflowId: schedule.workflowId, updates: setFields },
+    })
 
     logger.info(`[${requestId}] Updated schedule: ${scheduleId}`)
     return Response.json({ message: 'Schedule updated successfully' })
@@ -219,6 +250,16 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
     }
 
     await db.delete(workflowSchedule).where(eq(workflowSchedule.id, scheduleId))
+
+    await logContextEvent({
+      orgId,
+      userId: ctx.userId,
+      sourceApp: 'automations',
+      eventType: 'schedule.deleted',
+      entityType: 'schedule',
+      entityId: scheduleId,
+      metadata: { workflowId: schedule.workflowId },
+    })
 
     logger.info(`[${requestId}] Deleted schedule: ${scheduleId}`)
     return Response.json({ message: 'Schedule deleted successfully' })

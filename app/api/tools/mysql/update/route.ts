@@ -32,7 +32,25 @@ const UpdateSchema = z.object({
         }
       }),
   ]),
-  where: z.string().min(1, 'WHERE clause is required'),
+  conditions: z.union([
+    z
+      .record(z.string(), z.unknown())
+      .refine((obj) => Object.keys(obj).length > 0, 'Conditions object cannot be empty'),
+    z
+      .string()
+      .min(1)
+      .transform((str) => {
+        try {
+          const parsed = JSON.parse(str)
+          if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            throw new Error('Conditions must be a JSON object')
+          }
+          return parsed as Record<string, unknown>
+        } catch (e) {
+          throw new Error('Invalid JSON format in conditions field. Provide a JSON object like {"id": 1}')
+        }
+      }),
+  ]),
 })
 
 export async function POST(request: NextRequest) {
@@ -56,7 +74,7 @@ export async function POST(request: NextRequest) {
     })
 
     try {
-      const { query, values } = buildUpdateQuery(params.table, params.data, params.where)
+      const { query, values } = buildUpdateQuery(params.table, params.data, params.conditions)
       const result = await executeQuery(connection, query, values)
 
       logger.info(`[${requestId}] Update executed successfully, ${result.rowCount} row(s) updated`)

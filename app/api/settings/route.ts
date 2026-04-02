@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { requireOrg } from "@/lib/auth-helpers"
 import { db } from "@/lib/db"
+import { logContextEvent } from "@/lib/context"
 import { organization, user } from "@/lib/db/schema"
 
 export async function GET(req: NextRequest) {
@@ -84,6 +85,16 @@ export async function PATCH(req: NextRequest) {
         .where(eq(user.id, ctx.userId))
     }
   }
+
+  await logContextEvent({
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    sourceApp: "settings",
+    eventType: "settings.updated",
+    entityType: "settings",
+    entityId: ctx.orgId,
+    metadata: { sections: Object.keys(body) },
+  })
 
   return NextResponse.json({ ok: true })
 }

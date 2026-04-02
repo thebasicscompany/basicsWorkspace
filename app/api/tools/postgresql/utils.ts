@@ -71,52 +71,38 @@ export function sanitizeIdentifier(identifier: string): string {
 }
 
 /**
- * Validates a WHERE clause to prevent SQL injection attacks
- * @param where - The WHERE clause string to validate
- * @throws {Error} If the WHERE clause contains potentially dangerous patterns
+ * Builds a parameterized WHERE clause from a conditions object.
+ * Each key is a column name (sanitized as an identifier), each value becomes a $N parameter.
+ * All conditions are joined with AND.
+ *
+ * @param conditions - Key-value pairs for WHERE column = value
+ * @param paramOffset - Starting parameter index (to avoid collisions with SET clause params)
+ * @returns { clause: string, values: unknown[] }
  */
-function validateWhereClause(where: string): void {
-  const dangerousPatterns = [
-    // DDL and DML injection via stacked queries
-    /;\s*(drop|delete|insert|update|create|alter|grant|revoke)/i,
-    // Union-based injection
-    /union\s+(all\s+)?select/i,
-    // File operations
-    /into\s+outfile/i,
-    /load_file\s*\(/i,
-    /pg_read_file/i,
-    // Comment-based injection (can truncate query)
-    /--/,
-    /\/\*/,
-    /\*\//,
-    // Tautologies - always true/false conditions using backreferences
-    // Matches OR 'x'='x' or OR x=x (same value both sides) but NOT OR col='value'
-    /\bor\s+(['"]?)(\w+)\1\s*=\s*\1\2\1/i,
-    /\bor\s+true\b/i,
-    /\bor\s+false\b/i,
-    // AND tautologies (less common but still used in attacks)
-    /\band\s+(['"]?)(\w+)\1\s*=\s*\1\2\1/i,
-    /\band\s+true\b/i,
-    /\band\s+false\b/i,
-    // Time-based blind injection
-    /\bsleep\s*\(/i,
-    /\bwaitfor\s+delay/i,
-    /\bpg_sleep\s*\(/i,
-    /\bbenchmark\s*\(/i,
-    // Stacked queries (any statement after semicolon)
-    /;\s*\w+/,
-    // Information schema / system catalog queries
-    /information_schema/i,
-    /pg_catalog/i,
-    // System functions and procedures
-    /\bxp_cmdshell/i,
-  ]
-
-  for (const pattern of dangerousPatterns) {
-    if (pattern.test(where)) {
-      throw new Error('WHERE clause contains potentially dangerous operation')
-    }
+function buildWhereClause(
+  conditions: Record<string, unknown>,
+  paramOffset = 0
+): { clause: string; values: unknown[] } {
+  const columns = Object.keys(conditions)
+  if (columns.length === 0) {
+    throw new Error('At least one condition is required')
   }
+
+  const parts: string[] = []
+  const values: unknown[] = []
+
+  columns.forEach((col, i) => {
+    const sanitizedCol = sanitizeIdentifier(col)
+    const value = conditions[col]
+    if (value === null) {
+      parts.push(`${sanitizedCol} IS NULL`)
+    } else {
+      parts.push(`${sanitizedCol} = $${paramOffset + i + 1}`)
+      values.push(value)
+    }
+  })
+
+  return { clause: parts.join(' AND '), values }
 }
 
 function sanitizeSingleIdentifier(identifier: string): string {
@@ -156,18 +142,18 @@ export async function executeUpdate(
   sql: any,
   table: string,
   data: Record<string, unknown>,
-  where: string
+  conditions: Record<string, unknown>
 ): Promise<{ rows: unknown[]; rowCount: number }> {
-  validateWhereClause(where)
-
   const sanitizedTable = sanitizeIdentifier(table)
   const columns = Object.keys(data)
   const sanitizedColumns = columns.map((col) => sanitizeIdentifier(col))
   const setClause = sanitizedColumns.map((col, index) => `${col} = $${index + 1}`).join(', ')
-  const values = columns.map((col) => data[col])
+  const dataValues = columns.map((col) => data[col])
 
-  const query = `UPDATE ${sanitizedTable} SET ${setClause} WHERE ${where} RETURNING *`
-  const result = await sql.unsafe(query, values)
+  const where = buildWhereClause(conditions, columns.length)
+
+  const query = `UPDATE ${sanitizedTable} SET ${setClause} WHERE ${where.clause} RETURNING *`
+  const result = await sql.unsafe(query, [...dataValues, ...where.values])
 
   const rowCount = result.count ?? result.length ?? 0
   return {
@@ -179,13 +165,13 @@ export async function executeUpdate(
 export async function executeDelete(
   sql: any,
   table: string,
-  where: string
+  conditions: Record<string, unknown>
 ): Promise<{ rows: unknown[]; rowCount: number }> {
-  validateWhereClause(where)
-
   const sanitizedTable = sanitizeIdentifier(table)
-  const query = `DELETE FROM ${sanitizedTable} WHERE ${where} RETURNING *`
-  const result = await sql.unsafe(query, [])
+  const where = buildWhereClause(conditions)
+
+  const query = `DELETE FROM ${sanitizedTable} WHERE ${where.clause} RETURNING *`
+  const result = await sql.unsafe(query, where.values)
 
   const rowCount = result.count ?? result.length ?? 0
   return {

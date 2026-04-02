@@ -38,6 +38,7 @@ export const workflows = pgTable(
   },
   (table) => [
     index("workflows_org_archived_sort_idx").on(table.orgId, table.archivedAt, table.sortOrder),
+    index("workflows_org_deployed_idx").on(table.orgId, table.isDeployed),
   ]
 )
 
@@ -122,6 +123,7 @@ export const workflowExecutionLogs = pgTable(
   (table) => [
     index("workflow_exec_logs_workflow_started_idx").on(table.workflowId, table.startedAt),
     index("workflow_exec_logs_org_started_idx").on(table.orgId, table.startedAt),
+    index("workflow_exec_logs_started_idx").on(table.startedAt),
   ]
 )
 

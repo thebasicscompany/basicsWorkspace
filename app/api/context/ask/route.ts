@@ -1,6 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai"
 import { streamText, convertToModelMessages } from "ai"
 import type { UIMessage } from "ai"
+import { requireOrg } from "@/lib/auth-helpers"
 
 const gateway = createOpenAI({
   baseURL: process.env.GATEWAY_URL ?? "https://api.basicsos.com/v1",
@@ -19,6 +20,9 @@ When answering:
 You have access to the user's workspace context including CRM records, activity events, and semantic embeddings of all content. Answer as if you've deeply read everything in their workspace.`
 
 export async function POST(req: Request) {
+  const ctx = await requireOrg(req)
+  if (ctx instanceof Response) return ctx
+
   const { messages }: { messages: UIMessage[] } = await req.json()
 
   const result = streamText({
