@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Edge } from 'reactflow'
 import type { OutputFieldDefinition, SubBlockType } from '@/lib/sim/blocks/types'
 import type { DeploymentStatus } from '@/apps/automations/stores/workflows/registry/types'

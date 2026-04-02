@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createLogger } from '@/lib/sim/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'

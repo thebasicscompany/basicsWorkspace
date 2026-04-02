@@ -1,12 +1,24 @@
-// @ts-nocheck
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { PANEL_WIDTH } from '@/apps/automations/stores/constants'
-import type { PanelState, PanelTab } from '@/apps/automations/stores/panel/types'
 
-/**
- * Default panel tab
- */
+const PANEL_WIDTH = {
+  DEFAULT: 420,
+  MIN: 320,
+} as const
+
+export type PanelTab = 'copilot' | 'chat' | 'logs'
+
+interface PanelState {
+  panelWidth: number
+  setPanelWidth: (width: number) => void
+  activeTab: PanelTab
+  setActiveTab: (tab: PanelTab) => void
+  isResizing: boolean
+  setIsResizing: (isResizing: boolean) => void
+  _hasHydrated: boolean
+  setHasHydrated: (hasHydrated: boolean) => void
+}
+
 const DEFAULT_TAB: PanelTab = 'copilot'
 
 export const usePanelStore = create<PanelState>()(

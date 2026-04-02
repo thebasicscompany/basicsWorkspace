@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createLogger } from '@/lib/sim/logger'
 import type { Edge } from 'reactflow'
 import { create } from 'zustand'

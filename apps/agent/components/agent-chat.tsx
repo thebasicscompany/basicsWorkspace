@@ -394,7 +394,7 @@ export const AgentChat: FC = () => {
     [activeThreadId]
   )
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = useCallback(async () => {
     abortRef.current?.abort()
     setIsRunning(false)
   }, [])
