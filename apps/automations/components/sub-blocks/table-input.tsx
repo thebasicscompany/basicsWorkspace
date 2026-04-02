@@ -316,7 +316,7 @@ export function Table({
 
   return (
     <div className='relative'>
-      <div className='overflow-visible rounded-[4px] border border-[var(--color-border)] bg-[var(--surface-2)] dark:bg-[#1F1F1F]'>
+      <div className='overflow-visible rounded-[4px] border border-[var(--color-border)] bg-[var(--surface-2)]'>
         <table className='w-full bg-transparent'>
           {renderHeader()}
           <tbody className='bg-transparent'>

@@ -834,7 +834,7 @@ export function ConditionInput({
       {conditionalBlocks.map((block, index) => (
         <div
           key={block.id}
-          className='group relative overflow-visible rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-surface)] dark:bg-[#1F1F1F]'
+          className='group relative overflow-visible rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-surface)]'
         >
           <div
             className={cn(
@@ -992,7 +992,7 @@ export function ConditionInput({
               {/* Custom resize handle */}
               {!isPreview && !disabled && (
                 <div
-                  className='absolute right-1 bottom-1 flex h-4 w-4 cursor-ns-resize items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-base)] dark:bg-[var(--color-bg-base)]'
+                  className='absolute right-1 bottom-1 flex h-4 w-4 cursor-ns-resize items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-base)]'
                   onMouseDown={(e) => startRouterResize(e, block.id)}
                   onDragStart={(e) => {
                     e.preventDefault()

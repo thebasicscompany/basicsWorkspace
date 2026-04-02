@@ -387,7 +387,7 @@ export function LongInput({
               {/* Custom resize handle */}
               {!wandHook.isStreaming && (
                 <div
-                  className='absolute right-1 bottom-1 flex h-4 w-4 cursor-ns-resize items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-base)] dark:bg-[var(--color-bg-base)]'
+                  className='absolute right-1 bottom-1 flex h-4 w-4 cursor-ns-resize items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-base)]'
                   onMouseDown={startResize}
                   onDragStart={(e) => {
                     e.preventDefault()

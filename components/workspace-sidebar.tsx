@@ -4,8 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { House, Storefront, Robot, Graph, GearSix, SignOut, Moon, Sun } from "@phosphor-icons/react"
-import { useTheme } from "@/components/theme-provider"
+import { House, Storefront, Robot, Graph, GearSix, SignOut } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { useSession, signOut } from "@/lib/auth-client"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
@@ -94,8 +93,6 @@ function UserMenu() {
     ? name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
     : "…"
 
-  const { resolvedTheme, setTheme } = useTheme()
-
   async function handleSignOut() {
     await signOut()
     router.push("/login")
@@ -122,36 +119,26 @@ function UserMenu() {
           side="right"
           sideOffset={14}
           align="end"
-          className="z-50 min-w-[220px] rounded-[12px] bg-white dark:bg-[#1C1C1C] border border-[#E4E2DE] dark:border-[#2A2A2A] shadow-lg p-1.5 outline-none"
+          className="z-50 min-w-[220px] rounded-[12px] bg-white border border-[#E4E2DE] shadow-lg p-1.5 outline-none"
         >
           <div className="px-3 py-2.5 mb-1.5">
             <p className="text-[13px] font-medium text-[var(--color-text-primary)]">{name || "Account"}</p>
             {user?.email && <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5 truncate">{user.email}</p>}
           </div>
           
-          <DropdownMenu.Separator className="h-px bg-[#F0EEEB] dark:bg-[#2A2A2A] mx-1 my-1" />
+          <DropdownMenu.Separator className="h-px bg-[#F0EEEB] mx-1 my-1" />
 
           <DropdownMenu.Item
             onSelect={() => router.push("/settings")}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[13px] text-zinc-600 dark:text-zinc-300 cursor-pointer outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[13px] text-zinc-600 cursor-pointer outline-none hover:bg-zinc-50 transition-colors"
           >
             <GearSix size={15} weight="regular" />
             Settings
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            onSelect={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[13px] text-zinc-600 dark:text-zinc-300 cursor-pointer outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-          >
-            {resolvedTheme === "dark" ? <Sun size={15} weight="regular" /> : <Moon size={15} weight="regular" />}
-            {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
-          </DropdownMenu.Item>
-
-          <DropdownMenu.Separator className="h-px bg-[#F0EEEB] dark:bg-[#2A2A2A] mx-1 my-1" />
-
-          <DropdownMenu.Item
             onSelect={handleSignOut}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[13px] text-[#E53E3E] cursor-pointer outline-none hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[13px] text-[#E53E3E] cursor-pointer outline-none hover:bg-red-50 transition-colors"
           >
             <SignOut size={15} weight="regular" />
             Sign out

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import {
   House, Lightning, AddressBook, CheckSquare,
   Note, VideoCamera, Graph, Cube, Storefront,
-  Robot, GearSix, Moon, Sun, MagnifyingGlass,
+  Robot, GearSix,
 } from "@phosphor-icons/react"
 import {
   CommandDialog,
@@ -18,7 +18,6 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
-import { useTheme } from "@/components/theme-provider"
 
 const NAV_ITEMS = [
   { name: "Home",            href: "/",              icon: House },
@@ -40,8 +39,6 @@ const NAV_ITEMS = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
-  const { theme, setTheme } = useTheme()
-
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -56,11 +53,6 @@ export function CommandPalette() {
   function navigate(href: string) {
     setOpen(false)
     router.push(href)
-  }
-
-  function toggleTheme() {
-    setTheme(theme === "dark" ? "light" : theme === "light" ? "dark" : "light")
-    setOpen(false)
   }
 
   const isMac = useMemo(() => {
@@ -100,18 +92,6 @@ export function CommandPalette() {
             </CommandItem>
           </CommandGroup>
 
-          <CommandSeparator />
-
-          <CommandGroup heading="Theme">
-            <CommandItem onSelect={toggleTheme}>
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-              {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            </CommandItem>
-            <CommandItem onSelect={() => { setTheme("system"); setOpen(false) }}>
-              <MagnifyingGlass size={16} />
-              Use System Theme
-            </CommandItem>
-          </CommandGroup>
         </CommandList>
       </Command>
     </CommandDialog>

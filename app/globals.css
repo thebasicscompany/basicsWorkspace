@@ -2,7 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
 
 @theme {
   --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -269,69 +268,6 @@ h1, h2, h3, h4, h5, h6,
   transform: translateY(-3px);
 }
 
-.dark {
-  /* Basics design tokens — dark mode (blue accent) */
-  --color-bg-base:        #0F1117;
-  --color-bg-surface:     #1A1D26;
-  --color-bg-elevated:    #22252E;
-  --color-bg-subtle:      #161922;
-  --color-bg-sidebar:     #141720;
-
-  --color-text-primary:   #F0F2F5;
-  --color-text-secondary: #9CA3AF;
-  --color-text-tertiary:  #6B7280;
-  --color-text-accent:    #60A5FA;
-
-  --color-border:         #2A2D38;
-  --color-border-strong:  #3B3F4C;
-
-  --color-accent:         #3B82F6;
-  --color-accent-light:   rgba(59, 130, 246, 0.12);
-
-  --color-success:        #4ADE80;
-  --color-warning:        #FBBF24;
-  --color-error:          #F87171;
-  --color-info:           #60A5FA;
-
-  /* Shadows — softer in dark mode */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
-
-  --shadow-squircle-color: 0 4px 12px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
-  --shadow-squircle-white: 0 2px 8px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15);
-  --shadow-squircle-green: 0 4px 12px rgba(59,130,246,0.2), 0 1px 3px rgba(59,130,246,0.1);
-  --shadow-squircle-green-sm: 0 2px 8px rgba(59,130,246,0.1), 0 1px 2px rgba(59,130,246,0.08);
-
-  /* shadcn semantic — dark blue palette */
-  --background:             #0F1117;
-  --foreground:             #F0F2F5;
-  --card:                   #1A1D26;
-  --card-foreground:        #F0F2F5;
-  --popover:                #1A1D26;
-  --popover-foreground:     #F0F2F5;
-  --primary:                #3B82F6;
-  --primary-foreground:     #FFFFFF;
-  --secondary:              #22252E;
-  --secondary-foreground:   #F0F2F5;
-  --muted:                  #22252E;
-  --muted-foreground:       #9CA3AF;
-  --accent:                 rgba(59, 130, 246, 0.12);
-  --accent-foreground:      #60A5FA;
-  --destructive:            #F87171;
-  --border:                 #2A2D38;
-  --input:                  #2A2D38;
-  --ring:                   #3B82F6;
-
-  --sidebar:                #141720;
-  --sidebar-foreground:     #F0F2F5;
-  --sidebar-primary:        #3B82F6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent:         rgba(59,130,246,0.12);
-  --sidebar-accent-foreground: #60A5FA;
-  --sidebar-border:         #2A2D38;
-  --sidebar-ring:           #3B82F6;
-}
 
 @layer base {
   * {

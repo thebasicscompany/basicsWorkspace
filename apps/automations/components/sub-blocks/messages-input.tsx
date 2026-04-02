@@ -758,7 +758,7 @@ export function MessagesInput({
 
                   {!isPreview && !disabled && (
                     <div
-                      className='absolute right-1 bottom-1 z-[3] flex h-4 w-4 cursor-ns-resize items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-base)] dark:bg-[var(--color-bg-base)]'
+                      className='absolute right-1 bottom-1 z-[3] flex h-4 w-4 cursor-ns-resize items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-bg-base)]'
                       onMouseDown={(e) => handleResizeStart(fieldId, e)}
                       onDragStart={(e) => {
                         e.preventDefault()

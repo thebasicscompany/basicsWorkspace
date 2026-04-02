@@ -82,7 +82,7 @@ const CopilotModalInner: FC = () => {
 
       <AssistantModalPrimitive.Content
         sideOffset={24}
-        className="z-50 rounded-[20px] shadow-xl border border-black/[0.06] dark:border-white/10 overflow-hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2"
+        className="z-50 rounded-[20px] shadow-xl border border-black/[0.06] overflow-hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2"
         style={{
           width: 420,
           height: 560,

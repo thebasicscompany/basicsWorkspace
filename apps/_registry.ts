@@ -15,6 +15,7 @@ import { notesApp }            from "./notes/manifest"
 import { meetingsApp }         from "./meetings/manifest"
 import { meetingAssistantApp } from "./meeting-assistant/manifest"
 import { objectsApp }          from "./objects/manifest"
+import { recorderApp }         from "./recorder/manifest"
 import type { AppManifest }    from "./_types"
 
 export const INSTALLED_APPS: AppManifest[] = [
@@ -25,6 +26,7 @@ export const INSTALLED_APPS: AppManifest[] = [
   meetingsApp,
   meetingAssistantApp,
   objectsApp,
+  recorderApp,
 ]
 
 export type { AppManifest }

@@ -735,8 +735,8 @@ export const Code = memo(function Code({
           className={cn(
             'text-right text-xs tabular-nums leading-[21px]',
             isActive
-              ? 'text-[var(--color-text-primary)] dark:text-[#eeeeee]'
-              : 'text-[var(--color-text-tertiary)] dark:text-[#a8a8a8]'
+              ? 'text-[var(--color-text-primary)]'
+              : 'text-[var(--color-text-tertiary)]'
           )}
         >
           {lineNumber}
@@ -761,7 +761,7 @@ export const Code = memo(function Code({
           key={'1-0'}
           className={cn(
             'text-right text-xs tabular-nums leading-[21px]',
-            'text-[var(--color-text-tertiary)] dark:text-[#a8a8a8]'
+            'text-[var(--color-text-tertiary)]'
           )}
         >
           1
