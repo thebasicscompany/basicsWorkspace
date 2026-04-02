@@ -65,7 +65,7 @@ export const BlockEditorPanel = memo(function BlockEditorPanel({
             {config.name}
           </p>
         </div>
-        <button onClick={onClose} className="p-1 rounded hover:bg-zinc-100">
+        <button onClick={onClose} className="p-1 rounded hover:bg-bg-subtle">
           <X size={14} style={{ color: 'var(--color-text-tertiary)' }} />
         </button>
       </div>

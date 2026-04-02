@@ -24,14 +24,17 @@ interface RecorderStore {
   reset: () => void
 }
 
-function getRecorderBridge(): {
+interface RecorderBridge {
   startRecording: (sessionId: string) => Promise<{ ok: boolean }>
   stopRecording: () => Promise<{ events: unknown[]; duration: number }>
   getStatus: () => Promise<{ recording: boolean; sessionId: string | null; eventCount: number; startedAt: number | null }>
   onEvent: (cb: (event: RecorderEvent) => void) => () => void
-} | null {
+  onStopped: (cb: (result: { events: unknown[]; duration: number }) => void) => () => void
+}
+
+function getRecorderBridge(): RecorderBridge | null {
   if (typeof window === "undefined") return null
-  return (window as unknown as Record<string, unknown>).recorder as ReturnType<typeof getRecorderBridge>
+  return (window as unknown as Record<string, unknown>).recorder as RecorderBridge
 }
 
 export const useRecorderStore = create<RecorderStore>((set, get) => ({
@@ -63,6 +66,30 @@ export const useRecorderStore = create<RecorderStore>((set, get) => ({
 
       bridge.onEvent((event: RecorderEvent) => {
         get().addEvent(event)
+      })
+
+      // Listen for stop from overlay pill — save events to DB and reset state
+      bridge.onStopped(async (result: { events: unknown[]; duration: number }) => {
+        const sid = get().sessionId
+        if (sid && result.events.length > 0) {
+          await fetch(`/api/recordings/${sid}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              status: "recorded",
+              events: result.events,
+              duration: result.duration,
+              eventCount: result.events.length,
+            }),
+          })
+        }
+        set({
+          recording: false,
+          sessionId: null,
+          eventCount: 0,
+          startedAt: null,
+          events: [],
+        })
       })
     }
   },

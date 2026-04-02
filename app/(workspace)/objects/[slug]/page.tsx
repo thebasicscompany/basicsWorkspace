@@ -11,6 +11,7 @@ import { useObjectConfig, type ObjectConfig } from "@/apps/objects/hooks/useObje
 import { useRecords } from "@/apps/crm/hooks/useRecords"
 import type { ApiRecord } from "@/apps/crm/types"
 import { Sliders, Plus } from "@phosphor-icons/react"
+import { HeaderButton } from "@/components/header-button"
 
 const identity = (r: ApiRecord) => r
 
@@ -107,25 +108,3 @@ export default function ObjectPage() {
   )
 }
 
-function HeaderButton({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick?: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-2.5 h-7 rounded text-xs font-medium transition-colors"
-      style={{ color: "var(--color-text-secondary)", background: "transparent" }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-subtle)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-    >
-      {icon}
-      {label}
-    </button>
-  )
-}

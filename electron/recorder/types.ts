@@ -1,3 +1,10 @@
+export interface AccessibilityNode {
+  role: string
+  name: string
+  value?: string
+  bounds?: { x: number; y: number; width: number; height: number }
+}
+
 export interface CapturedEvent {
   timestamp: number
   type: "click" | "keyInput" | "windowSwitch" | "scroll" | "clipboard"
@@ -10,6 +17,7 @@ export interface CapturedEvent {
   screenHeight?: number
   scaleFactor?: number
   activeWindowBounds?: { x: number; y: number; width: number; height: number }
+  elementUnderCursor?: AccessibilityNode
 }
 
 export interface RecorderStatus {

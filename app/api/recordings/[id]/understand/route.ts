@@ -18,6 +18,12 @@ interface CapturedEvent {
   screenHeight?: number
   scaleFactor?: number
   activeWindowBounds?: { x: number; y: number; width: number; height: number }
+  elementUnderCursor?: {
+    role: string
+    name: string
+    value?: string
+    bounds?: { x: number; y: number; width: number; height: number }
+  }
 }
 
 interface UnderstoodAction {
@@ -95,49 +101,190 @@ export async function POST(
   }
 }
 
-async function understandEvents(events: CapturedEvent[]): Promise<UnderstoodAction[]> {
-  // Build messages with screenshots for the vision model
-  const eventDescriptions = events.map((e, i) => {
-    let desc = `Event ${i + 1}: ${e.type}`
-    if (e.coordinates) desc += ` at (${e.coordinates.x}, ${e.coordinates.y})`
-    if (e.textEntered) desc += ` — text: "${e.textEntered}"`
-    if (e.windowTitle) desc += ` — window: "${e.windowTitle}"`
-    if (e.appName) desc += ` — app: ${e.appName}`
-    return desc
+// ---------------------------------------------------------------------------
+// Stage 1: Label events from structured metadata (no LLM)
+// ---------------------------------------------------------------------------
+
+interface LabeledAction {
+  step: number
+  action: string
+  element: string
+  app: string
+  value: string
+  confidence: "high" | "medium" | "low"
+  needsVision: boolean // true = a11y data missing, screenshot needed for identification
+}
+
+function labelEvents(events: CapturedEvent[]): LabeledAction[] {
+  return events.map((event, i) => {
+    const app = event.appName || ""
+    const el = event.elementUnderCursor
+    const hasA11y = !!el?.name || !!el?.role
+
+    switch (event.type) {
+      case "click": {
+        if (hasA11y) {
+          const elementDesc = el!.name
+            ? `${el!.name} ${el!.role}`.trim()
+            : el!.role
+          return {
+            step: i + 1,
+            action: `clicked ${elementDesc}`,
+            element: elementDesc,
+            app,
+            value: el!.value || "",
+            confidence: "high",
+            needsVision: false,
+          }
+        }
+        // No a11y — need vision to identify the element
+        const coordDesc = event.coordinates
+          ? `element at (${event.coordinates.x}, ${event.coordinates.y})`
+          : "unknown element"
+        return {
+          step: i + 1,
+          action: `clicked ${coordDesc}`,
+          element: coordDesc,
+          app,
+          value: "",
+          confidence: "low",
+          needsVision: true,
+        }
+      }
+
+      case "keyInput":
+        return {
+          step: i + 1,
+          action: `typed ${event.textEntered || "text"}`,
+          element: el?.name ? `${el.name} ${el.role}` : "text field",
+          app,
+          value: event.textEntered || "",
+          confidence: hasA11y ? "high" : "medium",
+          needsVision: false,
+        }
+
+      case "windowSwitch":
+        return {
+          step: i + 1,
+          action: `switched to ${event.windowTitle || "window"}`,
+          element: event.windowTitle || "window",
+          app,
+          value: "",
+          confidence: "high",
+          needsVision: false,
+        }
+
+      case "scroll":
+        return {
+          step: i + 1,
+          action: "scrolled",
+          element: event.windowTitle || "page",
+          app,
+          value: "",
+          confidence: "medium",
+          needsVision: false,
+        }
+
+      case "clipboard":
+        return {
+          step: i + 1,
+          action: "copied to clipboard",
+          element: "clipboard",
+          app,
+          value: event.textEntered || "",
+          confidence: "high",
+          needsVision: false,
+        }
+
+      default:
+        return {
+          step: i + 1,
+          action: event.type,
+          element: "unknown",
+          app,
+          value: "",
+          confidence: "low",
+          needsVision: true,
+        }
+    }
   })
+}
 
-  // Collect screenshots that exist on disk (base64 encoded)
-  const imageMessages: Array<{ type: string; image_url?: { url: string }; text?: string }> = []
+// ---------------------------------------------------------------------------
+// Stage 2: LLM call — only for workflow synthesis + resolving unknowns
+// ---------------------------------------------------------------------------
 
-  for (let i = 0; i < events.length; i++) {
-    const event = events[i]
+async function understandEvents(events: CapturedEvent[]): Promise<UnderstoodAction[]> {
+  const labeled = labelEvents(events)
 
-    // Add event description with metadata
-    let desc = `--- Event ${i + 1}: ${event.type}`
-    if (event.coordinates) desc += ` at (${event.coordinates.x}, ${event.coordinates.y})`
-    if (event.windowTitle) desc += ` in "${event.windowTitle}"`
-    if (event.appName) desc += ` [${event.appName}]`
-    if (event.textEntered) desc += ` typed: "${event.textEntered}"`
-    if (event.activeWindowBounds) {
-      const b = event.activeWindowBounds
-      desc += ` window-bounds: (${b.x},${b.y} ${b.width}x${b.height})`
+  // Count events that need vision (no a11y data)
+  const needVision = labeled.filter((a) => a.needsVision)
+  const allResolved = needVision.length === 0
+
+  // Build the action summary for the LLM
+  const actionList = labeled
+    .map((a) => {
+      let line = `${a.step}. [${a.app || "unknown app"}] ${a.action}`
+      if (a.value) line += ` — value: "${a.value}"`
+      if (a.needsVision) line += ` ⚠️ needs identification`
+      line += ` (confidence: ${a.confidence})`
+      return line
+    })
+    .join("\n")
+
+  // If all events have a11y data, use a cheap text-only model
+  // If some need vision, include only those screenshots
+  const messages: Array<Record<string, unknown>> = [
+    {
+      role: "system",
+      content: `You are a workflow analyzer. You receive a sequence of labeled user actions captured from a screen recording.
+
+Your job:
+1. For actions marked "needs identification", use the attached screenshot to determine which UI element was interacted with.
+2. Clean up the action sequence: remove noise (accidental clicks, redundant scrolls), merge related actions.
+3. Return the final structured workflow as a JSON array.
+
+Each action must have: step (number), action (verb phrase), element (UI element name), app (application), value (any entered/selected value or empty string), confidence ("high"/"medium"/"low").`,
+    },
+  ]
+
+  if (allResolved) {
+    // Text-only — no screenshots needed
+    messages.push({
+      role: "user",
+      content: `Here is the recorded action sequence:\n\n${actionList}\n\nAll actions have been identified from accessibility data. Clean up and return the final workflow.`,
+    })
+  } else {
+    // Include screenshots only for unresolved events
+    const content: Array<Record<string, unknown>> = [
+      {
+        type: "text",
+        text: `Here is the recorded action sequence:\n\n${actionList}\n\nSome actions need visual identification. Screenshots for those events are attached below.`,
+      },
+    ]
+
+    for (const action of needVision) {
+      const event = events[action.step - 1]
+      if (event.screenshotPath && fs.existsSync(event.screenshotPath)) {
+        const imgData = fs.readFileSync(event.screenshotPath)
+        const base64 = imgData.toString("base64")
+        const mime = event.screenshotPath.endsWith(".jpg") ? "image/jpeg" : "image/png"
+        content.push({
+          type: "text",
+          text: `Screenshot for step ${action.step} (${event.type} at ${event.coordinates?.x},${event.coordinates?.y} in ${event.appName || "unknown app"}):`,
+        })
+        content.push({
+          type: "image_url",
+          image_url: { url: `data:${mime};base64,${base64}` },
+        })
+      }
     }
-    if (event.screenWidth) desc += ` screen: ${event.screenWidth}x${event.screenHeight}@${event.scaleFactor}x`
-    desc += " ---"
 
-    imageMessages.push({ type: "text", text: desc })
-
-    // Add screenshot if file exists
-    if (event.screenshotPath && fs.existsSync(event.screenshotPath)) {
-      const imgData = fs.readFileSync(event.screenshotPath)
-      const base64 = imgData.toString("base64")
-      const mime = event.screenshotPath.endsWith(".jpg") ? "image/jpeg" : "image/png"
-      imageMessages.push({
-        type: "image_url",
-        image_url: { url: `data:${mime};base64,${base64}` },
-      })
-    }
+    messages.push({ role: "user", content })
   }
+
+  // Use a cheaper/faster model when no vision is needed
+  const model = allResolved ? "basics-chat-fast-openai" : "basics-chat-smart-openai"
 
   const res = await fetch(`${GATEWAY_URL}/v1/chat/completions`, {
     method: "POST",
@@ -146,27 +293,8 @@ async function understandEvents(events: CapturedEvent[]): Promise<UnderstoodActi
       Authorization: `Bearer ${GATEWAY_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "basics-chat-smart-openai",
-      messages: [
-        {
-          role: "system",
-          content: `You are a UI action analyzer. Given a sequence of user interaction events with screenshots, describe what the user did in each step.
-
-For each event, return a structured action:
-- step: sequential number
-- action: short verb phrase describing what happened (e.g. "clicked Send button", "typed email subject", "switched to Slack")
-- element: the UI element interacted with (e.g. "Send button", "Subject field", "Slack app")
-- app: the application name (e.g. "Gmail", "Slack", "Chrome")
-- value: any specific value entered or selected (if applicable)
-- confidence: "high", "medium", or "low" based on how certain you are
-
-Return a JSON array of actions. Only return the JSON array, no other text.`,
-        },
-        {
-          role: "user",
-          content: imageMessages,
-        },
-      ],
+      model,
+      messages,
       temperature: 0.1,
       max_tokens: 4096,
       response_format: {

@@ -29,14 +29,8 @@ class RecorderModule {
             // Forward event to renderer for live UI updates
             const win = this.getWindow();
             if (win && !win.isDestroyed()) {
-                win.webContents.send("recorder:event", {
-                    timestamp: event.timestamp,
-                    type: event.type,
-                    coordinates: event.coordinates,
-                    textEntered: event.textEntered,
-                    windowTitle: event.windowTitle,
-                    appName: event.appName,
-                });
+                const { screenshotPath, ...eventData } = event;
+                win.webContents.send("recorder:event", eventData);
             }
         });
         return { ok: true };

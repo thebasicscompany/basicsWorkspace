@@ -10,8 +10,8 @@ export default function SettingsPage() {
       <AppHeader breadcrumb={[{ label: "Workspace", href: "/" }, { label: "Settings" }]} />
       <PageTransition>
         <div
-          className="h-[calc(100vh-48px)] overflow-hidden"
-          style={{ background: "var(--color-bg-base)" }}
+          className="overflow-hidden"
+          style={{ height: "calc(100vh - 48px)", background: "var(--color-bg-base)" }}
         >
           <SettingsApp />
         </div>

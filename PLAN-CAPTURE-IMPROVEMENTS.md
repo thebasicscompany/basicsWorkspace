@@ -326,21 +326,32 @@ The trigger for starting C3 is when you want to move from "user records a task" 
 ## Implementation Order
 
 ```
-C1 (quick wins)          — 1-2 hours, do now
-  C1.2: JPEG              — 5 min
-  C1.4: Click debounce    — 5 min
-  C1.3: Screenshot dedup  — 15 min
-  C1.5: Extra metadata    — 15 min
-  C1.1: Persistent stream — 30 min (or just cache-based optimization)
-  C1.6: Clipboard capture — 10 min
+C1 (quick wins)          ✅ DONE
+  C1.2: JPEG              ✅ capture.ts → toJPEG(80), .jpg extension
+  C1.4: Click debounce    ✅ 150ms debounce in hooks.ts
+  C1.3: Screenshot dedup  ✅ SHA-256 hash comparison in hooks.ts
+  C1.5: Extra metadata    ✅ screenWidth/Height/scaleFactor/activeWindowBounds on every event
+  C1.1: Persistent stream ✅ Cache-based optimization (100ms TTL) in capture.ts
+  C1.6: Clipboard capture ✅ 1s polling in hooks.ts, new "clipboard" event type
 
-C2 (accessibility tree)  — 2-4 hours
-  Windows PowerShell approach first
-  macOS Accessibility API second
-  Wire into CapturedEvent
-  Update understanding prompt to use a11y data
+C2 (accessibility tree)  ✅ DONE
+  Windows PowerShell      ✅ FromPoint() via UI Automation (PresentationCore assembly)
+  macOS Swift helper      ✅ AXUIElementCopyElementAtPosition, auto-compiles on first use
+  Wire into CapturedEvent ✅ elementUnderCursor on click events
+  Two-stage understand    ✅ labelEvents() from metadata, LLM only for workflow synthesis
+                            — text-only model when all events have a11y
+                            — vision model only for events missing a11y (sends only those screenshots)
 
-C3 (Screenpipe sidecar)  — 1-2 days
+Bug fixes done:
+  ✅ Overlay stop now saves events to DB (was losing all events on pill stop)
+  ✅ appName/windowTitle attached to ALL events (was only on windowSwitch)
+
+⚠️  NEEDS TESTING: Rebuild electron (tsc -p tsconfig.electron.json) and re-test e2e
+  — Verify appName shows correctly on all events (not "unknown app")
+  — Verify event count is correct after overlay stop
+  — Test "Understand" button produces good results with a11y data
+
+C3 (Screenpipe sidecar)  — NOT STARTED
   Decide: bundle binary vs require install
   Spawn sidecar on app launch
   Query API for continuous data
@@ -363,12 +374,16 @@ C3 (Screenpipe sidecar)  — 1-2 days
 
 ---
 
-## Key Decisions to Make
+## Key Decisions (resolved)
 
-1. **Persistent stream vs cached getSources()** — Persistent stream is better but adds complexity (hidden BrowserWindow + OffscreenCanvas). Caching with 100ms TTL is simpler and might be good enough.
+1. **Persistent stream vs cached getSources()** — Went with cache-based (100ms TTL). Simple, effective.
 
-2. **Accessibility tree: PowerShell vs native addon** — PowerShell is quick to ship, native is faster. Start with PowerShell.
+2. **Accessibility tree: PowerShell vs native addon** — PowerShell on Windows, Swift helper on macOS. Cross-platform behind `getElementAtPoint()` interface. ~100ms latency is fine since clicks are debounced at 150ms.
 
-3. **Screenpipe: bundle vs require install** — Bundling adds ~50-100MB to the app. Requiring install is simpler but worse UX. Could do "install on first use" with a download prompt.
+3. **Two-stage understand pipeline** — Stage 1 labels events from a11y metadata (no LLM). Stage 2 is a single LLM call for workflow synthesis. Uses cheap text-only model when all events have a11y data, vision model only for events missing a11y. Massive cost reduction vs sending all screenshots.
 
-4. **Screenshots: temp files vs DB** — Currently saved as temp files. For the understanding API, we read them back as base64. Could store as base64 blobs in the DB directly (simpler) or upload to S3 (scalable). For now, temp files work for session recording. Screenpipe uses SQLite + files.
+## Key Decisions (still open)
+
+4. **Screenpipe: bundle vs require install** — Bundling adds ~50-100MB to the app. Requiring install is simpler but worse UX. Could do "install on first use" with a download prompt.
+
+5. **Screenshots: temp files vs DB** — Currently saved as temp files. For the understanding API, we read them back as base64. Could store as base64 blobs in the DB directly (simpler) or upload to S3 (scalable). For now, temp files work for session recording.

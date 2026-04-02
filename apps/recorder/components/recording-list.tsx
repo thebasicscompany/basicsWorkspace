@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { VideoCamera, Trash, ArrowClockwise } from "@phosphor-icons/react"
+import { Screencast, Trash, ArrowClockwise } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { EmptyState } from "@/components/ui/empty-state"
 import { RecordButton } from "./record-button"
@@ -17,19 +17,22 @@ interface Recording {
   createdAt: string
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  recording:  { bg: "bg-rose-50",    text: "text-rose-600",    label: "Recording" },
-  recorded:   { bg: "bg-emerald-50", text: "text-emerald-600", label: "Recorded" },
-  processing: { bg: "bg-amber-50",   text: "text-amber-600",   label: "Processing" },
-  converted:  { bg: "bg-blue-50",    text: "text-blue-600",    label: "Converted" },
-  failed:     { bg: "bg-red-50",     text: "text-red-600",     label: "Failed" },
+const STATUS_STYLES: Record<string, { color: string; label: string }> = {
+  recording:  { color: "var(--color-error)",   label: "Recording" },
+  recorded:   { color: "var(--color-accent)",  label: "Recorded" },
+  processing: { color: "var(--color-warning)", label: "Processing" },
+  converted:  { color: "var(--color-info)",    label: "Converted" },
+  failed:     { color: "var(--color-error)",   label: "Failed" },
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const style = STATUS_STYLES[status] ?? STATUS_STYLES.recorded
+  const s = STATUS_STYLES[status] ?? STATUS_STYLES.recorded
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}>
-      {style.label}
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ color: s.color, background: "var(--color-bg-subtle)" }}
+    >
+      {s.label}
     </span>
   )
 }
@@ -91,7 +94,7 @@ export function RecordingList() {
   if (recordings.length === 0) {
     return (
       <EmptyState
-        icon={<VideoCamera weight="light" />}
+        icon={<Screencast weight="light" />}
         title="No recordings yet"
         description="Start a recording to capture your actions and convert them into automations."
         action={<RecordButton />}
@@ -161,7 +164,7 @@ export function RecordingList() {
                 <td className="px-4 py-2.5">
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteRecording(rec.id) }}
-                    className="flex items-center justify-center rounded-lg p-1.5 transition-colors hover:bg-red-50"
+                    className="flex items-center justify-center rounded-lg p-1.5 transition-colors hover:bg-[var(--color-bg-subtle)]"
                     style={{ color: "var(--color-text-tertiary)" }}
                   >
                     <Trash size={15} />

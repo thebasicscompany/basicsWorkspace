@@ -351,7 +351,7 @@ function FieldConfigForm({
         <button
           onClick={handleSave}
           disabled={!name.trim()}
-          className="flex-1 py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-40"
+          className="flex-1 py-2 rounded-full text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           style={{ background: "var(--color-accent)" }}
         >
           {isNew ? "Add field" : "Save changes"}

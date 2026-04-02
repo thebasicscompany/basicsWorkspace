@@ -259,7 +259,7 @@ export function NewRecordDialog({
         <DialogFooter showCloseButton={false}>
           <button
             onClick={() => { reset(); onOpenChange(false) }}
-            className="px-4 py-2 rounded-lg text-sm transition-colors"
+            className="px-4 py-2 rounded-full text-sm transition-colors"
             style={{ color: "var(--color-text-secondary)" }}
           >
             Cancel
@@ -267,7 +267,7 @@ export function NewRecordDialog({
           <button
             onClick={save}
             disabled={saving || sorted.length === 0}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
+            className="px-4 py-2 rounded-full text-sm font-medium hover:opacity-90"
             style={{
               background: "var(--color-accent)",
               color: "white",

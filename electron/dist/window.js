@@ -43,11 +43,15 @@ function getMainWindow() {
     return mainWindow;
 }
 function createMainWindow() {
+    // __dirname at runtime = electron/dist/, so go up two levels to project root
+    const iconPath = path.join(__dirname, "..", "..", "public", "logo.png");
+    const appIcon = electron_1.nativeImage.createFromPath(iconPath);
     mainWindow = new electron_1.BrowserWindow({
         width: 1280,
         height: 800,
         minWidth: 900,
         minHeight: 600,
+        icon: appIcon,
         titleBarStyle: "hiddenInset",
         backgroundColor: "#F5F7FA",
         show: false,

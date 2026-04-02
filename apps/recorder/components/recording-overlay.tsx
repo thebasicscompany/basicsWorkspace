@@ -57,7 +57,8 @@ export function RecordingOverlay() {
 
       <button
         onClick={() => stopRecording()}
-        className="ml-1 flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 transition-colors"
+        className="ml-1 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium text-white transition-colors"
+        style={{ background: "var(--color-error)" }}
       >
         <Stop size={14} weight="fill" />
         Stop

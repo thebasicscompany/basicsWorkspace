@@ -34,8 +34,8 @@ export function AppTile({
       transition={{ duration: 0.1, ease: "easeOut" }}
       className={cn(
         "flex flex-col items-center justify-center cursor-pointer w-16 h-16 shrink-0 relative",
-        "rounded-[16px] shadow-sm border border-zinc-200/60 transition-all",
-        dashed ? "border-dashed bg-transparent hover:bg-zinc-50 border-zinc-300" : (iconBg ? iconBg : "bg-white"),
+        "rounded-xl shadow-sm border transition-all",
+        dashed ? "border-dashed bg-transparent hover:bg-bg-subtle border-border-strong" : (iconBg ? iconBg : "bg-bg-surface border-border"),
         className
       )}
     >
@@ -48,7 +48,7 @@ export function AppTile({
           ))}
         </div>
       ) : (
-        <div className={cn("text-zinc-700", iconBg && "text-zinc-900")}>
+        <div style={{ color: iconBg ? "var(--color-text-primary)" : "var(--color-text-secondary)" }}>
           {icon}
         </div>
       )}

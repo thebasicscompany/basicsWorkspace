@@ -42,6 +42,10 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
 let sessionDir = null;
+// Cache: avoid redundant desktopCapturer.getSources() calls for rapid events
+let cachedBuffer = null;
+let cachedAt = 0;
+const CACHE_TTL_MS = 100;
 function initSessionDir(sessionId) {
     sessionDir = path.join(os.tmpdir(), "basics-recordings", sessionId);
     fs.mkdirSync(sessionDir, { recursive: true });
@@ -58,17 +62,27 @@ function cleanupSessionDir() {
 }
 async function captureScreenshot(sessionId) {
     const dir = sessionDir || initSessionDir(sessionId);
-    const filename = `${Date.now()}.png`;
+    const now = Date.now();
+    const filename = `${now}.jpg`;
     const filepath = path.join(dir, filename);
-    const sources = await electron_1.desktopCapturer.getSources({
-        types: ["screen"],
-        thumbnailSize: { width: 1920, height: 1080 },
-    });
-    if (sources.length === 0) {
-        throw new Error("No screen sources available");
+    let jpeg;
+    // Reuse cached frame if within TTL
+    if (cachedBuffer && now - cachedAt < CACHE_TTL_MS) {
+        jpeg = cachedBuffer;
     }
-    const png = sources[0].thumbnail.toPNG();
-    fs.writeFileSync(filepath, png);
-    return filepath;
+    else {
+        const sources = await electron_1.desktopCapturer.getSources({
+            types: ["screen"],
+            thumbnailSize: { width: 1920, height: 1080 },
+        });
+        if (sources.length === 0) {
+            throw new Error("No screen sources available");
+        }
+        jpeg = sources[0].thumbnail.toJPEG(80);
+        cachedBuffer = jpeg;
+        cachedAt = now;
+    }
+    fs.writeFileSync(filepath, jpeg);
+    return { filepath, buffer: jpeg };
 }
 //# sourceMappingURL=capture.js.map

@@ -56,9 +56,9 @@ const COLUMNS: { id: Task["status"]; label: string }[] = [
 ]
 
 const PRIORITY_COLOR: Record<string, string> = {
-  high:   "#EF4444",
-  medium: "#F59E0B",
-  low:    "#3B82F6",
+  high:   "var(--color-error)",
+  medium: "var(--color-warning)",
+  low:    "var(--color-info)",
 }
 
 // ─── Board ────────────────────────────────────────────────────────────────────

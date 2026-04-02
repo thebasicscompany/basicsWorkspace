@@ -3,6 +3,7 @@ import { screen, clipboard } from "electron"
 import { createHash } from "crypto"
 import type { CapturedEvent } from "./types"
 import { captureScreenshot } from "./capture"
+import { getElementAtPoint } from "./accessibility"
 
 type EventCallback = (event: CapturedEvent) => void
 
@@ -26,6 +27,7 @@ let lastScreenshotHash = ""
 // Active window polling
 let windowPollInterval: ReturnType<typeof setInterval> | null = null
 let lastWindowTitle = ""
+let lastAppName = ""
 
 // Clipboard polling
 let clipboardInterval: ReturnType<typeof setInterval> | null = null
@@ -88,6 +90,8 @@ async function emitEvent(
       timestamp: Date.now(),
       type,
       screenshotPath: filepath,
+      windowTitle: lastWindowTitle,
+      appName: lastAppName,
       ...screenMeta,
       activeWindowBounds,
       ...extra,
@@ -97,11 +101,17 @@ async function emitEvent(
   }
 }
 
-function handleClick(e: { x: number; y: number }): void {
+async function handleClick(e: { x: number; y: number }): Promise<void> {
   const now = Date.now()
   if (now - lastClickTime < 150) return
   lastClickTime = now
-  emitEvent("click", { coordinates: { x: e.x, y: e.y } })
+
+  // Fire a11y lookup in parallel with screenshot capture
+  const elementUnderCursor = await getElementAtPoint(e.x, e.y).catch(() => null)
+  emitEvent("click", {
+    coordinates: { x: e.x, y: e.y },
+    ...(elementUnderCursor ? { elementUnderCursor } : {}),
+  })
 }
 
 function handleKeydown(): void {
@@ -129,9 +139,10 @@ async function pollActiveWindow(): Promise<void> {
     const win = await activeWin()
     if (win && win.title !== lastWindowTitle) {
       lastWindowTitle = win.title
+      lastAppName = win.owner?.name || ""
       emitEvent("windowSwitch", {
         windowTitle: win.title,
-        appName: win.owner?.name,
+        appName: lastAppName,
       })
     }
   } catch {
@@ -158,6 +169,7 @@ export function startHooks(id: string, cb: EventCallback): void {
   callback = cb
   running = true
   lastWindowTitle = ""
+  lastAppName = ""
   keyBuffer = ""
   lastClickTime = 0
   lastScreenshotHash = ""

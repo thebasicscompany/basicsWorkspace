@@ -63,28 +63,31 @@ export default function LaunchpadPage() {
 
   return (
     <PageTransition>
-      {/* 24px top padding, 32px horizontal padding per Mercury spec */}
-      <div className="relative flex flex-col pt-[24px] px-[32px] pb-[112px] min-h-screen">
-        
+      <div
+        className="relative flex flex-col min-h-screen"
+        style={{ background: "var(--color-bg-base)", padding: "24px 32px 112px" }}
+      >
         <div className="relative z-10 flex flex-col h-full max-w-[968px] w-full mx-auto editorial-stagger">
-          
+
           <div className="flex items-baseline justify-between mb-8">
-            <h1 className="text-[28px] font-medium text-zinc-900 tracking-tight">
+            <h1 className="text-2xl font-medium tracking-tight" style={{ color: "var(--color-text-primary)" }}>
               {greeting}, Arav
             </h1>
           </div>
 
-          {/* Action Row - Mercury Style Pill Buttons */}
+          {/* Action Row */}
           <div className="flex items-center gap-3 mb-10">
             <button
               onClick={() => router.push("/shop")}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-white rounded-full text-[14px] font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-full text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+              style={{ background: "var(--color-accent)" }}
             >
               <Plus size={16} weight="bold" />
               Get new apps
             </button>
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-full text-[14px] font-medium hover:bg-zinc-50 transition-colors whitespace-nowrap"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap hover:bg-bg-subtle"
+              style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
             >
               <Lightning size={16} />
               Create workflow
@@ -92,13 +95,13 @@ export default function LaunchpadPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
-            
+
             {/* Main Content Area: Apps & Connections */}
             <div className="flex flex-col gap-10">
-              
+
               {/* Your Apps Sector */}
               <section className="flex flex-col gap-4">
-                <h2 className="text-[18px] font-medium text-zinc-900 tracking-tight mb-2">Installed Apps</h2>
+                <h2 className="text-lg font-medium tracking-tight mb-2" style={{ color: "var(--color-text-primary)" }}>Installed Apps</h2>
                 <div className="flex flex-wrap gap-5">
                   {INSTALLED_APPS.map((app) => (
                     <AppTile
@@ -114,7 +117,7 @@ export default function LaunchpadPage() {
                   <AppTile
                     name="Browse Catalog"
                     href="/shop"
-                    icon={<Plus size={20} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />}
+                    icon={<Plus size={20} style={{ color: "var(--color-text-tertiary)" }} />}
                     dashed
                   />
                 </div>
@@ -122,7 +125,7 @@ export default function LaunchpadPage() {
 
               {/* Connections Sector */}
               <section className="flex flex-col gap-4">
-                <h2 className="text-[18px] font-medium text-zinc-900 tracking-tight mb-2">Connections</h2>
+                <h2 className="text-lg font-medium tracking-tight mb-2" style={{ color: "var(--color-text-primary)" }}>Connections</h2>
                 <div className="flex flex-wrap gap-5">
                   {connections.map((conn) => {
                     const provider = PROVIDER_MAP.get(conn.provider)
@@ -132,14 +135,14 @@ export default function LaunchpadPage() {
                       <ConnectionTile
                         key={provider.id}
                         name={provider.name}
-                        icon={<Icon className="w-5 h-5 text-zinc-700" />}
+                        icon={<Icon className="w-5 h-5 text-text-primary" />}
                         connected
                       />
                     )
                   })}
                   <ConnectionTile
                     name="Connect Service"
-                    icon={<Plus size={20} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />}
+                    icon={<Plus size={20} style={{ color: "var(--color-text-tertiary)" }} />}
                     connected={false}
                     onClick={() => router.push("/shop")}
                     dashed
@@ -151,11 +154,14 @@ export default function LaunchpadPage() {
 
             {/* Right Sidebar Area: Workflows List Card */}
             <div className="flex flex-col">
-              <div className="bg-white border border-zinc-200 rounded-[16px] shadow-sm flex flex-col overflow-hidden">
-                <div className="px-[24px] pt-[24px] pb-[16px] flex items-center justify-between">
-                  <h2 className="text-[16px] font-medium text-zinc-900">Recent workflows</h2>
+              <div
+                className="rounded-xl shadow-sm flex flex-col overflow-hidden"
+                style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-border)" }}
+              >
+                <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+                  <h2 className="text-base font-medium" style={{ color: "var(--color-text-primary)" }}>Recent workflows</h2>
                 </div>
-                
+
                 <div className="flex flex-col">
                   {recentWorkflows.length > 0 ? (
                     recentWorkflows.map((wf, idx) => (
@@ -163,19 +169,23 @@ export default function LaunchpadPage() {
                         key={wf.id}
                         href={`/automations/${wf.id}`}
                         className={cn(
-                          "relative flex items-center gap-3 px-[24px] py-[16px] hover:bg-zinc-50 transition-colors group",
-                          idx !== recentWorkflows.length - 1 && "border-b border-zinc-100"
+                          "relative flex items-center gap-3 px-6 py-4 transition-colors group hover:bg-bg-subtle",
+                          idx !== recentWorkflows.length - 1 && "border-b"
                         )}
+                        style={{ borderColor: "var(--color-border)" }}
                       >
-                        <div className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full ${wf.isDeployed ? 'bg-accent' : 'bg-border-strong'}`} />
+                        <div
+                          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
+                          style={{ background: wf.isDeployed ? "var(--color-accent)" : "var(--color-border-strong)" }}
+                        />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[14px] font-medium text-zinc-900 truncate">
+                          <p className="text-sm font-medium truncate" style={{ color: "var(--color-text-primary)" }}>
                             {wf.name}
                           </p>
-                          <p className="text-[13px] text-zinc-500 font-[360] flex items-center gap-1.5 mt-0.5">
+                          <p className="text-xs font-[360] flex items-center gap-1.5 mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
                             {wf.isDeployed && (
                               <span className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-success)" }} />
                                 Live
                               </span>
                             )}
@@ -183,20 +193,21 @@ export default function LaunchpadPage() {
                             {new Date(wf.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </p>
                         </div>
-                        <ArrowRight size={16} className="text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0" />
+                        <ArrowRight size={16} className="shrink-0 transition-colors" style={{ color: "var(--color-text-tertiary)" }} />
                       </Link>
                     ))
                   ) : (
-                    <div className="px-[24px] py-[32px] text-center">
-                      <p className="text-[13px] text-zinc-500 font-[360]">No workflows created yet.</p>
+                    <div className="px-6 py-8 text-center">
+                      <p className="text-xs font-[360]" style={{ color: "var(--color-text-secondary)" }}>No workflows created yet.</p>
                     </div>
                   )}
                 </div>
 
                 {recentWorkflows.length > 0 && (
-                  <Link 
-                    href="/automations" 
-                    className="px-[24px] py-[16px] bg-zinc-50 text-[13px] font-medium text-[var(--color-accent-foreground)] hover:bg-zinc-100 transition-colors border-t border-zinc-100 text-center"
+                  <Link
+                    href="/automations"
+                    className="px-6 py-4 text-xs font-medium transition-colors text-center hover:bg-bg-subtle"
+                    style={{ background: "var(--color-bg-subtle)", color: "var(--color-accent)", borderTop: "1px solid var(--color-border)" }}
                   >
                     View all workflows
                   </Link>

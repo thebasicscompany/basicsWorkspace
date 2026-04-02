@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from "electron"
+import { BrowserWindow, shell, nativeImage } from "electron"
 import * as path from "path"
 
 let mainWindow: BrowserWindow | null = null
@@ -10,11 +10,16 @@ export function getMainWindow(): BrowserWindow | null {
 }
 
 export function createMainWindow(): BrowserWindow {
+  // __dirname at runtime = electron/dist/, so go up two levels to project root
+  const iconPath = path.join(__dirname, "..", "..", "public", "logo.png")
+  const appIcon = nativeImage.createFromPath(iconPath)
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    icon: appIcon,
     titleBarStyle: "hiddenInset",
     backgroundColor: "#F5F7FA",
     show: false,

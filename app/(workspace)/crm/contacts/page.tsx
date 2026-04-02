@@ -10,6 +10,7 @@ import { useRecords } from "@/apps/crm/hooks/useRecords"
 import { useContactsFilter, type FilterRule } from "@/apps/crm/hooks/useContactsFilter"
 import { toContact } from "@/apps/crm/types"
 import { MagnifyingGlass, Export, X } from "@phosphor-icons/react"
+import { HeaderButton } from "@/components/header-button"
 
 function exportContactsCSV(contacts: ReturnType<typeof toContact>[]) {
   const HEADERS = ["Name", "Email", "Phone", "Company", "Status", "Created"]
@@ -122,17 +123,3 @@ export default function ContactsPage() {
   )
 }
 
-function HeaderButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-2.5 h-7 rounded text-xs font-medium transition-colors"
-      style={{ color: active ? "var(--color-accent)" : "var(--color-text-secondary)", background: "transparent" }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-subtle)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-    >
-      {icon}
-      {label}
-    </button>
-  )
-}

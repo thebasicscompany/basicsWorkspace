@@ -88,7 +88,7 @@ export function RecordButton() {
       size="default"
       onClick={handleStart}
       disabled={busy}
-      className="bg-rose-500 hover:bg-rose-600 text-white"
+      className="bg-accent text-white hover:opacity-90"
     >
       <Record size={16} weight="fill" />
       Start Recording

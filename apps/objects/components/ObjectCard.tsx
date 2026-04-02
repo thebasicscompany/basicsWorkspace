@@ -140,9 +140,9 @@ export function ObjectCard({
                 opacity: deleting ? 0.5 : 1,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#EF4444"
-                e.currentTarget.style.borderColor = "#FCA5A5"
-                e.currentTarget.style.background = "#FEF2F2"
+                e.currentTarget.style.color = "var(--color-error)"
+                e.currentTarget.style.borderColor = "var(--color-error)"
+                e.currentTarget.style.background = "var(--color-bg-subtle)"
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = "var(--color-text-tertiary)"

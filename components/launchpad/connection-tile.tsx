@@ -26,13 +26,13 @@ export function ConnectionTile({ name, icon, connected = false, onClick, iconBg,
             transition={{ duration: 0.1, ease: "easeOut" }}
             className={cn(
               "flex flex-col items-center justify-center cursor-pointer w-16 h-16 shrink-0 relative outline-none focus:outline-none",
-              "rounded-[16px] shadow-sm border border-zinc-200/60 transition-all",
-              dashed ? "border-dashed bg-transparent hover:bg-zinc-50 border-zinc-300" : (iconBg ? iconBg : "bg-white")
+              "rounded-xl shadow-sm border transition-all",
+              dashed ? "border-dashed bg-transparent hover:bg-bg-subtle border-border-strong" : (iconBg ? iconBg : "bg-bg-surface border-border")
             )}
           />
         }
       >
-        <div className="text-zinc-700 relative">
+        <div className="relative" style={{ color: "var(--color-text-secondary)" }}>
           {icon}
           
           {connected && (
@@ -46,8 +46,8 @@ export function ConnectionTile({ name, icon, connected = false, onClick, iconBg,
           )}
 
           {!connected && !dashed && (
-            <span className="absolute inset-0 rounded-full flex items-center justify-center bg-white/75 opacity-0 hover:opacity-100 transition-opacity">
-              <Plus size={16} className="text-zinc-600" />
+            <span className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(255,255,255,0.75)" }}>
+              <Plus size={16} style={{ color: "var(--color-text-secondary)" }} />
             </span>
           )}
         </div>

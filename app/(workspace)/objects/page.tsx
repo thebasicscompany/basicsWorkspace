@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Plus } from "@phosphor-icons/react"
+import { HeaderButton } from "@/components/header-button"
 import { AppHeader } from "@/components/app-header"
 import { PageTransition } from "@/components/page-transition"
 import { SectionLabel } from "@/components/section-label"
@@ -21,16 +22,11 @@ export default function ObjectsPage() {
       <AppHeader
         breadcrumb={[{ label: "Workspace", href: "/" }, { label: "Objects" }]}
         actions={
-          <button
+          <HeaderButton
+            icon={<Plus size={14} />}
+            label="New object type"
             onClick={() => setNewOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 h-7 rounded text-xs font-medium transition-colors"
-            style={{ color: "var(--color-text-secondary)", background: "transparent" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-subtle)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            <Plus size={14} />
-            New object type
-          </button>
+          />
         }
       />
 

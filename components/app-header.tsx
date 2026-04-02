@@ -23,9 +23,7 @@ export function AppHeader({ breadcrumb, actions, className }: AppHeaderProps) {
         background: "var(--color-bg-surface)",
         borderColor: "var(--color-border)",
         borderBottomWidth: "0.5px",
-        height: 72,
-        paddingTop: 16,
-        paddingBottom: 16,
+        height: 48,
       }}
     >
       {/* Breadcrumb */}
@@ -42,7 +40,7 @@ export function AppHeader({ breadcrumb, actions, className }: AppHeaderProps) {
               ) : item.href ? (
                 <Link
                   href={item.href}
-                  className="hover:text-zinc-600 transition-colors"
+                  className="transition-colors hover:opacity-70"
                   style={{ color: "var(--color-text-tertiary)", fontWeight: 400 }}
                 >
                   {item.label}

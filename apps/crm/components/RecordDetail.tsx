@@ -50,14 +50,14 @@ function relativeTime(iso: string) {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  contacts:    "#2563EB",
-  companies:   "#2563EB",
-  deals:       "#2563EB",
-  tasks:       "#F59E0B",
-  automations: "#6366F1",
-  meetings:    "#3B82F6",
-  notes:       "#8B5CF6",
-  agent:       "#EC4899",
+  contacts:    "var(--color-accent)",
+  companies:   "var(--color-accent)",
+  deals:       "var(--color-accent)",
+  tasks:       "var(--color-warning)",
+  automations: "var(--color-info)",
+  meetings:    "var(--color-info)",
+  notes:       "var(--color-info)",
+  agent:       "var(--color-error)",
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
