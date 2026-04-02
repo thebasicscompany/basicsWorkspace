@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { X, Copy, Check, Link as LinkIcon } from '@phosphor-icons/react'
 import type { BlockConfig } from '@/lib/sim/blocks'
 import type { SubBlockConfig } from '@/lib/sim/blocks/types'
 import type { BlockState } from '@/apps/automations/stores/workflows/utils'
 import { SubBlockField } from './sub-blocks/sub-block-field'
 
-export function BlockEditorPanel({
+export const BlockEditorPanel = memo(function BlockEditorPanel({
   workflowId,
   block,
   config,
@@ -193,4 +193,4 @@ export function BlockEditorPanel({
       )}
     </div>
   )
-}
+})

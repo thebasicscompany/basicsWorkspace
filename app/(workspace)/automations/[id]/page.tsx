@@ -1,8 +1,8 @@
-import { WorkflowCanvas } from "@/apps/automations/components/workflow-canvas"
+import { WorkflowCanvasLoader } from "@/apps/automations/components/workflow-canvas-loader"
 
 type Props = { params: Promise<{ id: string }> }
 
 export default async function WorkflowCanvasPage({ params }: Props) {
   const { id } = await params
-  return <WorkflowCanvas workflowId={id} />
+  return <WorkflowCanvasLoader workflowId={id} />
 }

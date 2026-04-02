@@ -4,7 +4,9 @@ import { Check, Copy, Wand2 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import 'prismjs/components/prism-python'
 import { createLogger } from '@/lib/sim/logger'
-import Editor from 'react-simple-code-editor'
+import dynamic from 'next/dynamic'
+
+const Editor = dynamic(() => import('react-simple-code-editor'), { ssr: false })
 import {
   CODE_LINE_HEIGHT_PX,
   Code as CodeEditor,
