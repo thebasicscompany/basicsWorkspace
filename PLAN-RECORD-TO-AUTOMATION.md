@@ -233,18 +233,23 @@ contextBridge.exposeInMainWorld('recorder', {
 
 ## Implementation Phases
 
-### Phase R1: Capture MVP (1-2 weeks)
+### Phase R1: Capture MVP ✅ DONE
 
 **Goal:** Record button → captures screenshots on clicks → saves to disk.
 
-- Add `electron/recorder/capture.ts` using `desktopCapturer`
-- Hook mouse clicks via nut.js (just clicks, not keyboard yet)
-- Buffer events with screenshots to temp directory
-- IPC bridge: `recorder:start`, `recorder:stop`, `recorder:actions` (returns event array)
-- Record button on canvas toolbar (only visible in Electron, hidden on web)
-- Recording indicator in system tray
+- ✅ `electron/recorder/capture.ts` using `desktopCapturer`
+- ✅ Hook mouse clicks, keyboard, scroll via `uiohook-napi` (replaced nut.js — nut.js monitoring is paid-only)
+- ✅ Active window detection via `active-win@8` polling
+- ✅ Buffer events with screenshots to temp directory
+- ✅ IPC bridge: `recorder:start`, `recorder:stop`, `recorder:status`, `recorder:event` (live streaming)
+- ✅ Record button on recorder page (only visible in Electron, hidden on web)
+- ✅ Recording overlay (floating pill on all workspace pages during recording)
+- ✅ Recording indicator in system tray (gray idle / red recording)
+- ✅ Zustand store for renderer-side recording state
+- ✅ PATCH API to save events back to recordings table
+- ✅ Electron main process restructured into modular architecture (window.ts, ipc.ts, recorder/)
 
-**No understanding yet** — just prove the capture pipeline works.
+**No understanding yet** — capture pipeline is built.
 
 ### Phase R2: Understanding MVP (1-2 weeks)
 
@@ -332,7 +337,7 @@ Phase R1-R3 gets you to Level 1. Level 2 doesn't need screen recording at all �
 
 | This plan needs | Status | Notes |
 |-----------------|--------|-------|
-| Electron shell (ELECTRON-PLAN Phase 1) | Not started | Must exist before any recording work |
+| Electron shell (ELECTRON-PLAN Phase 1) | ✅ Done | Modular architecture, splash, tray |
 | Trigger runtime (main Phase 4) | Not started | Needed for Level 3 autonomy, not for recording |
 | Gateway with vision model access | Exists | Route Claude/GPT-4V calls through existing gateway |
 | Block registry | Done | 180+ blocks already defined, used for mapping |

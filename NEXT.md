@@ -19,6 +19,11 @@ Everything through Phase 3D is built and working:
 - **Settings** — Profile, workspace, gateway config, **environment variables (Secrets)** with encryption
 - **Execution logs** — Dashboard at `/automations/logs` with status filters, pagination, block-level drill-down
 - **Terminal** — In-canvas execution console with block-by-block output
+- **Electron shell (E1)** ✅ — BrowserWindow, preload, splash screen, modular main process, system tray
+- **Recorder app scaffold (R1 scaffold)** ✅ — App manifest, launchpad tile, recordings DB table, CRUD API routes
+- **Recorder capture module (R1 capture)** ✅ — desktopCapturer screenshots, uiohook-napi input hooks (click/key/scroll/window switch), event buffer, IPC bridge, recording overlay, Zustand store
+- **Dark mode removed** ✅ — Light mode only across all 22+ components
+- **pnpm migration** ✅ — Switched from npm, `.npmrc` with hoisted node-linker for Turbopack compat
 
 ---
 

@@ -11,10 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const orgId = session.session.activeOrganizationId
-  if (!orgId) {
-    return NextResponse.json({ recordings: [] })
-  }
+  const orgId = session.session.activeOrganizationId || session.user.id
 
   const rows = await db
     .select()
@@ -31,10 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const orgId = session.session.activeOrganizationId
-  if (!orgId) {
-    return NextResponse.json({ error: "No active organization" }, { status: 400 })
-  }
+  const orgId = session.session.activeOrganizationId || session.user.id
 
   const body = await request.json()
 
